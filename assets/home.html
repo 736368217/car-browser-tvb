@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<!-- 本地首屏按屏幕宽度排版（外站才钉桌面宽度，见 src-web/web-bridge.js） -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>车机浏览器</title>
+<link rel="stylesheet" href="home.css">
+</head>
+<body>
+
+<div class="page">
+
+  <!-- 顶：搜索框（车机最先到的位置，一行就能搜） --------------------- -->
+  <section class="search-block">
+    <div class="brand">CAR&nbsp;WEB</div>
+    <form class="search" id="search" autocomplete="off">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+        <circle cx="10.5" cy="10.5" r="6.5"></circle>
+        <path d="M15.6 15.6 21 21"></path>
+      </svg>
+      <input id="q" type="text" placeholder="搜索或输入网址" autocomplete="off"
+             autocapitalize="off" autocorrect="off" spellcheck="false">
+    </form>
+    <div class="engines" id="engines"></div>
+  </section>
+
+  <!-- 中：收藏的网站 ------------------------------------------------- -->
+  <section class="block">
+    <div class="block-title">常用</div>
+    <div class="grid" id="fav-grid"></div>
+    <p class="empty" id="fav-empty" hidden>
+      还没有收藏。<br>
+      长按下面的网站卡片，就能把它收进来。
+    </p>
+  </section>
+
+  <!-- 下：最近打开的网站 --------------------------------------------- -->
+  <section class="block">
+    <div class="block-title">最近</div>
+    <div class="grid" id="recent-grid"></div>
+    <p class="empty" id="recent-empty" hidden>还没有浏览记录，从上面搜点什么吧。</p>
+  </section>
+
+  <p class="hint">长按卡片：收藏 / 删除　·　长按网页：鼠标悬停</p>
+
+</div>
+
+<!-- 长按卡片弹出来的小菜单 -->
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-mask" id="sheet-mask"></div>
+  <div class="sheet-panel">
+    <div class="sheet-title" id="sheet-title"></div>
+    <div class="sheet-site" id="sheet-site"></div>
+    <div class="sheet-actions" id="sheet-actions"></div>
+  </div>
+</div>
+
+<script src="home.js"></script>
+</body>
+</html>

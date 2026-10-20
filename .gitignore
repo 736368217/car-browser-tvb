@@ -1,0 +1,13 @@
+# 构建产物
+build/
+dist/
+*.idsig
+
+# 签名私钥不进仓库
+keystore/
+*.jks
+*.keystore
+
+# 验收截图与 UI 树（本地证据，按需单独归档）
+smoke/
+*.log

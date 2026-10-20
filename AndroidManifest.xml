@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.carweb.tvb"
+    android:versionCode="2"
+    android:versionName="2.0">
+
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="33" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- 车机安装过滤：所有 required=true 的 uses-feature 都会导致拒装，全部显式置 false。
+         原工程只声明了 touchscreen / leanback；这里补全车机常见的隐含特性。 -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+    <!-- screenOrientation=landscape 会隐式注入 required=true 的 screen.landscape，显式覆盖 -->
+    <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
+
+    <application
+        android:allowBackup="true"
+        android:hardwareAccelerated="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:largeHeap="true"
+        android:supportsRtl="false"
+        android:usesCleartextTraffic="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|density"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:screenOrientation="landscape"
+            android:theme="@style/AppTheme"
+            android:windowSoftInputMode="adjustResize">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
