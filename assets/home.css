@@ -118,7 +118,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: background .12s ease-out, border-color .12s ease-out, box-shadow .12s ease-out;
+  transition: background .12s ease-out, border-color .12s ease-out, box-shadow .12s ease-out, transform .12s ease-out;
 }
 
 .site:hover .icon,
@@ -128,30 +128,36 @@ body {
   box-shadow: 0 0 0 .12vw rgba(34, 197, 94, .25);
 }
 
-/* 首字母兜底：只在没有 logo 时显示 */
+/* 首字母兜底：做成圆形徽章，而不是一个孤零零的字浮在色块上 */
 .icon .initial {
   position: absolute;
-  inset: 0;
+  width: 56%;
+  height: 56%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .13);
+  border: 1px solid rgba(255, 255, 255, .10);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(var(--cell) * 0.34);
-  font-weight: 700;
+  font-size: calc(var(--cell) * 0.26);
+  font-weight: 600;
   line-height: 1;
   color: #fff;
-  background: transparent;
   text-transform: uppercase;
 }
 
 .icon img {
   position: absolute;
-  inset: 22%;
-  width: 56%;
-  height: 56%;
+  inset: 21%;
+  width: 58%;
+  height: 58%;
   object-fit: contain;
   display: none;
   z-index: 1;
 }
+
+/* logo 加载成功 → 显示图片（少了这一条，图片永远 display:none，只剩色块 + 首字母） */
+.icon.has-icon img { display: block; }
 
 /* ↓↓↓ 这一行就是「文字 + logo 重叠」的修复 ↓↓↓
    has-icon 表示 logo 真的加载成功了，此时把首字母层整个拿掉。
@@ -190,6 +196,20 @@ body {
 }
 
 .site.moving .name { color: var(--accent); font-weight: 600; }
+
+/* 拖动排序中的那张卡片：抬高、描绿边、跟着手指走 */
+.site.dragging {
+  z-index: 10;
+  transition: none;
+}
+
+.site.dragging .icon {
+  border-color: var(--accent);
+  box-shadow: 0 1.2vw 2.4vw rgba(0, 0, 0, .55), 0 0 0 .18vw rgba(34, 197, 94, .35);
+  transform: scale(1.05);
+}
+
+.site.dragging .name { color: var(--accent); }
 
 /* ------------------------------------------------------------- 搜索框 -- */
 

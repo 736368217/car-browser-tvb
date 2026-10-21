@@ -119,6 +119,9 @@
     layout: { cell: 104, gap: 18, cols: 6 },
   };
 
+  /* 手势吃掉一次点击：长按/拖拽结束后别让卡片顺手被打开 */
+  var firedClick = false;
+
   /* ------------------------------------------------------------ 小工具 -- */
 
   function clamp(lo, v, hi) {
@@ -266,11 +269,32 @@
   /* -------------------------------------------------------------- 卡片 -- */
 
   /*
-   * 图标候选：apple-touch-icon 优先 —— 它通常是 180×180 的高清图，
-   * 而 /favicon.ico 往往是 16×16，在 288px 的瓦片里糊成一团。
-   * 现代站点大多只把图标写在 <link rel="icon"> 里、根目录没有文件，
-   * 所以能试的路径都试一遍，全失败才退回首字母。
+   * 内置站点 logo：构建期从站点抓下来、打进 APK。
+   *
+   * 为什么不用运行时抓：现代站点基本都把图标写在 <link rel="icon"> 里，
+   * 根目录 /favicon.ico 十有八九是 404 —— 于是整页卡片全部退回首字母，
+   * 看起来就是"一片纯色 + 一个孤零零的字"。打包进来既稳又不用等网络。
+   * 未知站点仍走网络兜底（apple-touch-icon → favicon.ico → 首字母）。
    */
+  var LOCAL_ICONS = {
+    'bilibili.com': 'ic-bilibili.png',
+    'baidu.com': 'ic-baidu.png',
+    'weibo.com': 'ic-weibo.png',
+    'zhihu.com': 'ic-zhihu.png',
+    'taobao.com': 'ic-taobao.png',
+    'jd.com': 'ic-jd.png',
+    'v.qq.com': 'ic-qqvideo.png',
+    'iqiyi.com': 'ic-iqiyi.png',
+    'youku.com': 'ic-youku.png',
+    'douban.com': 'ic-douban.png',
+    'music.163.com': 'ic-netease.png',
+    'tv.cctv.com': 'ic-cctv.png'
+  };
+
+  function bareHost(host) {
+    return String(host || '').replace(/^www\./i, '').toLowerCase();
+  }
+
   var FAVICON_CANDIDATES = [
     '/apple-touch-icon.png',
     '/apple-touch-icon-precomposed.png',
@@ -278,8 +302,25 @@
     '/favicon.png'
   ];
 
+  function markLoaded(img) {
+    if (img.naturalWidth > 1 && img.naturalHeight > 1) {
+      if (img.parentNode) img.parentNode.classList.add('has-icon');
+    }
+  }
+
   function loadFavicon(img, host) {
     if (!host) { img.remove(); return; }
+
+    // 1) 内置 logo（默认站点全走这条，不依赖网络）
+    var local = LOCAL_ICONS[bareHost(host)];
+    if (local) {
+      img.onload = function () { markLoaded(img); };
+      img.onerror = function () { img.remove(); };
+      img.src = local;
+      return;
+    }
+
+    // 2) 未知站点：按常见路径试
     var tried = 0;
     function next() {
       if (tried >= FAVICON_CANDIDATES.length) { img.remove(); return; }
@@ -287,11 +328,8 @@
       img.onerror = next;
       img.onload = function () {
         // 有的站点拿"找不到页"当 200 返回，解码不出图的时候自然尺寸是 0
-        if (img.naturalWidth > 1 && img.naturalHeight > 1) {
-          if (img.parentNode) img.parentNode.classList.add('has-icon');
-        } else {
-          next();
-        }
+        if (img.naturalWidth > 1 && img.naturalHeight > 1) markLoaded(img);
+        else next();
       };
       img.src = url;
     }
@@ -308,6 +346,9 @@
 
     var a = document.createElement('a');
     a.className = 'site';
+    a.addEventListener('click', function (e) {
+      if (firedClick) { e.preventDefault(); e.stopPropagation(); firedClick = false; }
+    }, true);
     a.href = normalize(url);
     a.target = '_blank';          // 交给注入脚本变成"新标签页"
     a.rel = 'noopener';
@@ -346,25 +387,40 @@
 
   /* ------------------------------------------------------ 触摸长按 -- */
   /*
-   * 车机是手指操作，而上游只接了遥控器的 kb-longpress：触摸屏上长按卡片
-   * 什么都不会发生 —— 这是「长按功能没带上」的另一半原因（第一半是网页里的悬停）。
+   * 卡片手势：长按拿起 → 拖动排序；拿起后不动、直接松手 → 弹菜单。
    *
-   * 这里补一条触摸长按，和遥控器那条走同一个 openMenu。
-   * 550ms 比系统长按（500ms）稍长，避免和"按住想滑动"抢；手指移动超过 12px 就取消。
-   *
-   * 长按触发后必须吃掉紧随其后的 click，否则手指一松就直接把网站打开了。
+   * 上游只有遥控器的 kb-longpress，触摸屏根本没有"长按"这回事；
+   * 而排序如果做成菜单里的「上移/下移」按钮，一次只能挪一格，很笨。
+   * 这里做成跟手机桌面一样的直接拖拽：拿起来、拖到位置、松手即生效。
    */
-  var TOUCH_LONG_MS = 550;
+  var TOUCH_LONG_MS = 450;
 
   function bindTouchLongPress(el, url, kind) {
     var timer = null;
-    var moved = false;
-    var fired = false;
+    var lifted = false;
+    var dragged = false;
     var sx = 0;
     var sy = 0;
 
-    function cancel() {
+    function clearTimer() {
       if (timer) { clearTimeout(timer); timer = null; }
+    }
+
+    function drop() {
+      el.classList.remove('dragging');
+      el.style.transform = '';
+      el.style.zIndex = '';
+    }
+
+    function currentOrder() {
+      var out = [];
+      var nodes = el.parentNode ? el.parentNode.querySelectorAll('.site') : [];
+      for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].dataset.kind === 'fav' && nodes[i].dataset.url) {
+          out.push(nodes[i].dataset.url);
+        }
+      }
+      return out;
     }
 
     el.addEventListener('touchstart', function (e) {
@@ -372,37 +428,76 @@
       var t = e.touches[0];
       sx = t.clientX;
       sy = t.clientY;
-      moved = false;
-      fired = false;
-      cancel();
+      lifted = false;
+      dragged = false;
+      clearTimer();
       timer = setTimeout(function () {
         timer = null;
-        if (moved) return;
-        fired = true;
-        try { if (navigator.vibrate) navigator.vibrate(18); } catch (err) { /* ignore */ }
-        openMenu(url, kind);
+        if (kind !== 'fav') {
+          // 最近打开不支持排序，长按直接给菜单
+          firedClick = true;
+          openMenu(url, kind);
+          return;
+        }
+        lifted = true;
+        el.classList.add('dragging');
+        try { if (navigator.vibrate) navigator.vibrate(15); } catch (err) { /* ignore */ }
       }, TOUCH_LONG_MS);
     }, { passive: true });
 
     el.addEventListener('touchmove', function (e) {
       if (!e.touches || !e.touches.length) return;
       var t = e.touches[0];
-      if (Math.abs(t.clientX - sx) > 12 || Math.abs(t.clientY - sy) > 12) {
-        moved = true;
-        cancel();
+
+      if (!lifted) {
+        if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) {
+          clearTimer();      // 手指移动 = 想滚动，不是长按
+        }
+        return;
+      }
+
+      // 已拿起：进入拖拽
+      e.preventDefault();
+      dragged = true;
+      el.style.transform = 'translate(' + (t.clientX - sx) + 'px,' + (t.clientY - sy) + 'px) scale(1.06)';
+      el.style.zIndex = '10';
+
+      var under = document.elementFromPoint(t.clientX, t.clientY);
+      var over = under && under.closest ? under.closest('.site') : null;
+      if (over && over !== el && over.parentNode === el.parentNode && over.dataset.kind === 'fav') {
+        var r = over.getBoundingClientRect();
+        var before = t.clientX < r.left + r.width / 2;
+        el.parentNode.insertBefore(el, before ? over : over.nextSibling);
+      }
+    }, { passive: false });
+
+    el.addEventListener('touchend', function () {
+      clearTimer();
+      if (!lifted) return;
+      lifted = false;
+
+      if (dragged) {
+        drop();
+        var list = currentOrder();
+        S.favorites = list;
+        native('saveFavorites', JSON.stringify(list));
+        dragged = false;
+        firedClick = true;          // 吃掉这次 click，别顺手把站点打开
+        renderAll();
+      } else {
+        // 拿起但没拖：松手即菜单
+        drop();
+        firedClick = true;
+        openMenu(url, kind);
       }
     }, { passive: true });
 
-    el.addEventListener('touchend', cancel, { passive: true });
-    el.addEventListener('touchcancel', cancel, { passive: true });
-
-    el.addEventListener('click', function (e) {
-      if (fired) {
-        e.preventDefault();
-        e.stopPropagation();
-        fired = false;
-      }
-    }, true);
+    el.addEventListener('touchcancel', function () {
+      clearTimer();
+      lifted = false;
+      dragged = false;
+      drop();
+    }, { passive: true });
   }
 
   /* 触摸屏上没有方向键，上游那个「移动位置 + 方向键」的玩法用不了。
@@ -552,14 +647,7 @@
         closeMenu();
       });
     } else {
-      addAction('↑ 前移', false, function () {
-        shiftFavorite(url, -1);
-        closeMenu();
-      });
-      addAction('↓ 后移', false, function () {
-        shiftFavorite(url, 1);
-        closeMenu();
-      });
+
       addAction('删除', true, function () {
         native('unfavorite', url);
         closeMenu();
