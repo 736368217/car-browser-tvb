@@ -123,6 +123,8 @@
 
   /* 手势吃掉一次点击：长按/拖拽结束后别让卡片顺手被打开 */
   var firedClick = false;
+  /** 长按进入的编辑模式：卡片抖动、左上角出减号、可拖动排序 */
+  var editMode = false;
 
   /* ------------------------------------------------------------ 小工具 -- */
 
@@ -281,18 +283,19 @@
    * 未知站点仍走网络兜底（apple-touch-icon → favicon.ico → 首字母）。
    */
   var LOCAL_ICONS = {
-    'bilibili.com': 'ic-bilibili.svg',
-    'baidu.com': 'ic-baidu.svg',
-    'weibo.com': 'ic-weibo.svg',
-    'zhihu.com': 'ic-zhihu.svg',
-    'taobao.com': 'ic-taobao.svg',
+    'baidu.com': 'ic-baidu.png',
+    'google.com': 'ic-google.png',
+    'youtube.com': 'ic-youtube.png',
+    'bilibili.com': 'ic-bilibili.png',
+    'zhihu.com': 'ic-zhihu.png',
+    'taobao.com': 'ic-taobao.png',
+    'weibo.com': 'ic-weibo.png',
+    'douban.com': 'ic-douban.png',
     'jd.com': 'ic-jd.png',
-    'v.qq.com': 'ic-qqvideo.png',
-    'iqiyi.com': 'ic-iqiyi.png',
     'youku.com': 'ic-youku.png',
-    'douban.com': 'ic-douban.svg',
-    'music.163.com': 'ic-netease.svg',
-    'tv.cctv.com': 'ic-cctv.png'
+    'iqiyi.com': 'ic-iqiyi.png',
+    'v.qq.com': 'ic-qqvideo.png',
+    'music.163.com': 'ic-netease.png'
   };
 
   function bareHost(host) {
@@ -350,9 +353,14 @@
 
     var a = document.createElement('a');
     a.className = 'site';
+    // 注意：必须用冒泡阶段。用捕获阶段会在事件到达减号按钮之前就被拦掉，
+    // 结果就是"编辑模式里减号点不动"。
     a.addEventListener('click', function (e) {
-      if (firedClick) { e.preventDefault(); e.stopPropagation(); firedClick = false; }
-    }, true);
+      if (firedClick || editMode) {
+        e.preventDefault();
+        firedClick = false;
+      }
+    });
     a.href = normalize(url);
     a.target = '_blank';          // 交给注入脚本变成"新标签页"
     a.rel = 'noopener';
@@ -380,8 +388,21 @@
     name.className = 'name';
     name.textContent = nameFor(url);
 
+    var minus = document.createElement('span');
+    minus.className = 'minus';
+    minus.textContent = '−';
+    minus.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      native('unfavorite', url);
+      var idx = S.favorites.indexOf(normalize(url));
+      if (idx >= 0) S.favorites.splice(idx, 1);
+      renderAll();
+    });
+
     a.appendChild(icon);
     a.appendChild(name);
+    a.appendChild(minus);
 
     bindTouchLongPress(a, normalize(url), kind);
 
@@ -389,6 +410,48 @@
     return a;
   }
 
+  /* --------------------------------------------------------- 编辑模式 -- */
+  /*
+   * 长按任意卡片进入编辑模式：所有卡片轻微抖动、左上角出现减号。
+   * 此时可以拖动排序、点减号删除；点右上角「完成」退出。
+   * 不再弹菜单 —— 少一层跳转，和手机桌面整理图标一个手感。
+   */
+  function setCardsHref(on) {
+    var grid = document.getElementById('fav-grid');
+    if (!grid) return;
+    var as = grid.querySelectorAll('.site');
+    for (var i = 0; i < as.length; i++) {
+      if (on) {
+        if (as[i].dataset.href) as[i].setAttribute('href', as[i].dataset.href);
+      } else {
+        // 编辑模式下把 href 整个摘掉：点击物理上不可能跳转，
+        // 不用再靠 click 拦截（拦截会被 DOM 重排打断）
+        as[i].dataset.href = as[i].getAttribute('href') || normalize(as[i].dataset.url || '');
+        as[i].removeAttribute('href');
+      }
+    }
+  }
+
+  function enterEdit() {
+    if (editMode) return;
+    editMode = true;
+    var grid = document.getElementById('fav-grid');
+    if (grid) grid.classList.add('editing');
+    setCardsHref(false);
+    var done = document.getElementById('edit-done');
+    if (done) done.hidden = false;
+  }
+
+  function exitEdit() {
+    if (!editMode) return;
+    editMode = false;
+    var grid = document.getElementById('fav-grid');
+    if (grid) grid.classList.remove('editing');
+    setCardsHref(true);
+    var done = document.getElementById('edit-done');
+    if (done) done.hidden = true;
+    renderAll();
+  }
   /* ------------------------------------------------------ 触摸长按 -- */
   /*
    * 卡片手势：长按拿起 → 拖动排序；拿起后不动、直接松手 → 弹菜单。
@@ -437,12 +500,8 @@
       clearTimer();
       timer = setTimeout(function () {
         timer = null;
-        if (kind !== 'fav') {
-          // 最近打开不支持排序，长按直接给菜单
-          firedClick = true;
-          openMenu(url, kind);
-          return;
-        }
+        if (kind !== 'fav') return;
+        enterEdit();
         lifted = true;
         el.classList.add('dragging');
         try { if (navigator.vibrate) navigator.vibrate(15); } catch (err) { /* ignore */ }
@@ -489,10 +548,9 @@
         firedClick = true;          // 吃掉这次 click，别顺手把站点打开
         renderAll();
       } else {
-        // 拿起但没拖：松手即菜单
+        // 拿起但没拖：已经进入编辑模式，松手即可
         drop();
         firedClick = true;
-        openMenu(url, kind);
       }
     }, { passive: true });
 
@@ -901,6 +959,9 @@
   }
 
   window.addEventListener('resize', onResize);
+
+  var doneBtn = document.getElementById('edit-done');
+  if (doneBtn) doneBtn.addEventListener('click', exitEdit);
 
   applyLayout();
   renderAll();

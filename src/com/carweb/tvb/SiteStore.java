@@ -43,19 +43,15 @@ public final class SiteStore {
      * 第一次运行时预置的收藏。
      * 中文名和品牌色在 assets/home.js 的 NAMES / TINTS 里按域名匹配。
      */
+    /*
+     * 默认只放三个：百度、谷歌、YouTube。
+     * 其余站点（bilibili/微博/知乎/淘宝/京东/腾讯视频/爱奇艺/优酷/豆瓣/网易云）
+     * 只作为图标与收藏能力的验证样本，不默认塞给用户。
+     */
     public static final List<String> DEFAULT_FAVORITES = Arrays.asList(
-            "https://www.bilibili.com",
             "https://www.baidu.com",
-            "https://weibo.com",
-            "https://www.zhihu.com",
-            "https://www.taobao.com",
-            "https://www.jd.com",
-            "https://v.qq.com",
-            "https://www.iqiyi.com",
-            "https://www.youku.com",
-            "https://www.douban.com",
-            "https://music.163.com",
-            "https://tv.cctv.com"
+            "https://www.google.com",
+            "https://www.youtube.com"
     );
 
     private final SharedPreferences prefs;

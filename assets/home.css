@@ -148,16 +148,30 @@ body {
 
 .icon img {
   position: absolute;
-  inset: 21%;
-  width: 58%;
-  height: 58%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   display: none;
   z-index: 1;
 }
 
-/* logo 加载成功 → 显示图片（少了这一条，图片永远 display:none，只剩色块 + 首字母） */
-.icon.has-icon img { display: block; }
+/* 有 logo：图标直接铺满整格 —— 做成 iOS 桌面那种「图标即卡片」，
+   而不是「大色块里再套一张小图」的双层方块 */
+.icon.has-icon {
+  background: transparent;
+  border-color: transparent;
+}
+.icon.has-icon img {
+  display: block;
+  border-radius: var(--radius);
+}
+.site:hover .icon.has-icon {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  filter: brightness(1.12);
+}
 
 /* ↓↓↓ 这一行就是「文字 + logo 重叠」的修复 ↓↓↓
    has-icon 表示 logo 真的加载成功了，此时把首字母层整个拿掉。
@@ -366,3 +380,50 @@ body {
 .act.danger { color: #FF8080; }
 
 .act.danger:hover { background: rgba(255, 92, 92, .14); border-color: rgba(255, 92, 92, .5); }
+
+/* ------------------------------------------------- 编辑模式（长按进入） -- */
+
+.grid.editing .site {
+  animation: wiggle 0.28s ease-in-out infinite alternate;
+}
+@keyframes wiggle {
+  from { transform: rotate(-0.6deg); }
+  to   { transform: rotate(0.6deg); }
+}
+
+/* 左上角的减号：编辑模式下才出现 */
+.minus {
+  position: absolute;
+  top: -0.5vw;
+  left: -0.5vw;
+  width: 2.4vw;
+  height: 2.4vw;
+  border-radius: 50%;
+  background: #E5484D;
+  color: #fff;
+  font-size: 1.9vw;
+  line-height: 2.2vw;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: 0 0.2vw 0.6vw rgba(0,0,0,.5);
+  display: none;
+  z-index: 3;
+}
+.grid.editing .minus { display: block; }
+
+.site { position: relative; }
+
+/* 编辑模式下的「完成」按钮 */
+.edit-done {
+  position: fixed;
+  right: 2vw;
+  top: 2vw;
+  padding: 0.9vw 2vw;
+  border-radius: 999px;
+  background: #22C55E;
+  color: #08210F;
+  font-size: 1.3vw;
+  font-weight: 600;
+  box-shadow: 0 0.4vw 1.2vw rgba(0,0,0,.45);
+  z-index: 40;
+}

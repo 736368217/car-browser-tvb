@@ -32,6 +32,14 @@ public class GlyphIcon extends Drawable {
     public static final int TABS = 7;
     public static final int DOWN = 8;
     public static final int SEARCH = 9;
+    public static final int CLOCK = 10;
+    public static final int SHARE = 11;
+    public static final int DESKTOP = 12;
+    public static final int MOON = 13;
+    public static final int EXPAND = 14;
+    public static final int TRASH = 15;
+    public static final int POWER = 16;
+    public static final int SLIDERS = 17;
 
     /** 24 视框里的标准描边宽度 */
     private static final float STROKE = 2.0f;
@@ -187,6 +195,103 @@ public class GlyphIcon extends Drawable {
                 path.moveTo(17.6f, 6.4f);
                 path.lineTo(6.4f, 17.6f);
                 c.drawPath(path, stroke);
+                break;
+
+            case CLOCK:
+                oval.set(3.6f, 3.6f, 20.4f, 20.4f);
+                c.drawOval(oval, stroke);
+                path.reset();
+                path.moveTo(12f, 7.4f);
+                path.lineTo(12f, 12.2f);
+                path.lineTo(15.6f, 14.4f);
+                c.drawPath(path, stroke);
+                break;
+
+            case SHARE:
+                path.reset();
+                path.moveTo(8.2f, 10.8f);
+                path.lineTo(15.8f, 7.2f);
+                path.moveTo(8.2f, 13.2f);
+                path.lineTo(15.8f, 16.8f);
+                c.drawPath(path, stroke);
+                c.drawCircle(6f, 12f, 2.3f, fill);
+                c.drawCircle(18f, 6f, 2.3f, fill);
+                c.drawCircle(18f, 18f, 2.3f, fill);
+                break;
+
+            case DESKTOP:
+                path.reset();
+                path.moveTo(5f, 4.6f);
+                path.lineTo(19f, 4.6f);
+                path.lineTo(19f, 15.4f);
+                path.lineTo(5f, 15.4f);
+                path.close();
+                c.drawPath(path, stroke);
+                path.reset();
+                path.moveTo(12f, 15.4f);
+                path.lineTo(12f, 19.4f);
+                path.moveTo(8.2f, 19.4f);
+                path.lineTo(15.8f, 19.4f);
+                c.drawPath(path, stroke);
+                break;
+
+            case MOON:
+                path.reset();
+                path.moveTo(20.2f, 14.6f);
+                path.cubicTo(19.0f, 17.6f, 16.2f, 19.6f, 12.9f, 19.6f);
+                path.cubicTo(8.5f, 19.6f, 4.9f, 16.0f, 4.9f, 11.6f);
+                path.cubicTo(4.9f, 8.3f, 6.9f, 5.5f, 9.9f, 4.3f);
+                path.cubicTo(8.4f, 6.2f, 7.6f, 8.5f, 7.6f, 11.0f);
+                path.cubicTo(7.6f, 15.4f, 11.2f, 19.0f, 15.6f, 19.0f);
+                path.cubicTo(17.3f, 19.0f, 18.9f, 18.4f, 20.2f, 17.4f);
+                path.close();
+                c.drawPath(path, stroke);
+                break;
+
+            case EXPAND:
+                path.reset();
+                path.moveTo(4.4f, 9.4f); path.lineTo(4.4f, 4.4f); path.lineTo(9.4f, 4.4f);
+                path.moveTo(14.6f, 4.4f); path.lineTo(19.6f, 4.4f); path.lineTo(19.6f, 9.4f);
+                path.moveTo(19.6f, 14.6f); path.lineTo(19.6f, 19.6f); path.lineTo(14.6f, 19.6f);
+                path.moveTo(9.4f, 19.6f); path.lineTo(4.4f, 19.6f); path.lineTo(4.4f, 14.6f);
+                c.drawPath(path, stroke);
+                break;
+
+            case TRASH:
+                path.reset();
+                path.moveTo(3.8f, 6.6f); path.lineTo(20.2f, 6.6f);
+                path.moveTo(9.2f, 3.8f); path.lineTo(14.8f, 3.8f);
+                c.drawPath(path, stroke);
+                path.reset();
+                path.moveTo(6.2f, 6.6f);
+                path.lineTo(6.2f, 19.4f);
+                path.lineTo(17.8f, 19.4f);
+                path.lineTo(17.8f, 6.6f);
+                c.drawPath(path, stroke);
+                path.reset();
+                path.moveTo(10.2f, 10.2f); path.lineTo(10.2f, 16.2f);
+                path.moveTo(13.8f, 10.2f); path.lineTo(13.8f, 16.2f);
+                c.drawPath(path, stroke);
+                break;
+
+            case POWER:
+                path.reset();
+                path.moveTo(12f, 3.6f);
+                path.lineTo(12f, 11.2f);
+                c.drawPath(path, stroke);
+                oval.set(4.4f, 5.2f, 19.6f, 20.4f);
+                c.drawArc(oval, 122f, 296f, false, stroke);
+                break;
+
+            case SLIDERS:
+                path.reset();
+                path.moveTo(3.8f, 7f); path.lineTo(20.2f, 7f);
+                path.moveTo(3.8f, 12f); path.lineTo(20.2f, 12f);
+                path.moveTo(3.8f, 17f); path.lineTo(20.2f, 17f);
+                c.drawPath(path, stroke);
+                c.drawCircle(9f, 7f, 2.1f, fill);
+                c.drawCircle(15.6f, 12f, 2.1f, fill);
+                c.drawCircle(7.6f, 17f, 2.1f, fill);
                 break;
 
             default:

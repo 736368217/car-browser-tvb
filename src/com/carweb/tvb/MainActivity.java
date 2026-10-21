@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.graphics.Color;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Message;
@@ -103,6 +104,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         statusParams.bottomMargin = Math.round(getResources().getDisplayMetrics().density * 28);
         root.addView(status, statusParams);
 
+        buildSheet();
         setContentView(root);
 
         // 每次都从首屏开始：电视上"接着上次继续"的收益远不如"一打开就能搜"来得实在
@@ -245,7 +247,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         bMenu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showMenu();
+                showSheet();
             }
         });
 
@@ -514,6 +516,338 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
     }
 
+    /* ------------------------------------------------- 功能页（底部面板） -- */
+    /*
+     * 原来点菜单是一个竖排 AlertDialog 列表，又窄又丑。
+     * 改成参考 Via 的做法：从底部升起一页功能网格 —— 图标 + 文字、5 列两行，
+     * 底部有分页圆点、电源键和翻页箭头。目标大、扫一眼就能点到。
+     */
+
+    private FrameLayout sheetLayer;
+    private View sheetPage1;
+    private View sheetPage2;
+    private View sheetDot1;
+    private View sheetDot2;
+    private int sheetPageIndex = 0;
+    private boolean nightMode = false;
+    private boolean toolbarHidden = false;
+
+    private static final String[][] SHEET_PAGE1 = {
+            {"主页", "3", "home"},
+            {"后退", "0", "back"},
+            {"前进", "1", "forward"},
+            {"刷新", "2", "reload"},
+            {"标签页", "7", "tabs"},
+            {"添加书签", "4", "bookmark"},
+            {"历史", "10", "history"},
+            {"下载", "8", "download"},
+            {"分享", "11", "share"},
+            {"电脑模式", "12", "desktop"}
+    };
+
+    private static final String[][] SHEET_PAGE2 = {
+            {"夜间模式", "13", "night"},
+            {"全屏", "14", "fullscreen"},
+            {"清除缓存", "15", "clear"},
+            {"搜索引擎", "9", "engine"},
+            {"关于", "5", "about"},
+            {"退出", "16", "exit"}
+    };
+
+    private void buildSheet() {
+        sheetLayer = new FrameLayout(this);
+        sheetLayer.setVisibility(View.GONE);
+
+        View scrim = new View(this);
+        scrim.setBackgroundColor(0xC8000000);
+        scrim.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                hideSheet();
+            }
+        });
+        sheetLayer.addView(scrim, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        int pad = px(0.012f);
+        float r = px(0.016f);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF14181F);
+        bg.setCornerRadii(new float[]{r, r, r, r, 0, 0, 0, 0});
+        panel.setBackground(bg);
+        panel.setPadding(pad, pad, pad, pad / 2);
+
+        FrameLayout pages = new FrameLayout(this);
+        sheetPage1 = buildSheetPage(SHEET_PAGE1);
+        sheetPage2 = buildSheetPage(SHEET_PAGE2);
+        sheetPage2.setVisibility(View.GONE);
+        pages.addView(sheetPage1);
+        pages.addView(sheetPage2);
+        panel.addView(pages, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(pad / 2, pad / 4, pad / 2, pad / 4);
+
+        int btn = px(0.038f);
+        ImageView power = new ImageView(this);
+        power.setImageDrawable(new GlyphIcon(GlyphIcon.POWER, 0xFF8B95A5));
+        power.setPadding(btn / 4, btn / 4, btn / 4, btn / 4);
+        power.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                hideSheet();
+            }
+        });
+        bar.addView(power, new LinearLayout.LayoutParams(btn, btn));
+
+        LinearLayout dots = new LinearLayout(this);
+        dots.setOrientation(LinearLayout.HORIZONTAL);
+        dots.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams dotsLp = new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        bar.addView(dots, dotsLp);
+
+        int ds = px(0.007f);
+        int dm = px(0.005f);
+        // 点圆点也能翻页（比只有右下角小箭头好点）
+        dots.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchSheetPage();
+            }
+        });
+
+        sheetDot1 = makeDot(true);
+        sheetDot2 = makeDot(false);
+        LinearLayout.LayoutParams d1 = new LinearLayout.LayoutParams(ds, ds);
+        d1.rightMargin = dm;
+        dots.addView(sheetDot1, d1);
+        dots.addView(sheetDot2, new LinearLayout.LayoutParams(ds, ds));
+
+        ImageView arrow = new ImageView(this);
+        GlyphIcon chevron = new GlyphIcon(GlyphIcon.FORWARD, 0xFF8B95A5);
+        arrow.setImageDrawable(chevron);
+        arrow.setRotation(90f);
+        arrow.setPadding(btn / 4, btn / 4, btn / 4, btn / 4);
+        arrow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switchSheetPage();
+            }
+        });
+        bar.addView(arrow, new LinearLayout.LayoutParams(btn, btn));
+
+        panel.addView(bar, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        FrameLayout.LayoutParams panelLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM);
+        sheetLayer.addView(panel, panelLp);
+        root.addView(sheetLayer, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    private View makeDot(boolean on) {
+        View v = new View(this);
+        GradientDrawable d = new GradientDrawable();
+        d.setShape(GradientDrawable.OVAL);
+        d.setColor(on ? 0xFFE8EDF2 : 0xFF3A4350);
+        v.setBackground(d);
+        return v;
+    }
+
+    private void switchSheetPage() {
+        sheetPageIndex = 1 - sheetPageIndex;
+        boolean first = sheetPageIndex == 0;
+        sheetPage1.setVisibility(first ? View.VISIBLE : View.GONE);
+        sheetPage2.setVisibility(first ? View.GONE : View.VISIBLE);
+        sheetDot1.setBackground(circle(first ? 0xFFE8EDF2 : 0xFF3A4350));
+        sheetDot2.setBackground(circle(first ? 0xFF3A4350 : 0xFFE8EDF2));
+    }
+
+    private GradientDrawable circle(int color) {
+        GradientDrawable d = new GradientDrawable();
+        d.setShape(GradientDrawable.OVAL);
+        d.setColor(color);
+        return d;
+    }
+
+    private View buildSheetPage(String[][] items) {
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        int perRow = 5;
+        for (int start = 0; start < items.length; start += perRow) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            for (int i = 0; i < perRow; i++) {
+                int idx = start + i;
+                if (idx < items.length) {
+                    row.addView(makeSheetItem(items[idx][0], Integer.parseInt(items[idx][1]), items[idx][2]),
+                            new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                } else {
+                    row.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
+                }
+            }
+            col.addView(row, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        return col;
+    }
+
+    private View makeSheetItem(String label, int glyph, final String action) {
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setGravity(Gravity.CENTER);
+        item.setPadding(0, px(0.009f), 0, px(0.009f));
+        item.setClickable(true);
+
+        ImageView icon = new ImageView(this);
+        icon.setImageDrawable(new GlyphIcon(glyph, 0xFFE8EDF2));
+        int s = px(0.027f);
+        LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(s, s);
+        ip.bottomMargin = px(0.008f);
+        item.addView(icon, ip);
+
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        tv.setTextColor(0xFFB6C0CC);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(0.0125f));
+        tv.setGravity(Gravity.CENTER);
+        item.addView(tv);
+
+        item.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                hideSheet();
+                runSheetAction(action);
+            }
+        });
+        return item;
+    }
+
+    private void showSheet() {
+        sheetPageIndex = 0;
+        switchSheetPage();
+        sheetPage1.setVisibility(View.VISIBLE);
+        sheetPage2.setVisibility(View.GONE);
+        sheetLayer.setVisibility(View.VISIBLE);
+        sheetLayer.setTranslationY(px(0.5f));
+        sheetLayer.animate().translationY(0f).setDuration(180).start();
+    }
+
+    private void hideSheet() {
+        if (sheetLayer == null || sheetLayer.getVisibility() != View.VISIBLE) return;
+        sheetLayer.animate().translationY(px(0.5f)).setDuration(150)
+                .withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        sheetLayer.setVisibility(View.GONE);
+                    }
+                }).start();
+    }
+
+    private void runSheetAction(String action) {
+        BrowserWebView w = activeTab();
+        if ("home".equals(action)) {
+            goHomeTab();
+        } else if ("back".equals(action)) {
+            if (w != null) onNativeBack(w, false);
+        } else if ("forward".equals(action)) {
+            if (w != null && w.canGoForward()) w.goForward();
+        } else if ("reload".equals(action)) {
+            if (w != null) w.reload();
+        } else if ("tabs".equals(action)) {
+            showTabs();
+        } else if ("bookmark".equals(action)) {
+            toggleBookmark();
+        } else if ("history".equals(action)) {
+            showHistory();
+        } else if ("download".equals(action)) {
+            try {
+                startActivity(new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS));
+            } catch (Throwable t) {
+                showStatus("打不开下载列表", 1600);
+            }
+        } else if ("share".equals(action)) {
+            shareCurrent();
+        } else if ("desktop".equals(action)) {
+            if (w != null) w.setDesktopUa(!w.isDesktopUa());
+        } else if ("night".equals(action)) {
+            toggleNightMode();
+        } else if ("fullscreen".equals(action)) {
+            toolbarHidden = !toolbarHidden;
+            toolbar.setVisibility(toolbarHidden ? View.GONE : View.VISIBLE);
+            applyImmersive();
+            showStatus(toolbarHidden ? "已隐藏工具条，点菜单键恢复" : "工具条已显示", 1600);
+        } else if ("clear".equals(action)) {
+            if (w != null) {
+                w.clearCache(true);
+                showStatus("缓存已清除", 1600);
+            }
+        } else if ("engine".equals(action)) {
+            showEnginePicker();
+        } else if ("about".equals(action)) {
+            showAbout();
+        } else if ("exit".equals(action)) {
+            finish();
+        }
+    }
+
+    private void showHistory() {
+        java.util.List<String> list = store.recent();
+        if (list.isEmpty()) {
+            showStatus("还没有浏览记录", 1600);
+            return;
+        }
+        final String[] arr = list.toArray(new String[0]);
+        new AlertDialog.Builder(this)
+                .setTitle("历史记录")
+                .setItems(arr, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int which) {
+                        openFromAddressBar(arr[which]);
+                    }
+                })
+                .show();
+    }
+
+    private void shareCurrent() {
+        BrowserWebView w = activeTab();
+        String url = (w == null) ? null : w.getUrl();
+        if (url == null || url.startsWith(HOME_URL)) {
+            showStatus("先打开一个网页再分享", 1600);
+            return;
+        }
+        try {
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType("text/plain");
+            String title = w.getTitle();
+            send.putExtra(Intent.EXTRA_SUBJECT, title == null ? url : title);
+            send.putExtra(Intent.EXTRA_TEXT, url);
+            startActivity(Intent.createChooser(send, "分享到"));
+        } catch (Throwable t) {
+            showStatus("分享失败", 1600);
+        }
+    }
+
+    private void toggleNightMode() {
+        nightMode = !nightMode;
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            for (BrowserWebView b : tabs) {
+                b.getSettings().setForceDark(nightMode
+                        ? android.webkit.WebSettings.FORCE_DARK_ON
+                        : android.webkit.WebSettings.FORCE_DARK_OFF);
+                b.reload();
+            }
+        }
+        showStatus(nightMode ? "夜间模式：开" : "夜间模式：关", 1600);
+    }
     /* ------------------------------------------------------------ 首屏 -- */
 
     private void openHome() {
