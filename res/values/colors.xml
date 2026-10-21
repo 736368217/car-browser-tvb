@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 自适应图标的底色：和宝石的暗部同一个色系，抠图边缘那圈过渡就看不出来了 -->
+    <color name="ic_launcher_bg">#0E1512</color>
+</resources>

@@ -28,8 +28,10 @@ public final class SiteStore {
 
     /** 收藏上限：超过之后首页长按收藏会提示"收藏已满" */
     public static final int MAX_FAVORITES = 60;
-    /** 最近打开上限：首页只显示一排，多存一些是为了"删掉还能回来" */
+    /** 「最近打开」还留着：历史页与首页数据都用它兜底 */
     public static final int MAX_RECENT = 60;
+    /** 历史记录上限（正经历史页，不是首页那排「最近」） */
+    public static final int MAX_VISITS = 500;
 
     public static final String DEFAULT_ENGINE = "baidu";
 
@@ -38,6 +40,7 @@ public final class SiteStore {
     private static final String KEY_RECENT = "recent";
     private static final String KEY_ENGINE = "engine";
     private static final String KEY_SEEDED = "seeded";
+    private static final String KEY_VISITS = "visits";
 
     /**
      * 第一次运行时预置的收藏。
@@ -200,6 +203,109 @@ public final class SiteStore {
     public void forgetEverywhere(String url) {
         removeFavorite(url);
         forget(url);
+    }
+
+    /* -------------------------------------------------------- 历史记录 -- */
+    /*
+     * 「最近打开」只存 URL，够首页用；历史记录页要标题和时间，所以另存一张表。
+     * 同一个 URL 只留最近一次（和浏览器一致），最多 500 条。
+     */
+
+    public static final class Visit {
+        public final String url;
+        public final String title;
+        public final long time;
+
+        Visit(String url, String title, long time) {
+            this.url = url;
+            this.title = title;
+            this.time = time;
+        }
+    }
+
+    public List<Visit> visits() {
+        List<Visit> out = new ArrayList<>();
+        String raw = prefs.getString(KEY_VISITS, null);
+        if (raw == null || raw.isEmpty()) return out;
+        try {
+            JSONArray arr = new JSONArray(raw);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.optJSONObject(i);
+                if (o == null) continue;
+                String u = canonical(o.optString("u", ""));
+                if (u.isEmpty()) continue;
+                out.add(new Visit(u, o.optString("t", ""), o.optLong("ts", 0L)));
+            }
+        } catch (JSONException ignored) {
+        }
+        return out;
+    }
+
+    /** 记一条历史：同 URL 去重后放到最前面，再顺手更新「最近打开」 */
+    public void recordVisit(String url, String title) {
+        String u = canonical(url);
+        if (u.isEmpty()) return;
+        List<Visit> list = visits();
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (list.get(i).url.equals(u)) list.remove(i);
+        }
+        String t = title == null ? "" : title.trim();
+        list.add(0, new Visit(u, t, System.currentTimeMillis()));
+        while (list.size() > MAX_VISITS) list.remove(list.size() - 1);
+        writeVisits(list);
+        remember(u);
+    }
+
+    public boolean deleteVisit(String url) {
+        String u = canonical(url);
+        if (u.isEmpty()) return false;
+        List<Visit> list = visits();
+        boolean removed = false;
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (list.get(i).url.equals(u)) {
+                list.remove(i);
+                removed = true;
+            }
+        }
+        if (removed) writeVisits(list);
+        return removed;
+    }
+
+    /** 页面加载完才拿得到真标题：把这条历史补上，别在列表里只剩网址 */
+    public void updateVisitTitle(String url, String title) {
+        String u = canonical(url);
+        String t = title == null ? "" : title.trim();
+        if (u.isEmpty() || t.isEmpty()) return;
+        List<Visit> list = visits();
+        boolean changed = false;
+        for (int i = 0; i < list.size(); i++) {
+            Visit v = list.get(i);
+            if (v.url.equals(u) && !t.equals(v.title)) {
+                list.set(i, new Visit(v.url, t, v.time));
+                changed = true;
+                break;
+            }
+        }
+        if (changed) writeVisits(list);
+    }
+
+    public void clearVisits() {
+        prefs.edit().remove(KEY_VISITS).putString(KEY_RECENT, "[]").apply();
+    }
+
+    private void writeVisits(List<Visit> list) {
+        JSONArray arr = new JSONArray();
+        try {
+            for (Visit v : list) {
+                JSONObject o = new JSONObject();
+                o.put("u", v.url);
+                o.put("t", v.title);
+                o.put("ts", v.time);
+                arr.put(o);
+            }
+        } catch (JSONException ignored) {
+        }
+        prefs.edit().putString(KEY_VISITS, arr.toString()).apply();
     }
 
     /* ------------------------------------------------------ 自定义名称 -- */

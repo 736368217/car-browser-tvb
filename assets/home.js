@@ -641,10 +641,11 @@
   }
 
   function renderRecent() {
+    // 首页不再放「最近」——历史记录有自己的整页，这里只在老 DOM 还在时才画
+    if (!recentGrid) return;
     var cols = S.layout.cols;
-
     recentGrid.textContent = '';
-    recentEmpty.hidden = S.recent.length > 0;
+    if (recentEmpty) recentEmpty.hidden = S.recent.length > 0;
     if (!S.recent.length) return;
 
     // 最多只显示一排
@@ -677,7 +678,6 @@
 
   function renderAll() {
     renderFavorites();
-    renderRecent();
     renderEngines();
   }
 
