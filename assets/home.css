@@ -111,8 +111,9 @@ body {
   width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: var(--radius);
-  background: var(--card);
-  border: 1px solid var(--line);
+  /* 卡片底：按域名派生的低饱和渐变（同一站点每次同色），比一片死板的深灰有质感 */
+  background: linear-gradient(158deg, var(--tint-top, #1A222C) 0%, var(--tint-bottom, #10151C) 100%);
+  border: 1px solid rgba(255, 255, 255, .07);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,7 +139,7 @@ body {
   font-weight: 700;
   line-height: 1;
   color: #fff;
-  background: var(--tint, #2A3441);
+  background: transparent;
   text-transform: uppercase;
 }
 
@@ -200,11 +201,20 @@ body {
 }
 
 .brand {
-  font-size: .95vw;
-  letter-spacing: .45vw;
-  color: #3F4A58;
-  margin-bottom: 1.2vw;
-  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: .7vw;
+  font-size: 1.3vw;
+  font-weight: 600;
+  letter-spacing: .3vw;
+  color: #8B95A5;
+  margin-bottom: 1.3vw;
+}
+
+.brand-mark {
+  width: 2.5vw;
+  height: 2.5vw;
+  color: var(--accent);
 }
 
 .search {

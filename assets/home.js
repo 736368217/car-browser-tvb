@@ -152,14 +152,20 @@
     return matchTable(NAMES, host) || host || String(url || '').replace(/^https?:\/\//i, '');
   }
 
+  /*
+   * 卡片底色：按域名算一个稳定的低饱和渐变。
+   * 用低饱和（30% 上下）而不是站点品牌色 —— 12 个卡片并排时，
+   * 高饱和色块会互相打架，低饱和只留一点点色相差异，看着干净。
+   */
   function tintFor(url) {
     var host = hostOf(url);
-    var t = matchTable(TINTS, host);
-    if (t) return t;
-    // 没有品牌色：按域名算一个稳定的颜色，同一个站点每次都是同一个色
     var n = 0;
     for (var i = 0; i < host.length; i++) n = (n * 31 + host.charCodeAt(i)) >>> 0;
-    return 'hsl(' + (n % 360) + ', 42%, 40%)';
+    var hue = n % 360;
+    return {
+      top: 'hsl(' + hue + ', 30%, 23%)',
+      bottom: 'hsl(' + hue + ', 34%, 14%)'
+    };
   }
 
   function initialFor(url) {
@@ -310,7 +316,9 @@
 
     var icon = document.createElement('span');
     icon.className = 'icon';
-    icon.style.setProperty('--tint', tintFor(url));
+    var tint = tintFor(url);
+    icon.style.setProperty('--tint-top', tint.top);
+    icon.style.setProperty('--tint-bottom', tint.bottom);
 
     var initial = document.createElement('span');
     initial.className = 'initial';
@@ -455,9 +463,9 @@
     favEmpty.hidden = list.length > 0;
     if (!list.length) return;
 
-    // 一排放不下就折叠：留出最后一个位置给「更多」
-    var needMore = list.length > cols;
-    var shown = (!needMore || S.expanded) ? list : list.slice(0, Math.max(1, cols - 1));
+    // 两行放得下就不折叠（7 列 × 2 行 = 14 个）；超过 14 个才收进「更多」
+    var needMore = list.length > cols * 2;
+    var shown = (!needMore || S.expanded) ? list : list.slice(0, Math.max(1, cols * 2 - 1));
 
     for (var i = 0; i < shown.length; i++) {
       var card = makeCard(shown[i], 'fav');
