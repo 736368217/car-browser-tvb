@@ -5,10 +5,15 @@ import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.graphics.Color;
 import android.content.DialogInterface;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.database.Cursor;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Message;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -33,6 +38,7 @@ import android.widget.LinearLayout;
 import org.json.JSONObject;
 
 import java.util.ArrayDeque;
+import java.io.File;
 
 /**
  * 电视机上的浏览器。
@@ -88,6 +94,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
         host = new FrameLayout(this);
         buildChrome();
+        uiHandler.postDelayed(addrSync, 500);
         root.addView(column, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -104,6 +111,27 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         statusParams.bottomMargin = Math.round(getResources().getDisplayMetrics().density * 28);
         root.addView(status, statusParams);
 
+        // 全屏时工具条整条 GONE，必须留一个触屏能点的恢复入口，否则用户被困在网页里
+        toolbarHandle = new ImageView(this);
+        toolbarHandle.setImageDrawable(new GlyphIcon(GlyphIcon.MENU, 0xFFE8EDF2));
+        GradientDrawable handleBg = new GradientDrawable();
+        handleBg.setShape(GradientDrawable.OVAL);
+        handleBg.setColor(0xA6141A22);
+        toolbarHandle.setBackground(handleBg);
+        int handleSize = px(0.03f);
+        toolbarHandle.setPadding(handleSize / 4, handleSize / 4, handleSize / 4, handleSize / 4);
+        toolbarHandle.setVisibility(View.GONE);
+        toolbarHandle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setFullscreen(false);
+            }
+        });
+        FrameLayout.LayoutParams handleLp = new FrameLayout.LayoutParams(
+                handleSize, handleSize, Gravity.TOP | Gravity.END);
+        handleLp.topMargin = px(0.012f);
+        handleLp.rightMargin = px(0.012f);
+        root.addView(toolbarHandle, handleLp);
         buildSheet();
         setContentView(root);
 
@@ -127,11 +155,23 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private LinearLayout toolbar;
     private EditText addr;
     private ImageView btnStar;
+    /** 全屏（隐藏工具条）时右上角的恢复按钮 */
+    private ImageView toolbarHandle;
     private GlyphIcon gBack;
     private GlyphIcon gFwd;
     private GlyphIcon gStar;
     private int screenW;
     private boolean addrEditing = false;
+
+    /** 地址栏跟随当前页面 URL：有些页面 onPageFinished 很晚甚至不来，靠 500ms 轮询兜底 */
+    private final Handler uiHandler = new Handler(Looper.getMainLooper());
+    private final Runnable addrSync = new Runnable() {
+        @Override
+        public void run() {
+            syncAddressBar();
+            uiHandler.postDelayed(this, 500);
+        }
+    };
 
     private int px(float ratio) {
         return Math.max(1, Math.round(screenW * ratio));
@@ -183,6 +223,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         addr.setImeOptions(EditorInfo.IME_ACTION_GO);
         addr.setPadding(pad, 0, pad, 0);
         addr.setSelectAllOnFocus(true);
+        addr.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addr.selectAll();
+            }
+        });
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(0xFF1C222B);
         bg.setCornerRadius(addrH / 2f);
@@ -315,7 +361,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     }
 
     /** 地址栏内容 → 真实 URL。不是网址就当搜索词（车机上多数时候是想搜点什么） */
-    static String normalizeInput(String input) {
+    String normalizeInput(String input) {
         if (input == null) return null;
         String s = input.trim();
         if (s.length() == 0) return null;
@@ -327,9 +373,24 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if (!s.contains(" ") && s.matches("[\\w\\-.:]+\\.[a-zA-Z]{2,}(:\\d+)?(/.*)?")) {
             return "https://" + s;
         }
-        return "https://www.baidu.com/s?wd=" + Uri.encode(s);
+        return searchUrlFor(s);
     }
 
+    /** 按设置里选的搜索引擎拼搜索地址（地址栏输入的纯文字走这里） */
+    private String searchUrlFor(String q) {
+        String id = store.engine();
+        String prefix;
+        if ("bing".equals(id)) {
+            prefix = "https://cn.bing.com/search?q=";
+        } else if ("sogou".equals(id)) {
+            prefix = "https://www.sogou.com/web?query=";
+        } else if ("google".equals(id)) {
+            prefix = "https://www.google.com/search?q=";
+        } else {
+            prefix = "https://www.baidu.com/s?wd=";
+        }
+        return prefix + Uri.encode(q);
+    }
     private void openFromAddressBar(String text) {
         String url = normalizeInput(text);
         if (url == null) return;
@@ -337,11 +398,19 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         addr.clearFocus();
         BrowserWebView w = activeTab();
         if (w == null) return;
-        if (w.isHomePage()) {
+        if (BrowserWebView.isDownloadableUrl(url)) {
+            onDownload(w, url, w.getSettings().getUserAgentString(), null,
+                    BrowserWebView.mimeOfUrl(url), -1);
+        } else if (w.isHomePage()) {
             openTab(url);          // 首屏上开新标签，保住首屏
         } else {
             w.loadUrl(url);        // 网页上原地跳转（返回键还能回来）
         }
+        // 关键：clearFocus() 之后 MuMu/部分车机会把焦点又还给地址栏，
+        // 结果地址栏一直停在“用户刚才敲的那串字”，永远不跟着页面走。
+        // 主动把焦点交给 WebView，地址栏才真正退出编辑态。
+        BrowserWebView now = activeTab();
+        if (now != null) now.requestFocus();
     }
 
     private void hideKeyboard() {
@@ -368,6 +437,24 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if (gStar != null) {
             boolean marked = url != null && !url.startsWith(HOME_URL) && store.isFavorite(url);
             gStar.setColor(marked ? 0xFFF5C542 : 0xFFE8EDF2);
+        }
+    }
+
+    /** 只负责把地址栏文字对齐到当前页真实 URL；正在输入时绝不打扰 */
+    private void syncAddressBar() {
+        try {
+            if (addr == null || addr.hasFocus()) return;
+            BrowserWebView w = activeTab();
+            if (w == null) return;
+            String url = w.getUrl();
+            if (url == null || url.startsWith("about:") || url.startsWith("data:")) return;
+            String shown = addr.getText().toString();
+            if (url.startsWith(HOME_URL)) {
+                if (!shown.isEmpty()) addr.setText("");
+                return;
+            }
+            if (!url.equals(shown)) addr.setText(url);
+        } catch (Throwable ignored) {
         }
     }
 
@@ -476,16 +563,52 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                     ? "" : WebView.getCurrentWebViewPackage().versionName;
         } catch (Throwable ignored) {
         }
-        String msg = "车机浏览器 B（基于 tv-browser 改造）\n\n"
+        String msg = "车览浏览器 " + BuildConfig.VERSION_NAME + "（B 线 · 基于 tv-browser 改造）\n\n"
                 + "渲染内核：Android System WebView " + engine + "\n"
-                + "当前标识：\n" + ua + "\n\n"
+                + "当前标识：" + ua + "\n\n"
                 + "长按网页 0.4 秒 = 鼠标悬停\n"
-                + "长按首页卡片 = 收藏 / 删除 / 排序";
-        new AlertDialog.Builder(this)
-                .setTitle("关于")
-                .setMessage(msg)
-                .setPositiveButton("知道了", null)
-                .show();
+                + "长按首页卡片 = 编辑（拖动排序 / 点 − 删除）\n"
+                + "地址栏：输入网址直接访问，输入文字直接搜索";
+
+        // 车机上默认 AlertDialog 的字太小、灰底也不好看，这里自己搭面板
+        TextView body = new TextView(this);
+        body.setText(msg);
+        body.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(38f / 2880f));
+        body.setTextColor(0xFFE6E9F0);
+        body.setLineSpacing(px(14f / 2880f), 1f);
+
+        final TextView ok = new TextView(this);
+        ok.setText("知道了");
+        ok.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(40f / 2880f));
+        ok.setTextColor(0xFF6FA8FF);
+        ok.setGravity(Gravity.END);
+        ok.setPadding(0, px(44f / 2880f), 0, 0);
+
+        int pad = px(56f / 2880f);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(pad, pad, pad, px(32f / 2880f));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF1C1F26);
+        bg.setCornerRadius(px(30f / 2880f));
+        bg.setStroke(Math.max(2, px(2f / 2880f)), 0xFF33383F);
+        box.setBackground(bg);
+        box.addView(body);
+        box.addView(ok);
+
+        final AlertDialog dlg = new AlertDialog.Builder(this).setView(box).create();
+        ok.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { dlg.dismiss(); }
+        });
+        dlg.show();
+        android.view.Window win = dlg.getWindow();
+        if (win != null) {
+            win.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0x00000000));
+            WindowManager.LayoutParams wlp = win.getAttributes();
+            wlp.width = px(1560f / 2880f);
+            wlp.height = WindowManager.LayoutParams.WRAP_CONTENT;
+            win.setAttributes(wlp);
+        }
     }
 
     /* ------------------------------------------------------------ 下载 -- */
@@ -494,6 +617,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     public void onDownload(BrowserWebView web, String url, String userAgent,
                            String contentDisposition, String mimeType, long contentLength) {
         try {
+            Log.i(TAG, "下载请求: " + url + " mime=" + mimeType);
             String name = URLUtil.guessFileName(url, contentDisposition, mimeType);
             DownloadManager.Request req =
                     new DownloadManager.Request(android.net.Uri.parse(url));
@@ -505,14 +629,105 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             req.setDescription("正在下载");
             req.setNotificationVisibility(
                     DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
+            // 车机没有「下载」系统 App，也不一定有存储权限；放应用自己的下载目录最稳
+            req.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, name);
             DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
             if (dm != null) {
-                dm.enqueue(req);
+                long id = dm.enqueue(req);
+                Log.i(TAG, "已加入下载队列 id=" + id);
                 showStatus("开始下载：" + name, 2600);
             }
         } catch (Throwable t) {
+            Log.e(TAG, "下载失败", t);
             showStatus("下载失败：" + t.getMessage(), 2600);
+        }
+    }
+
+    /** 应用内下载列表：不依赖车机上有没有「下载」这个系统 App */
+    private void showDownloads() {
+        DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+        if (dm == null) {
+            showStatus("系统下载服务不可用", 1600);
+            return;
+        }
+        final java.util.List<Long> ids = new java.util.ArrayList<>();
+        final java.util.List<String> mimes = new java.util.ArrayList<>();
+        final java.util.List<String> lines = new java.util.ArrayList<>();
+        Cursor c = null;
+        try {
+            c = dm.query(new DownloadManager.Query().setFilterByStatus(
+                    DownloadManager.STATUS_PENDING | DownloadManager.STATUS_RUNNING
+                            | DownloadManager.STATUS_PAUSED | DownloadManager.STATUS_SUCCESSFUL
+                            | DownloadManager.STATUS_FAILED));
+            while (c != null && c.moveToNext()) {
+                long id = c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_ID));
+                String title = c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE));
+                String mime = c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_MEDIA_TYPE));
+                int status = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+                long done = c.getLong(c.getColumnIndexOrThrow(
+                        DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                long total = c.getLong(c.getColumnIndexOrThrow(
+                        DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+                String state;
+                if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                    state = total > 0 ? "已完成 " + mb(total) : "已完成";
+                } else if (status == DownloadManager.STATUS_RUNNING) {
+                    state = total > 0 ? "下载中 " + (done * 100 / total) + "%" : "下载中";
+                } else if (status == DownloadManager.STATUS_PAUSED) {
+                    state = "已暂停";
+                } else if (status == DownloadManager.STATUS_FAILED) {
+                    state = "失败";
+                } else {
+                    state = "等待中";
+                }
+                ids.add(id);
+                mimes.add(mime == null ? "application/octet-stream" : mime);
+                lines.add(title + "  ·  " + state);
+            }
+        } catch (Throwable t) {
+            showStatus("读取下载列表失败", 1600);
+            return;
+        } finally {
+            if (c != null) c.close();
+        }
+
+        if (lines.isEmpty()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("下载")
+                    .setMessage("还没有下载文件。\n\n在网页里点下载链接，文件会保存到系统「下载」目录，"
+                            + "并出现在这里。")
+                    .setPositiveButton("知道了", null)
+                    .show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("下载 · " + lines.size() + " 个")
+                .setItems(lines.toArray(new String[0]), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int which) {
+                        openDownload(ids.get(which), mimes.get(which));
+                    }
+                })
+                .setNegativeButton("关闭", null)
+                .show();
+    }
+
+    private void openDownload(long id, String mime) {
+        DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+        if (dm == null) return;
+        Uri uri = dm.getUriForDownloadedFile(id);
+        if (uri == null) {
+            showStatus("文件还没下载完", 1600);
+            return;
+        }
+        try {
+            Intent view = new Intent(Intent.ACTION_VIEW);
+            view.setDataAndType(uri, mime);
+            view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(view);
+        } catch (Throwable t) {
+            showStatus("没有能打开这个文件的应用", 1600);
         }
     }
 
@@ -608,9 +823,11 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         LinearLayout dots = new LinearLayout(this);
         dots.setOrientation(LinearLayout.HORIZONTAL);
         dots.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams dotsLp = new LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        // 圆点本身只有 20px，手指点不中；给整块 0.2 屏宽 × 109px 的横条当热区
+        bar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
+        LinearLayout.LayoutParams dotsLp = new LinearLayout.LayoutParams(px(0.2f), btn);
         bar.addView(dots, dotsLp);
+        bar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
 
         int ds = px(0.007f);
         int dm = px(0.005f);
@@ -733,9 +950,10 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private void showSheet() {
         sheetPageIndex = 0;
-        switchSheetPage();
         sheetPage1.setVisibility(View.VISIBLE);
         sheetPage2.setVisibility(View.GONE);
+        sheetDot1.setBackground(circle(0xFFE8EDF2));
+        sheetDot2.setBackground(circle(0xFF3A4350));
         sheetLayer.setVisibility(View.VISIBLE);
         sheetLayer.setTranslationY(px(0.5f));
         sheetLayer.animate().translationY(0f).setDuration(180).start();
@@ -769,26 +987,23 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         } else if ("history".equals(action)) {
             showHistory();
         } else if ("download".equals(action)) {
-            try {
-                startActivity(new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS));
-            } catch (Throwable t) {
-                showStatus("打不开下载列表", 1600);
-            }
+            showDownloads();
         } else if ("share".equals(action)) {
             shareCurrent();
         } else if ("desktop".equals(action)) {
-            if (w != null) w.setDesktopUa(!w.isDesktopUa());
+            if (w != null) {
+                w.setDesktopUa(!w.isDesktopUa());
+                showStatus(w.isDesktopUa() ? "电脑版网页：开" : "电脑版网页：关", 1600);
+            }
         } else if ("night".equals(action)) {
             toggleNightMode();
         } else if ("fullscreen".equals(action)) {
-            toolbarHidden = !toolbarHidden;
-            toolbar.setVisibility(toolbarHidden ? View.GONE : View.VISIBLE);
-            applyImmersive();
-            showStatus(toolbarHidden ? "已隐藏工具条，点菜单键恢复" : "工具条已显示", 1600);
+            setFullscreen(!toolbarHidden);
         } else if ("clear".equals(action)) {
             if (w != null) {
+                long before = cacheSize();
                 w.clearCache(true);
-                showStatus("缓存已清除", 1600);
+                showStatus(before > 0 ? "缓存已清除（约 " + mb(before) + "）" : "缓存已清除", 1600);
             }
         } else if ("engine".equals(action)) {
             showEnginePicker();
@@ -797,6 +1012,38 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         } else if ("exit".equals(action)) {
             finish();
         }
+    }
+
+    /** 全屏 = 只隐藏我们自己的工具条（网页照常可用），并且必须留一个触屏能点的恢复入口 */
+    private void setFullscreen(boolean on) {
+        toolbarHidden = on;
+        toolbar.setVisibility(on ? View.GONE : View.VISIBLE);
+        if (toolbarHandle != null) {
+            toolbarHandle.setVisibility(on ? View.VISIBLE : View.GONE);
+        }
+        applyImmersive();
+        showStatus(on ? "已进入全屏 · 点右上角按钮恢复" : "工具条已显示", 1800);
+    }
+
+    private long cacheSize() {
+        long total = dirSize(getCacheDir());
+        File parent = getFilesDir() == null ? null : getFilesDir().getParentFile();
+        if (parent != null) total += dirSize(new File(parent, "app_webview"));
+        return total;
+    }
+
+    private long dirSize(File f) {
+        if (f == null || !f.exists()) return 0;
+        if (f.isFile()) return f.length();
+        File[] kids = f.listFiles();
+        if (kids == null) return 0;
+        long n = 0;
+        for (File k : kids) n += dirSize(k);
+        return n;
+    }
+
+    private String mb(long bytes) {
+        return String.format(java.util.Locale.US, "%.1f MB", bytes / 1048576.0);
     }
 
     private void showHistory() {
@@ -824,29 +1071,62 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             showStatus("先打开一个网页再分享", 1600);
             return;
         }
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        String title = w.getTitle();
+        send.putExtra(Intent.EXTRA_SUBJECT, title == null ? url : title);
+        send.putExtra(Intent.EXTRA_TEXT, url);
+        if (send.resolveActivity(getPackageManager()) == null) {
+            copyLink(url);
+            return;
+        }
         try {
-            Intent send = new Intent(Intent.ACTION_SEND);
-            send.setType("text/plain");
-            String title = w.getTitle();
-            send.putExtra(Intent.EXTRA_SUBJECT, title == null ? url : title);
-            send.putExtra(Intent.EXTRA_TEXT, url);
             startActivity(Intent.createChooser(send, "分享到"));
         } catch (Throwable t) {
-            showStatus("分享失败", 1600);
+            copyLink(url);
         }
     }
 
+    /** 车机上常常没有可分享的 App，退化成「复制链接」也算完成用户的目的 */
+    private void copyLink(String url) {
+        try {
+            ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (cm != null) {
+                cm.setPrimaryClip(ClipData.newPlainText("链接", url));
+                showStatus("已复制链接：" + url, 2000);
+                return;
+            }
+        } catch (Throwable ignored) {
+        }
+        showStatus("没有可分享的应用", 1600);
+
+    }
+    /** 夜间模式：直接把网页反色。setForceDark 在车机深色主题下实测无效，改走 JS 注入。 */
+    private static final String NIGHT_JS =
+            "(function(){var d=document.documentElement;if(!d)return;"
+                    + "if(!document.getElementById('__kb_night')){var s=document.createElement('style');"
+                    + "s.id='__kb_night';s.textContent="
+                    + "'html{filter:invert(1) hue-rotate(180deg)!important;background:#0b0e12!important}'+"
+                    + "'img,video,picture,canvas,svg{filter:invert(1) hue-rotate(180deg)!important}';"
+                    + "d.appendChild(s);}d.style.colorScheme='dark';})()";
+    private static final String DAY_JS =
+            "(function(){var s=document.getElementById('__kb_night');"
+                    + "if(s&&s.parentNode)s.parentNode.removeChild(s);"
+                    + "var d=document.documentElement;if(d)d.style.colorScheme='';})()";
+
     private void toggleNightMode() {
         nightMode = !nightMode;
-        if (android.os.Build.VERSION.SDK_INT >= 29) {
-            for (BrowserWebView b : tabs) {
-                b.getSettings().setForceDark(nightMode
-                        ? android.webkit.WebSettings.FORCE_DARK_ON
-                        : android.webkit.WebSettings.FORCE_DARK_OFF);
-                b.reload();
-            }
-        }
+        for (BrowserWebView b : tabs) applyNightMode(b);
         showStatus(nightMode ? "夜间模式：开" : "夜间模式：关", 1600);
+    }
+
+    private void applyNightMode(BrowserWebView web) {
+        // 自家首屏本来就是深色，别再反成白底
+        if (web == null || web.isHomePage()) return;
+        try {
+            web.evaluateJavascript(nightMode ? NIGHT_JS : DAY_JS, null);
+        } catch (Throwable ignored) {
+        }
     }
     /* ------------------------------------------------------------ 首屏 -- */
 
@@ -1063,7 +1343,6 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 .setNegativeButton("取消", null)
                 .show();
     }
-
     /** 设置里的搜索引擎选择 */
     private void showEnginePicker() {
         final String[] ids = {"baidu", "bing", "sogou", "google"};
@@ -1120,6 +1399,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     @Override
     protected void onDestroy() {
+        uiHandler.removeCallbacks(addrSync);
         for (BrowserWebView web : tabs) {
             host.removeView(web);
             web.destroy();
@@ -1147,6 +1427,21 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // 地址栏正在输入时，按键交给 EditText；但回车必须由我们直接提交。
+        // 车机的物理键盘 / 遥控器只会发 KEYCODE_ENTER，很多 WebView 机型上 IME 不会
+        // 触发 onEditorAction，光靠 setOnEditorActionListener 会出现「字打进去了但没跳转」。
+        if (addr != null && addr.hasFocus()) {
+            boolean enter = event.getAction() == KeyEvent.ACTION_DOWN
+                    && (event.getKeyCode() == KeyEvent.KEYCODE_ENTER
+                    || event.getKeyCode() == KeyEvent.KEYCODE_NUMPAD_ENTER);
+            if (enter) {
+                String text = addr.getText().toString();
+                Log.i(TAG, "地址栏回车: " + text);
+                openFromAddressBar(text);
+                return true;
+            }
+            return super.dispatchKeyEvent(event);
+        }
         BrowserWebView web = activeTab();
         if (web != null && web.handleRemoteKey(event)) return true;
         return super.dispatchKeyEvent(event);
@@ -1186,6 +1481,9 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             showStatus(getString(R.string.loading), LOADING_TIMEOUT_MS);
         } else {
             hideStatus();
+            // onPageFinished 时 getUrl() 才是最终地址（含重定向），这里必须刷一次，
+            // 否则地址栏会停在“上一页”或用户刚敲的那串字上。
+            updateToolbarState();
         }
     }
 
@@ -1194,6 +1492,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if (!isActiveTab(web)) return;
         // 首屏画出来了就收掉提示：挡着画面不让看才是最慢的体验
         hideStatus();
+        applyNightMode(web);
         if (web.isHomePage()) pushHomeData();
         updateToolbarState();
     }

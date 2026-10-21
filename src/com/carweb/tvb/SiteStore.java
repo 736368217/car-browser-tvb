@@ -51,7 +51,17 @@ public final class SiteStore {
     public static final List<String> DEFAULT_FAVORITES = Arrays.asList(
             "https://www.baidu.com",
             "https://www.google.com",
-            "https://www.youtube.com"
+            "https://www.youtube.com",
+            "https://www.bilibili.com",
+            "https://www.zhihu.com",
+            "https://www.taobao.com",
+            "https://weibo.com",
+            "https://www.douban.com",
+            "https://www.jd.com",
+            "https://www.youku.com",
+            "https://www.iqiyi.com",
+            "https://v.qq.com",
+            "https://music.163.com"
     );
 
     private final SharedPreferences prefs;

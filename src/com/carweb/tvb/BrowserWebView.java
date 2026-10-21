@@ -676,10 +676,45 @@ public class BrowserWebView extends WebView {
      *         false 表示在当前 WebView 里打开
      */
     // 包级可见：单元测试要直接验它（见 BrowserWebViewTest）
+    private static final String[] DL_EXT = {
+            ".apk", ".zip", ".rar", ".7z", ".tar", ".gz", ".iso", ".bin", ".exe", ".msi",
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".epub"
+    };
+
+    static boolean isDownloadableUrl(String url) {
+        if (url == null) return false;
+        String path = Uri.parse(url).getPath();
+        if (path == null) return false;
+        path = path.toLowerCase(java.util.Locale.US);
+        for (String ext : DL_EXT) {
+            if (path.endsWith(ext)) return true;
+        }
+        return false;
+    }
+
+    static String mimeOfUrl(String url) {
+        String path = Uri.parse(url).getPath();
+        if (path == null) return "application/octet-stream";
+        int dot = path.lastIndexOf('.');
+        if (dot < 0) return "application/octet-stream";
+        String mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+                path.substring(dot + 1).toLowerCase(java.util.Locale.US));
+        return mime == null ? "application/octet-stream" : mime;
+    }
+
     boolean handleUrl(String url) {
         if (url == null) return true;
         String scheme = schemeOf(url);
         if (scheme == null) return true;
+        // 直链下载（.apk/.zip/.pdf 等）不当网页打开；MuMu 上的 WebView 不会稳定回调
+        // DownloadListener，所以在导航层直接判定，交给 Activity 的下载器
+        if (("http".equals(scheme) || "https".equals(scheme)) && isDownloadableUrl(url)) {
+            if (listener != null) {
+                listener.onDownload(this, url, getSettings().getUserAgentString(), null,
+                        mimeOfUrl(url), -1);
+            }
+            return true;
+        }
 
         if ("http".equals(scheme) || "https".equals(scheme)) {
             // 首屏不能被顶掉：它里面的任何 http 跳转都开成新标签页

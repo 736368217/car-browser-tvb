@@ -46,7 +46,7 @@ body {
 
 .page {
   width: 100%;
-  padding: 3vw 0 1.2vw;
+  padding: 2.6vw 0 1.2vw;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -427,3 +427,6 @@ body {
   box-shadow: 0 0.4vw 1.2vw rgba(0,0,0,.45);
   z-index: 40;
 }
+/* 搜索栏已完全移除：地址栏输入网址即访问、输入文字即搜索。
+   这里必须 !important —— .search-block 内部原本有 display:flex，会把它顶回来。 */
+.search-block { display: none !important; }

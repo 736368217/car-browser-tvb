@@ -2010,7 +2010,11 @@ function tvInstall(win) {
   const style = doc.createElement('style');
   style.setAttribute('data-kb-tv', '');
   style.textContent = TV_CSS;
-  (doc.head || doc.documentElement).appendChild(style);
+  const styleHost = doc.head || doc.documentElement;
+  if (styleHost) styleHost.appendChild(style);
+  else doc.addEventListener('DOMContentLoaded', function () {
+    (doc.head || doc.documentElement || doc.body).appendChild(style);
+  }, { once: true });
 
   /* -------------------------------------------------------- 页面宽度 -- */
 

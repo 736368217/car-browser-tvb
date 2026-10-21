@@ -495,9 +495,17 @@
       var t = e.touches[0];
       sx = t.clientX;
       sy = t.clientY;
-      lifted = false;
       dragged = false;
       clearTimer();
+
+      // 已经在编辑模式：按下就能直接拖，不用再长按一次（iOS 整理图标就是这个手感）
+      if (editMode && kind === 'fav') {
+        lifted = true;
+        el.classList.add('dragging');
+        return;
+      }
+
+      lifted = false;
       timer = setTimeout(function () {
         timer = null;
         if (kind !== 'fav') return;
