@@ -91,6 +91,13 @@ public class BrowserBridge {
         main.post(() -> activity.favoriteFromHome(url));
     }
 
+    /** 长按卡片「编辑」：改名 / 改网址（只有本地首屏能调） */
+    @JavascriptInterface
+    public void editFavorite(String url) {
+        if (!isHome || !SiteStore.isHttpUrl(url)) return;
+        main.post(() -> activity.editFavoriteFromHome(url));
+    }
+
     @JavascriptInterface
     public void unfavorite(String url) {
         if (!isHome || !SiteStore.isHttpUrl(url)) return;

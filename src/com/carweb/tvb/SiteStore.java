@@ -10,7 +10,10 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 收藏 / 最近打开 / 搜索引擎选择的存储。
@@ -193,6 +196,60 @@ public final class SiteStore {
         forget(url);
     }
 
+    /* ------------------------------------------------------ 自定义名称 -- */
+    /*
+     * 长按卡片「编辑」可以给站点起个自己的名字。
+     * 存成 {url: name} 的一张小表；网址改了，名字跟着搬过去。
+     */
+    private static final String KEY_TITLES = "titles";
+
+    public Map<String, String> titles() {
+        Map<String, String> out = new LinkedHashMap<>();
+        String raw = prefs.getString(KEY_TITLES, null);
+        if (raw == null) return out;
+        try {
+            JSONObject o = new JSONObject(raw);
+            Iterator<String> it = o.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                out.put(k, o.optString(k, ""));
+            }
+        } catch (JSONException ignored) {
+        }
+        return out;
+    }
+
+    public String titleOf(String url) {
+        return titles().get(canonical(url));
+    }
+
+    /** 编辑一张收藏卡：改名 / 改网址 / 两者都改。位置保持不变。 */
+    public void rename(String oldUrl, String newName, String newUrl) {
+        String from = canonical(oldUrl);
+        String to = canonical(newUrl);
+        if (from.isEmpty() || to.isEmpty()) return;
+
+        List<String> list = favorites();
+        int idx = list.indexOf(from);
+        if (idx >= 0 && !from.equals(to)) {
+            list.set(idx, to);
+            writeList(KEY_FAVORITES, list);
+        }
+
+        Map<String, String> map = titles();
+        String oldName = map.remove(from);
+        String name = (newName == null || newName.trim().isEmpty()) ? oldName : newName.trim();
+        if (name != null && !name.isEmpty()) map.put(to, name);
+
+        JSONObject o = new JSONObject();
+        try {
+            for (Map.Entry<String, String> e : map.entrySet()) {
+                o.put(e.getKey(), e.getValue());
+            }
+        } catch (JSONException ignored) {
+        }
+        prefs.edit().putString(KEY_TITLES, o.toString()).apply();
+    }
     /* ------------------------------------------------------ 搜索引擎 -- */
 
     public String engine() {
@@ -214,6 +271,7 @@ public final class SiteStore {
             o.put("favorites", new JSONArray(favorites()));
             o.put("recent", new JSONArray(recent()));
             o.put("engine", engine());
+            o.put("titles", new JSONObject(titles()));
             return o.toString();
         } catch (JSONException e) {
             return "{\"favorites\":[],\"recent\":[],\"engine\":\"" + DEFAULT_ENGINE + "\"}";

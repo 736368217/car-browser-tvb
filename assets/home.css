@@ -46,7 +46,7 @@ body {
 
 .page {
   width: 100%;
-  padding: 2.2vw 0 1.2vw;
+  padding: 3vw 0 1.2vw;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -238,9 +238,9 @@ body {
 }
 
 .search {
-  width: var(--search-w, 76vw);
+  width: var(--search-w, 56vw);
   max-width: 92vw;
-  height: var(--search-h, 5.4vw);
+  height: var(--search-h, 4.4vw);
   display: flex;
   align-items: center;
   gap: 1vw;
@@ -272,6 +272,7 @@ body {
 .search input::placeholder { color: #5D6678; }
 
 .engines {
+  display: none;   /* 首页不显示，改在 App「设置 → 搜索引擎」里选 */
   display: flex;
   align-items: center;
   gap: .6vw;

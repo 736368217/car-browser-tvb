@@ -113,6 +113,8 @@
     favorites: [],
     recent: [],
     engine: 'baidu',
+    /** 用户自定义的站点名（编辑卡片时填的） */
+    titles: {},
     expanded: false,
     /** 正在调整位置的收藏项下标；-1 = 不在移动模式 */
     moving: -1,
@@ -151,6 +153,8 @@
   }
 
   function nameFor(url) {
+    var key = normalize(url);
+    if (S.titles && S.titles[key]) return S.titles[key];
     var host = hostOf(url);
     return matchTable(NAMES, host) || host || String(url || '').replace(/^https?:\/\//i, '');
   }
@@ -259,8 +263,8 @@
     root.setProperty('--cell', cell + 'px');
     root.setProperty('--gap', gap + 'px');
     root.setProperty('--search-font', Math.round(W * 0.018) + 'px');
-    root.setProperty('--search-h', Math.round(W * 0.054) + 'px');
-    root.setProperty('--search-w', Math.round(W * 0.76) + 'px');
+    root.setProperty('--search-h', Math.round(W * 0.044) + 'px');
+    root.setProperty('--search-w', Math.round(W * 0.56) + 'px');
 
     S.layout = { cell: cell, gap: gap, cols: cols };
     return S.layout;
@@ -277,17 +281,17 @@
    * 未知站点仍走网络兜底（apple-touch-icon → favicon.ico → 首字母）。
    */
   var LOCAL_ICONS = {
-    'bilibili.com': 'ic-bilibili.png',
-    'baidu.com': 'ic-baidu.png',
-    'weibo.com': 'ic-weibo.png',
-    'zhihu.com': 'ic-zhihu.png',
-    'taobao.com': 'ic-taobao.png',
+    'bilibili.com': 'ic-bilibili.svg',
+    'baidu.com': 'ic-baidu.svg',
+    'weibo.com': 'ic-weibo.svg',
+    'zhihu.com': 'ic-zhihu.svg',
+    'taobao.com': 'ic-taobao.svg',
     'jd.com': 'ic-jd.png',
     'v.qq.com': 'ic-qqvideo.png',
     'iqiyi.com': 'ic-iqiyi.png',
     'youku.com': 'ic-youku.png',
-    'douban.com': 'ic-douban.png',
-    'music.163.com': 'ic-netease.png',
+    'douban.com': 'ic-douban.svg',
+    'music.163.com': 'ic-netease.svg',
     'tv.cctv.com': 'ic-cctv.png'
   };
 
@@ -647,7 +651,10 @@
         closeMenu();
       });
     } else {
-
+      addAction('编辑', false, function () {
+        closeMenu();
+        native('editFavorite', url);
+      });
       addAction('删除', true, function () {
         native('unfavorite', url);
         closeMenu();
@@ -838,6 +845,14 @@
         S.recent = d.recent.map(normalize).filter(Boolean);
       }
       if (typeof d.engine === 'string' && d.engine) S.engine = d.engine;
+      if (d.titles && typeof d.titles === 'object') {
+        S.titles = {};
+        for (var tk in d.titles) {
+          if (Object.prototype.hasOwnProperty.call(d.titles, tk)) {
+            S.titles[normalize(tk)] = d.titles[tk];
+          }
+        }
+      }
 
       renderAll();
       return { ok: true, favorites: S.favorites.length, recent: S.recent.length };

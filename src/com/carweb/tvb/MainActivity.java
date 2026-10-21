@@ -435,6 +435,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         final boolean desktop = (w == null) || w.isDesktopUa();
         final String[] items = new String[]{
                 desktop ? "切换为手机版网页" : "切换为桌面版网页",
+                "搜索引擎",
                 "刷新页面",
                 "清除缓存",
                 "关于"
@@ -447,8 +448,10 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                         if (which == 0) {
                             if (cur != null) cur.setDesktopUa(!desktop);
                         } else if (which == 1) {
-                            if (cur != null) cur.reload();
+                            showEnginePicker();
                         } else if (which == 2) {
+                            if (cur != null) cur.reload();
+                        } else if (which == 3) {
                             if (cur != null) {
                                 cur.clearCache(true);
                                 showStatus("缓存已清除", 1600);
@@ -681,6 +684,73 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     void setEngineFromHome(String id) {
         store.setEngine(id);
         pushHomeData();
+    }
+
+    /** 长按卡片「编辑」：改名字 / 改网址，位置不变 */
+    void editFavoriteFromHome(final String url) {
+        final String canon = SiteStore.canonical(url);
+        String custom = store.titleOf(url);
+        final String currentName = (custom == null) ? "" : custom;
+
+        int pad = Math.max(28, Math.round(getResources().getDisplayMetrics().widthPixels * 0.012f));
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(pad, pad / 3, pad, 0);
+
+        final EditText nameIn = new EditText(this);
+        nameIn.setHint("名称（留空则用站点默认名）");
+        nameIn.setText(currentName);
+        nameIn.setTextSize(18);
+        box.addView(nameIn);
+
+        final EditText urlIn = new EditText(this);
+        urlIn.setHint("网址");
+        urlIn.setText(canon);
+        urlIn.setTextSize(16);
+        box.addView(urlIn);
+
+        new AlertDialog.Builder(this)
+                .setTitle("编辑站点")
+                .setView(box)
+                .setPositiveButton("保存", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        String newName = nameIn.getText().toString().trim();
+                        String newUrl = urlIn.getText().toString().trim();
+                        if (!SiteStore.isHttpUrl(newUrl)) {
+                            showStatus("网址需要以 http(s):// 开头", 2400);
+                            return;
+                        }
+                        store.rename(url, newName, newUrl);
+                        pushHomeData();
+                        showStatus("已保存", 1500);
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /** 设置里的搜索引擎选择 */
+    private void showEnginePicker() {
+        final String[] ids = {"baidu", "bing", "sogou", "google"};
+        final String[] names = {"百度", "必应", "搜狗", "谷歌"};
+        int checked = 0;
+        String cur = store.engine();
+        for (int i = 0; i < ids.length; i++) {
+            if (ids[i].equals(cur)) { checked = i; break; }
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("搜索引擎")
+                .setSingleChoiceItems(names, checked, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int which) {
+                        store.setEngine(ids[which]);
+                        pushHomeData();
+                        d.dismiss();
+                        showStatus("搜索引擎：" + names[which], 1500);
+                    }
+                })
+                .show();
     }
 
     /** 首屏调完「移动位置」把收藏顺序交回来 —— 顺序已经生效在页面上了，不用再回推 */
