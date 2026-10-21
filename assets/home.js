@@ -256,7 +256,7 @@
     root.setProperty('--cell', cell + 'px');
     root.setProperty('--gap', gap + 'px');
     root.setProperty('--search-font', Math.round(W * 0.018) + 'px');
-    root.setProperty('--search-h', Math.round(W * 0.062) + 'px');
+    root.setProperty('--search-h', Math.round(W * 0.054) + 'px');
     root.setProperty('--search-w', Math.round(W * 0.76) + 'px');
 
     S.layout = { cell: cell, gap: gap, cols: cols };
