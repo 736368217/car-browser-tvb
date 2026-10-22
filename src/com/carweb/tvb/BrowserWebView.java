@@ -188,8 +188,7 @@ public class BrowserWebView extends WebView {
             try {
                 HitTestResult r = getHitTestResult();
                 int type = r == null ? 0 : r.getType();
-                if (type == HitTestResult.SRC_ANCHOR_TYPE
-                        || type == HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
+                if (type == HitTestResult.SRC_ANCHOR_TYPE) {
                     String url = r.getExtra();
                     if (url != null && !url.isEmpty()) {
                         touchHoverActive = true;
@@ -197,6 +196,12 @@ public class BrowserWebView extends WebView {
                         return;
                     }
                 }
+                /*
+                 * 图片链接（SRC_IMAGE_ANCHOR_TYPE）先不弹菜单：HitTestResult 只给得到图片地址，
+                 * 拿 <a> 的 href 得再跑一趟 JS，坐标换算在缩放页面下容易指错。
+                 * 首页卡片正是 img 包在 a 里，弹出来会是 file:///android_asset/ic-xxx.png，
+                 * 还不如老老实实当悬停处理。
+                 */
             } catch (Throwable ignored) {
             }
             touchHoverActive = true;

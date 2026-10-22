@@ -56,6 +56,13 @@
       '<div id="__kb_reader_body">' + html + '</div></div>';
     document.body.appendChild(wrap);
 
+    // 正文开头常带站点 logo / 小图标，抠进阅读层会叠在标题上：高度不到 96px 的直接收掉
+    try {
+      var lead = wrap.querySelectorAll('#__kb_reader_body img, #__kb_reader_body svg');
+      for (var k = 0; k < lead.length && k < 4; k++) {
+        if (lead[k].getBoundingClientRect().height < 96) lead[k].style.display = 'none';
+      }
+    } catch (e2) { /* 忽略 */ }
     var st = document.createElement('style');
     st.textContent =
       '#__kb_reader img{max-width:100%;height:auto}' +

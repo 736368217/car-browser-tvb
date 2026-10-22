@@ -1327,6 +1327,9 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     @Override
     public void onLinkLongPress(BrowserWebView web, String url) {
+        // 首页卡片自带长按（进编辑模式），别在上面再叠一层链接菜单
+        String cur = web.getUrl();
+        if (cur != null && cur.startsWith("file:///android_asset/")) return;
         showLinkMenu(url);
     }
 

@@ -885,6 +885,15 @@ function createController(win) {
 
   function markDirtyOnMutations() {
     const obs = new win.MutationObserver(() => {
+      // 选中框盯着的元素被页面摘掉时（阅读模式退出会把整个覆盖层删掉）要立刻收框，
+      // 否则原地留下一个空蓝框，看着像界面没刷新
+      if (state.current && (!state.current.el || !state.current.el.isConnected)) {
+        state.current = null;
+        state.active = false;
+        ui.box.classList.remove('kb-on');
+        ui.hint.classList.remove('kb-on');
+        clearHover();
+      }
       invalidate();
       // 播放器进出全屏是靠 data-screen 属性变的（不是 fullscreenchange 事件），
       // 这里顺手把选中框/悬停同步一次
@@ -1780,12 +1789,15 @@ function createController(win) {
   /* ------------------------------------------------------------- events --- */
 
   const lastMouse = { x: -1, y: -1 };
+  /** 最近一次按下是手指还是鼠标：手指点过的按钮不该留键盘选中框 */
+  let lastPointerType = '';
   const onMouseMove = (e) => { lastMouse.x = e.clientX; lastMouse.y = e.clientY; };
   const onScrollLike = () => { if (state.current) drawBox(); };
   const onResize = () => { invalidate(); if (state.current) drawBox(); };
 
   win.addEventListener('keydown', onKeydown, true);
   win.addEventListener('mousemove', onMouseMove, { passive: true });
+  win.addEventListener('pointerdown', (e) => { lastPointerType = e.pointerType || ''; }, { passive: true, capture: true });
   win.addEventListener('scroll', onScrollLike, { passive: true, capture: true });
   win.addEventListener('resize', onResize);
   doc.addEventListener('click', (e) => {
@@ -1799,6 +1811,8 @@ function createController(win) {
       }
       return;
     }
+    // 触摸点击不画键盘选中框：手指点一下按钮，原地留一圈蓝框很像界面没刷新
+    if (lastPointerType === 'touch') return;
     // 鼠标点击后把选中框同步过去，键鼠混用不打架
     const t = findTargetFor(e.target);
     if (t) { state.current = t; drawBox(); }
