@@ -197,11 +197,34 @@ public class BrowserWebView extends WebView {
                     }
                 }
                 /*
-                 * 图片链接（SRC_IMAGE_ANCHOR_TYPE）先不弹菜单：HitTestResult 只给得到图片地址，
-                 * 拿 <a> 的 href 得再跑一趟 JS，坐标换算在缩放页面下容易指错。
-                 * 首页卡片正是 img 包在 a 里，弹出来会是 file:///android_asset/ic-xxx.png，
-                 * 还不如老老实实当悬停处理。
+                 * 图片链接（SRC_IMAGE_ANCHOR_TYPE）：HitTestResult 只给图片地址，
+                 * 真正的 <a href> 得在页面里查一次。坐标按 density × getScale() 折算成 CSS px；
+                 * 查不到或不是 http(s) 就退回悬停，宁可没有菜单，也不弹一个错的地址。
                  */
+                if (type == HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
+                    float density = getResources().getDisplayMetrics().density;
+                    float scale = getScale();
+                    if (density <= 0) density = 1f;
+                    if (scale <= 0) scale = 1f;
+                    int cx = Math.round(touchDownX / (density * scale));
+                    int cy = Math.round(touchDownY / (density * scale));
+                    String js = "(function(){try{var el=document.elementFromPoint(" + cx + "," + cy
+                            + ");var a=el&&el.closest?el.closest('a'):null;"
+                            + "return a&&a.href?a.href:'';}catch(e){return '';}})()";
+                    evaluateJavascript(js, value -> {
+                        String href = value == null ? "" : value.trim();
+                        if (href.length() > 1 && href.charAt(0) == '"') {
+                            href = href.substring(1, href.length() - 1);
+                        }
+                        touchHoverActive = true;
+                        if (href.startsWith("http://") || href.startsWith("https://")) {
+                            if (listener != null) listener.onLinkLongPress(BrowserWebView.this, href);
+                        } else {
+                            hoverAtViewPoint(touchDownX, touchDownY);
+                        }
+                    });
+                    return;
+                }
             } catch (Throwable ignored) {
             }
             touchHoverActive = true;

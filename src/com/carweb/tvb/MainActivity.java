@@ -28,6 +28,10 @@ import android.webkit.WebView;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.Bitmap;
+import android.graphics.Rect;
+import android.os.Build;
+import android.view.PixelCopy;
 import android.net.Uri;
 import android.text.InputType;
 import android.view.inputmethod.EditorInfo;
@@ -71,6 +75,15 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private final ArrayDeque<BrowserWebView> tabs = new ArrayDeque<>();
     /** 首屏那一个，永远留在栈底 */
     private BrowserWebView homeView;
+
+    /**
+     * 标签缩略图：切走/关掉之前抓一张当前画面。
+     *
+     * 用 PixelCopy 直接抄屏幕上的硬件图层，比 WebView.draw(Bitmap) 靠谱 ——
+     * 后者在硬件加速下经常只画出一张空白。只在标签可见时抓，所以不会掺进遮罩。
+     */
+    private final java.util.IdentityHashMap<BrowserWebView, Bitmap> tabThumbs =
+            new java.util.IdentityHashMap<>();
 
     private SiteStore store;
 
@@ -294,7 +307,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         bTabs.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showTabs();
+                showTabsWithThumb(0);
             }
         });
         bMenu.setOnClickListener(new View.OnClickListener() {
@@ -485,6 +498,101 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
      * 上游有标签栈（最多 5 个、首屏永驻栈底），但车机上没有任何入口能看到它 ——
      * 用户只能靠"返回"一层层退。这里补一个标签列表，点一下就切。
      */
+    /** 缩略图是不是有内容：整屏接近纯黑（页面还没画出来）就当没抓到 */
+    private static boolean thumbUsable(Bitmap b) {
+        if (b == null || b.isRecycled() || b.getWidth() < 2 || b.getHeight() < 2) return false;
+        long sum = 0;
+        int n = 0;
+        int stepX = Math.max(1, b.getWidth() / 40);
+        int stepY = Math.max(1, b.getHeight() / 40);
+        for (int y = 0; y < b.getHeight(); y += stepY) {
+            for (int x = 0; x < b.getWidth(); x += stepX) {
+                int c = b.getPixel(x, y);
+                sum += (((c >> 16) & 0xFF) + ((c >> 8) & 0xFF) + (c & 0xFF)) / 3;
+                n++;
+            }
+        }
+        long avg = n > 0 ? sum / n : 0;
+        return n > 0 && avg >= 40;
+    }
+    /**
+     * 抓一张标签缩略图。只在标签可见时调用（抓的是屏幕上的硬件图层），
+     * 页面被遮住或已经切走就别抓，否则截到的是遮罩。
+     */
+    private void captureTabThumb(final BrowserWebView w, long delayMs, final Runnable after) {
+        if (w == null) {
+            if (after != null) after.run();
+            return;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            // PixelCopy.request(Window, …) 是 API 26 起；低版本先不抓，卡片走占位图
+            if (after != null) after.run();
+            return;
+        }
+        Runnable job = new Runnable() {
+            @Override public void run() {
+                if (w.getWidth() <= 0 || w.getHeight() <= 0 || w.getVisibility() != View.VISIBLE) {
+                    if (after != null) after.run();
+                    return;
+                }
+                // 整页盖在上面时别抓，抓到的会是页面本身
+                if (pageVisible()) {
+                    if (after != null) after.run();
+                    return;
+                }
+                final int vw = w.getWidth();
+                final int vh = w.getHeight();
+                final int[] loc = new int[2];
+                w.getLocationInWindow(loc);
+                final Bitmap full;
+                try {
+                    full = Bitmap.createBitmap(vw, vh, Bitmap.Config.ARGB_8888);
+                } catch (Throwable t) {
+                    if (after != null) after.run();
+                    return;
+                }
+                try {
+                    PixelCopy.request(getWindow(),
+                            new Rect(loc[0], loc[1], loc[0] + vw, loc[1] + vh), full,
+                            new PixelCopy.OnPixelCopyFinishedListener() {
+                                @Override public void onPixelCopyFinished(int result) {
+                                    if (result != PixelCopy.SUCCESS) {
+                                        Log.w(TAG, "thumb copy failed result=" + result);
+                                    }
+                                    if (result == PixelCopy.SUCCESS) {
+                                        int tw = 420;
+                                        int th = Math.max(1, Math.round(tw * (float) vh / vw));
+                                        Bitmap small = Bitmap.createScaledBitmap(full, tw, th, true);
+                                        // 页面还在淡入/整屏纯黑时抓下来的图等于没内容，别覆盖上一张
+                                        if (thumbUsable(small)) {
+                                            Bitmap old = tabThumbs.put(w, small);
+                                            if (old != null && old != small) old.recycle();
+                                        } else {
+                                            small.recycle();
+                                        }
+                                    }
+                                    if (!full.isRecycled()) full.recycle();
+                                    if (after != null) after.run();
+                                }
+                            }, new Handler(Looper.getMainLooper()));
+                } catch (Throwable t) {
+                    if (!full.isRecycled()) full.recycle();
+                    if (after != null) after.run();
+                }
+            }
+        };
+        if (delayMs > 0) uiHandler.postDelayed(job, delayMs);
+        else uiHandler.post(job);
+    }
+
+    /** 打开标签页之前先把当前画面抓下来，卡片里的缩略图才是最新的 */
+    private void showTabsWithThumb(long delayMs) {
+        captureTabThumb(activeTab(), delayMs, new Runnable() {
+            @Override public void run() {
+                showTabs();
+            }
+        });
+    }
     private void showTabs() {
         final BrowserWebView[] arr = tabs.toArray(new BrowserWebView[0]);
         LinearLayout body = openPage("标签页 · " + arr.length, "新建", new View.OnClickListener() {
@@ -537,10 +645,6 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             }
         });
 
-        LinearLayout top = new LinearLayout(this);
-        top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setGravity(Gravity.TOP);
-
         String url = w.getUrl();
         String title = w.getTitle();
         if (url == null || url.startsWith(HOME_URL)) {
@@ -549,6 +653,41 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         } else if (title == null || title.trim().isEmpty()) {
             title = url;
         }
+
+        // 缩略图：抓过的直接显示；没抓过就给一块深色占位 + 站点首字
+        int thumbH = px(0.12f);
+        Bitmap thumb = tabThumbs.get(w);
+        if (thumb != null && !thumb.isRecycled()) {
+            ImageView iv = new ImageView(this);
+            iv.setImageBitmap(thumb);
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            iv.setClipToOutline(true);
+            GradientDrawable ph = new GradientDrawable();
+            ph.setColor(0xFF0E1218);
+            ph.setCornerRadius(px(0.008f));
+            iv.setBackground(ph);
+            card.addView(iv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, thumbH));
+        } else {
+            TextView ph = new TextView(this);
+            String letter = (title != null && title.length() > 0)
+                    ? title.substring(0, 1).toUpperCase() : "·";
+            ph.setText(letter);
+            ph.setTextColor(0xFF313D4A);
+            ph.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(96f / 2880f));
+            ph.setGravity(Gravity.CENTER);
+            GradientDrawable phBg = new GradientDrawable();
+            phBg.setColor(0xFF0E1218);
+            phBg.setCornerRadius(px(0.008f));
+            ph.setBackground(phBg);
+            card.addView(ph, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, thumbH));
+        }
+
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.TOP);
+        top.setPadding(0, px(0.008f), 0, 0);
 
         TextView t = new TextView(this);
         t.setText(title);
@@ -592,6 +731,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
         boolean wasActive = w == activeTab();
         tabs.remove(w);
+        Bitmap dead = tabThumbs.remove(w);
+        if (dead != null && !dead.isRecycled()) dead.recycle();
         host.removeView(w);
         try {
             w.destroy();
@@ -1122,7 +1263,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         } else if ("newtab".equals(action)) {
             openTab(HOME_URL);
         } else if ("tabs".equals(action)) {
-            showTabs();
+            // 功能页收起要 150ms，等遮罩退干净再抓，否则缩略图是一张暗的
+            showTabsWithThumb(260);
         } else if ("bookmarks".equals(action)) {
             showBookmarks();
         } else if ("history".equals(action)) {
@@ -1344,10 +1486,16 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         bg.setStroke(Math.max(2, px(2f / 2880f)), 0xFF33383F);
         box.setBackground(bg);
 
+        // 显示时把 %E7%99%BE%E5%BA%A6 这类百分号编码解回中文，长链接才好认
+        String shown = url;
+        try {
+            shown = Uri.decode(url);
+        } catch (Throwable ignored) {
+        }
         TextView t = new TextView(this);
-        t.setText(url);
+        t.setText(shown);
         t.setTextColor(0xFF8C98A6);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(28f / 2880f));
+        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(32f / 2880f));
         t.setMaxLines(2);
         t.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
         t.setPadding(px(0.008f), px(0.004f), px(0.008f), px(0.012f));
@@ -2026,13 +2174,20 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         web.requestFocus();
     }
 
-    /** 把收藏 / 最近打开 / 搜索引擎推给首屏 */
+    /** 把收藏 / 最近打开 / 搜索引擎推给首屏（每个停在首屏的标签页都要推，否则新开的标签是空的） */
     void pushHomeData() {
-        BrowserWebView home = homeView;
-        if (home == null) return;
         String json = store.toJson();
         String js = "window.tvHome && window.tvHome.setData(" + JSONObject.quote(json) + ")";
-        home.evaluateJavascript(js, null);
+        boolean any = false;
+        for (BrowserWebView w : tabs) {
+            if (w != null && w.isHomePage()) {
+                w.evaluateJavascript(js, null);
+                any = true;
+            }
+        }
+        if (!any && homeView != null && homeView.isHomePage()) {
+            homeView.evaluateJavascript(js, null);
+        }
     }
 
     /* ------------------------------------------------------------ 标签页 -- */
@@ -2408,6 +2563,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         applyNightMode(web);
         if (web.isHomePage()) pushHomeData();
         updateToolbarState();
+        // 页面稳定 0.8s 后抓一张缩略图，切标签时卡片里就有画面
+        captureTabThumb(web, 1600, null);
     }
 
     @Override

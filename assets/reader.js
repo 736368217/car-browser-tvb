@@ -56,20 +56,42 @@
       '<div id="__kb_reader_body">' + html + '</div></div>';
     document.body.appendChild(wrap);
 
-    // 正文开头常带站点 logo / 小图标，抠进阅读层会叠在标题上：高度不到 96px 的直接收掉
+    // 正文开头常带站点 logo / 小图标，抠进阅读层会叠在标题上。只收拾正文最上面那一段里的，
+    // 正文中间的配图哪怕小也得留着。
     try {
-      var lead = wrap.querySelectorAll('#__kb_reader_body img, #__kb_reader_body svg');
+      var bodyEl = wrap.querySelector('#__kb_reader_body');
+      var bodyTop = bodyEl.getBoundingClientRect().top;
+      var lead = bodyEl.querySelectorAll('img, svg');
       for (var k = 0; k < lead.length && k < 4; k++) {
-        if (lead[k].getBoundingClientRect().height < 96) lead[k].style.display = 'none';
+        var r0 = lead[k].getBoundingClientRect();
+        if (r0.height < 96 && (r0.top - bodyTop) < 160) lead[k].style.display = 'none';
+      }
+      // 正文自带的 h1 和阅读层标题重复时，删掉正文那一个
+      var firstH = bodyEl.querySelector('h1, h2');
+      if (firstH && document.title &&
+          firstH.textContent.replace(/\s+/g, '') === document.title.replace(/\s+/g, '')) {
+        firstH.parentNode.removeChild(firstH);
       }
     } catch (e2) { /* 忽略 */ }
+    // 正文图片懒加载：长文一次铺完太吃内存，滚到哪张再取哪张；坏图直接收掉不留白框
+    try {
+      var bodyImgs = wrap.querySelectorAll('#__kb_reader_body img');
+      for (var m = 0; m < bodyImgs.length; m++) {
+        bodyImgs[m].setAttribute('loading', 'lazy');
+        bodyImgs[m].style.maxWidth = '100%';
+        bodyImgs[m].style.height = 'auto';
+        bodyImgs[m].onerror = function () { this.style.display = 'none'; };
+      }
+    } catch (e3) { /* 忽略 */ }
     var st = document.createElement('style');
     st.textContent =
-      '#__kb_reader img{max-width:100%;height:auto}' +
+      '#__kb_reader img{max-width:100%;height:auto;border-radius:8px}' +
       '#__kb_reader a{color:#6fa8ff}' +
       '#__kb_reader p{margin:0 0 1.1em}' +
       '#__kb_reader h2,#__kb_reader h3{color:#f2f4f8;margin:1.4em 0 .6em}' +
       '#__kb_reader pre{background:#161b22;padding:14px;border-radius:8px;overflow:auto}' +
+      '#__kb_reader pre code{font:15px/1.6 ui-monospace,Consolas,monospace;color:#c9d1d9;background:none;padding:0}' +
+      '#__kb_reader :not(pre)>code{background:#161b22;color:#e6e9f0;padding:1px 6px;border-radius:5px;font-size:.9em}' +
       '#__kb_reader blockquote{border-left:3px solid #2a3442;margin:1em 0;padding:.2em 1em;color:#9aa6b4}';
     wrap.appendChild(st);
 
