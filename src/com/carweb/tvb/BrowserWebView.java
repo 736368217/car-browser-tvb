@@ -152,8 +152,12 @@ public class BrowserWebView extends WebView {
     /* 触屏长按 → 鼠标悬停 */
     private float touchDownX = 0f;
     private float touchDownY = 0f;
+    /** 每次 ACTION_DOWN 自增：异步回调回来时对不上就说明已经是下一次触摸了 */
+    private int touchSeq = 0;
     /** 现在是不是有一次"长按悬停"还没收掉 */
     private boolean touchHoverActive = false;
+    /** destroy() 之后不能再回调 Activity（会弹 Dialog / 碰已销毁的 WebView） */
+    private boolean destroyed = false;
     private int touchSlop = -1;
 
     /* 选中框（CSS 像素，相对视口），由网页通过 kbHost.select 上报 */
@@ -180,17 +184,20 @@ public class BrowserWebView extends WebView {
         }
     };
 
-    /** 触屏长按的计时器：到点了就把"鼠标"停到手指按住的地方 */
-    /** 触屏长按的计时器：落在链接上弹菜单，落在别处把「鼠标」停在那儿 */
     private final Runnable touchHoverTask = new Runnable() {
         @Override
         public void run() {
+            if (destroyed) return;
+            // 把这次按下的坐标固定下来：异步 JS 回来时 touchDownX/Y 可能已经是下一次触摸了
+            final float downX = touchDownX;
+            final float downY = touchDownY;
+            final int seq = touchSeq;
             try {
                 HitTestResult r = getHitTestResult();
                 int type = r == null ? 0 : r.getType();
                 if (type == HitTestResult.SRC_ANCHOR_TYPE) {
                     String url = r.getExtra();
-                    if (url != null && !url.isEmpty()) {
+                    if (url != null && SiteStore.isHttpUrl(url)) {
                         touchHoverActive = true;
                         if (listener != null) listener.onLinkLongPress(BrowserWebView.this, url);
                         return;
@@ -198,29 +205,28 @@ public class BrowserWebView extends WebView {
                 }
                 /*
                  * 图片链接（SRC_IMAGE_ANCHOR_TYPE）：HitTestResult 只给图片地址，
-                 * 真正的 <a href> 得在页面里查一次。坐标按 density × getScale() 折算成 CSS px；
-                 * 查不到或不是 http(s) 就退回悬停，宁可没有菜单，也不弹一个错的地址。
+                 * 真正的 <a href> 得在页面里查一次。getScale() 本身就是「CSS px → 视图 px」
+                 * 的比例（和 clickAtSelection 里的 css * scale 是同一套），所以只除 scale。
+                 * 查不到或不是 http(s) 就退回悬停，宁可没有菜单，也不弹错的地址。
                  */
                 if (type == HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
-                    float density = getResources().getDisplayMetrics().density;
-                    float scale = getScale();
-                    if (density <= 0) density = 1f;
-                    if (scale <= 0) scale = 1f;
-                    int cx = Math.round(touchDownX / (density * scale));
-                    int cy = Math.round(touchDownY / (density * scale));
+                    float scale = currentScale();
+                    int cx = Math.round(downX / scale);
+                    int cy = Math.round(downY / scale);
                     String js = "(function(){try{var el=document.elementFromPoint(" + cx + "," + cy
                             + ");var a=el&&el.closest?el.closest('a'):null;"
                             + "return a&&a.href?a.href:'';}catch(e){return '';}})()";
                     evaluateJavascript(js, value -> {
+                        if (destroyed || seq != touchSeq) return;
                         String href = value == null ? "" : value.trim();
                         if (href.length() > 1 && href.charAt(0) == '"') {
                             href = href.substring(1, href.length() - 1);
                         }
                         touchHoverActive = true;
-                        if (href.startsWith("http://") || href.startsWith("https://")) {
+                        if (SiteStore.isHttpUrl(href)) {
                             if (listener != null) listener.onLinkLongPress(BrowserWebView.this, href);
                         } else {
-                            hoverAtViewPoint(touchDownX, touchDownY);
+                            hoverAtViewPoint(downX, downY);
                         }
                     });
                     return;
@@ -228,7 +234,7 @@ public class BrowserWebView extends WebView {
             } catch (Throwable ignored) {
             }
             touchHoverActive = true;
-            hoverAtViewPoint(touchDownX, touchDownY);
+            hoverAtViewPoint(downX, downY);
         }
     };
 
@@ -652,8 +658,15 @@ public class BrowserWebView extends WebView {
                 clearTouchHover();              // 上一次留下的悬停先收掉
                 touchDownX = event.getX();
                 touchDownY = event.getY();
+                touchSeq++;
                 handler.removeCallbacks(touchHoverTask);
                 handler.postDelayed(touchHoverTask, TOUCH_HOVER_MS);
+                break;
+
+            // 双指缩放/双指手势：别把第一根手指的 400ms 当成"长按悬停"
+            case MotionEvent.ACTION_POINTER_DOWN:
+                handler.removeCallbacks(touchHoverTask);
+                clearTouchHover();
                 break;
 
             case MotionEvent.ACTION_MOVE:
@@ -832,11 +845,14 @@ public class BrowserWebView extends WebView {
 
     @Override
     public void destroy() {
+        destroyed = true;
+        touchSeq++;
         handler.removeCallbacks(injectProbe);
         handler.removeCallbacks(okLongTask);
         handler.removeCallbacks(touchHoverTask);
         okDown = false;
         touchHoverActive = false;
+        listener = null;        // 之后任何异步回调都不许再找 Activity
         super.destroy();
     }
 

@@ -1813,7 +1813,18 @@ function createController(win) {
     }
     // 触摸点击不画键盘选中框：手指点一下按钮，原地留一圈蓝框很像界面没刷新
     if (lastPointerType === 'touch') return;
-    // 鼠标点击后把选中框同步过去，键鼠混用不打架
+    // 触摸点击不画键盘选中框：手指点过的按钮不该在原地留一圈蓝框；
+    // 顺便把遥控器之前选中的目标清掉，别让旧框停在别处
+    if (lastPointerType === 'touch') {
+      if (state.current) {
+        state.current = null;
+        state.active = false;
+        ui.box.classList.remove('kb-on');
+        ui.hint.classList.remove('kb-on');
+        clearHover();
+      }
+      return;
+    }
     const t = findTargetFor(e.target);
     if (t) { state.current = t; drawBox(); }
   }, true);

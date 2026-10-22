@@ -14,6 +14,7 @@ import android.os.Environment;
 import android.os.Message;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -73,6 +74,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private TextView status;
 
     private final ArrayDeque<BrowserWebView> tabs = new ArrayDeque<>();
+    /** 当前显示的是哪一个。不再靠"栈顶"表示，首屏才能被切到前面而不打乱标签顺序 */
+    private BrowserWebView activeWeb;
     /** 首屏那一个，永远留在栈底 */
     private BrowserWebView homeView;
 
@@ -84,10 +87,14 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
      */
     private final java.util.IdentityHashMap<BrowserWebView, Bitmap> tabThumbs =
             new java.util.IdentityHashMap<>();
+    /** 上一次抓图的时间：同一标签短时间内连着触发（onPageCommitVisible + onPageFinished）只抓一次 */
+    private final java.util.IdentityHashMap<BrowserWebView, Long> thumbStamps =
+            new java.util.IdentityHashMap<>();
 
     private SiteStore store;
 
     private View fullscreenView;
+    private BrowserWebView fullscreenOwner;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
 
     private long lastExitAt = 0L;
@@ -350,13 +357,19 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     /** 关掉所有网页标签，回到首屏那一页 */
     private void goHomeTab() {
         hideKeyboard();
-        while (tabs.size() > 1) {
-            if (!closeCurrentTab()) break;
+        // 首屏可能被切到前面过，不能靠"栈顶"判断：把除首屏外的标签都关掉
+        java.util.ArrayList<BrowserWebView> others = new java.util.ArrayList<>();
+        for (BrowserWebView w : tabs) {
+            if (w != homeView) others.add(w);
         }
+        for (BrowserWebView w : others) destroyTab(w);
         BrowserWebView home = homeView;
         if (home != null) {
-            home.loadUrl(HOME_URL);
+            activeWeb = home;
+            home.setVisibility(View.VISIBLE);
+            home.onResume();
             home.requestFocus();
+            home.loadUrl(HOME_URL);
         }
     }
 
@@ -540,6 +553,18 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                     if (after != null) after.run();
                     return;
                 }
+                // 标签已经被关掉/已经不在栈里就不抓了
+                if (!tabs.contains(w)) {
+                    if (after != null) after.run();
+                    return;
+                }
+                // 同一个标签 1.2s 内只抓一次（onPageCommitVisible 和 onPageFinished 会连着来）
+                Long last = thumbStamps.get(w);
+                if (delayMs > 0 && last != null
+                        && SystemClock.uptimeMillis() - last < 1200L) {
+                    if (after != null) after.run();
+                    return;
+                }
                 final int vw = w.getWidth();
                 final int vh = w.getHeight();
                 final int[] loc = new int[2];
@@ -564,9 +589,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                                         int th = Math.max(1, Math.round(tw * (float) vh / vw));
                                         Bitmap small = Bitmap.createScaledBitmap(full, tw, th, true);
                                         // 页面还在淡入/整屏纯黑时抓下来的图等于没内容，别覆盖上一张
-                                        if (thumbUsable(small)) {
+                                        if (thumbUsable(small) && tabs.contains(w)) {
                                             Bitmap old = tabThumbs.put(w, small);
-                                            if (old != null && old != small) old.recycle();
+                                            thumbStamps.put(w, SystemClock.uptimeMillis());
+                                            if (old != null && old != small && !old.isRecycled() && !pageVisible()) {
+                                                old.recycle();
+                                            }
                                         } else {
                                             small.recycle();
                                         }
@@ -722,18 +750,17 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         return card;
     }
 
-    /** 关掉某个标签页（不是只有栈顶那个） */
-    private void closeTabView(BrowserWebView w) {
+    /** 统一关标签：摘栈、移除视图、回收缩略图、销毁 WebView；活动标签会自动落到剩下的最后一个 */
+    private void destroyTab(BrowserWebView w) {
         if (w == null) return;
-        if (w == homeView) {
-            showStatus("首屏不能关闭", 1400);
-            return;
-        }
-        boolean wasActive = w == activeTab();
+        boolean wasActive = (w == activeTab());
         tabs.remove(w);
-        Bitmap dead = tabThumbs.remove(w);
-        if (dead != null && !dead.isRecycled()) dead.recycle();
         host.removeView(w);
+        thumbStamps.remove(w);
+        Bitmap dead = tabThumbs.remove(w);
+        // 标签页正开着时卡片上的 ImageView 还在用这张图，先别 recycle
+        if (dead != null && !dead.isRecycled() && !pageVisible()) dead.recycle();
+        if (activeWeb == w) activeWeb = tabs.peekLast();
         try {
             w.destroy();
         } catch (Throwable ignored) {
@@ -744,13 +771,24 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 next.setVisibility(View.VISIBLE);
                 next.onResume();
                 next.requestFocus();
+                next.resetBackPress();
             }
         }
+    }
+
+    /** 关掉某个标签页（不是只有栈顶那个） */
+    private void closeTabView(BrowserWebView w) {
+        if (w == null) return;
+        if (w == homeView) {
+            showStatus("首屏不能关闭", 1400);
+            return;
+        }
+        destroyTab(w);
         updateToolbarState();
         showTabs();
     }
 
-    /** 把某个标签页拨到栈顶（= 显示它） */
+    /** 切到某个标签页：只改显示，不动标签顺序（首屏因此可以放心切到前面） */
     private void switchToTab(BrowserWebView target) {
         if (target == null || target == activeTab()) return;
         BrowserWebView cur = activeTab();
@@ -758,12 +796,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             cur.onPause();
             cur.setVisibility(View.GONE);
         }
-        tabs.remove(target);
-        tabs.addLast(target);
+        activeWeb = target;
         target.setVisibility(View.VISIBLE);
         target.onResume();
         target.requestFocus();
         target.resetBackPress();
+        if (target.isHomePage()) pushHomeData();
         updateToolbarState();
     }
 
@@ -865,6 +903,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             String name = URLUtil.guessFileName(url, contentDisposition, mimeType);
             DownloadManager.Request req =
                     new DownloadManager.Request(android.net.Uri.parse(url));
+            if (mimeType == null || mimeType.isEmpty()) mimeType = "application/octet-stream";
             req.setMimeType(mimeType);
             if (userAgent != null) req.addRequestHeader("User-Agent", userAgent);
             String cookie = CookieManager.getInstance().getCookie(url);
@@ -880,6 +919,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 long id = dm.enqueue(req);
                 Log.i(TAG, "已加入下载队列 id=" + id);
                 showStatus("开始下载：" + name, 2600);
+            } else {
+                showStatus("系统下载服务不可用", 2600);
             }
         } catch (Throwable t) {
             Log.e(TAG, "下载失败", t);
@@ -965,12 +1006,20 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private void openDownload(long id, String mime) {
         DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        if (dm == null) return;
-        Uri uri = dm.getUriForDownloadedFile(id);
+        if (dm == null) {
+            showStatus("系统下载服务不可用", 1600);
+            return;
+        }
+        Uri uri = null;
+        try {
+            uri = dm.getUriForDownloadedFile(id);
+        } catch (Throwable ignored) {
+        }
         if (uri == null) {
             showStatus("文件还没下载完", 1600);
             return;
         }
+        if (mime == null || mime.isEmpty()) mime = "application/octet-stream";
         try {
             Intent view = new Intent(Intent.ACTION_VIEW);
             view.setDataAndType(uri, mime);
@@ -1817,11 +1866,9 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         body.addView(pageRow("网页版式", desktop ? "电脑版（桌面 UA）" : "手机版（移动 UA）", "›", false,
                 new View.OnClickListener() {
                     @Override public void onClick(View v) {
+                        // setDesktopUa() 内部已经 reload 了，这里别再补一刀（会多一条历史）
                         BrowserWebView cur = activeTab();
-                        if (cur != null) {
-                            cur.setDesktopUa(!cur.isDesktopUa());
-                            cur.reload();
-                        }
+                        if (cur != null) cur.setDesktopUa(!cur.isDesktopUa());
                         showSettings();
                     }
                 }, null));
@@ -2169,6 +2216,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         BrowserWebView web = createTabView();
         homeView = web;
         tabs.addLast(web);
+        activeWeb = web;
         web.setVisibility(View.VISIBLE);
         web.loadUrl(HOME_URL);
         web.requestFocus();
@@ -2193,6 +2241,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     /* ------------------------------------------------------------ 标签页 -- */
 
     BrowserWebView activeTab() {
+        if (activeWeb != null && tabs.contains(activeWeb)) return activeWeb;
         return tabs.peekLast();
     }
 
@@ -2207,6 +2256,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         web.setBridge(bridge);
         web.setListener(this);
         web.configure();
+        // 无图模式下新开的标签也要跟着省流量
+        web.getSettings().setBlockNetworkImage(noImageMode);
         web.setFindListener(new WebView.FindListener() {
             @Override
             public void onFindResultReceived(int activeMatchOrdinal, int numberOfMatches,
@@ -2244,11 +2295,10 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 }
             }
             if (victim == null) break;
-            tabs.remove(victim);
-            host.removeView(victim);
-            victim.destroy();
+            destroyTab(victim);
         }
         tabs.addLast(web);
+        activeWeb = web;
         web.resetBackPress();          // 新标签页重新开始算"连按两下返回"
         web.setVisibility(View.VISIBLE);
         web.onResume();
@@ -2276,22 +2326,11 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
      */
     private boolean closeCurrentTab() {
         if (tabs.size() <= 1) return false;
-        BrowserWebView cur = tabs.peekLast();
-        if (cur == homeView) return false;
-        tabs.pollLast();
-        if (cur != null) {
-            cur.onPause();
-            host.removeView(cur);
-            cur.destroy();
-        }
-        BrowserWebView prev = activeTab();
-        if (prev != null) {
-            prev.resetBackPress();     // 换了一页：别让"连按两下返回"接着往下关标签页
-            prev.setVisibility(View.VISIBLE);
-            prev.onResume();
-            prev.requestFocus();
-        }
-        if (prev != null && prev.isHomePage()) pushHomeData();
+        BrowserWebView cur = activeTab();
+        if (cur == null || cur == homeView) return false;
+        destroyTab(cur);
+        BrowserWebView next = activeTab();
+        if (next != null && next.isHomePage()) pushHomeData();
         return true;
     }
 
@@ -2455,12 +2494,18 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     @Override
     protected void onDestroy() {
-        uiHandler.removeCallbacks(addrSync);
+        uiHandler.removeCallbacksAndMessages(null);
         for (BrowserWebView web : tabs) {
             host.removeView(web);
             web.destroy();
         }
         tabs.clear();
+        for (Bitmap b : tabThumbs.values()) {
+            if (b != null && !b.isRecycled()) b.recycle();
+        }
+        tabThumbs.clear();
+        thumbStamps.clear();
+        activeWeb = null;
         homeView = null;
         super.onDestroy();
     }
@@ -2610,6 +2655,16 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     @Override
     public void onNewWindowRequest(BrowserWebView web, Message resultMsg) {
+        // 后台标签里的广告 window.open 不能抢走前台：不是当前标签就丢掉
+        if (!isActiveTab(web)) {
+            try {
+                WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                transport.setWebView(null);
+                resultMsg.sendToTarget();
+            } catch (Throwable ignored) {
+            }
+            return;
+        }
         BrowserWebView child = newWindowTab();
         try {
             WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
@@ -2628,10 +2683,16 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     @Override
     public void onFullscreen(BrowserWebView web, View view, WebChromeClient.CustomViewCallback callback) {
+        // 后台标签的视频不许盖住当前页面
+        if (!isActiveTab(web)) {
+            if (callback != null) callback.onCustomViewHidden();
+            return;
+        }
         if (fullscreenView != null) {
             if (callback != null) callback.onCustomViewHidden();
             return;
         }
+        fullscreenOwner = web;
         fullscreenView = view;
         fullscreenCallback = callback;
         host.setVisibility(View.GONE);
@@ -2642,10 +2703,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     @Override
     public void onFullscreenExit(BrowserWebView web) {
-        if (fullscreenView == null) return;
+        // 只有全屏的发起者能退出全屏，别的标签不许把当前全屏收掉
+        if (fullscreenView == null || (fullscreenOwner != null && web != fullscreenOwner)) return;
         fullscreenView.setVisibility(View.GONE);
         root.removeView(fullscreenView);
         fullscreenView = null;
+        fullscreenOwner = null;
         host.setVisibility(View.VISIBLE);
         if (fullscreenCallback != null) {
             fullscreenCallback.onCustomViewHidden();
@@ -2665,6 +2728,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         status.removeCallbacks(hideStatusTask);
         status.setText(text);
         status.setVisibility(View.VISIBLE);
+        // 整页层是后来才加进 root 的，不 bringToFront 的话提示会被它盖住
+        status.bringToFront();
         if (autoHideMs > 0) status.postDelayed(hideStatusTask, autoHideMs);
     }
 
@@ -2710,6 +2775,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             switch (ev.getActionMasked()) {
                 case android.view.MotionEvent.ACTION_DOWN:
                     downX = ev.getX();
+                    lastX = (int) ev.getX();
                     downY = ev.getY();
                     dragging = false;
                     if (sheetTrack != null) sheetTrack.animate().cancel();
@@ -2737,6 +2803,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             switch (ev.getActionMasked()) {
                 case android.view.MotionEvent.ACTION_DOWN:
                     downX = ev.getX();
+                    lastX = (int) ev.getX();
                     return true;
                 case android.view.MotionEvent.ACTION_MOVE: {
                     int x = (int) ev.getX();
