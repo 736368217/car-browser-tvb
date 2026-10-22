@@ -19,6 +19,7 @@ import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -30,6 +31,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
+import java.io.ByteArrayInputStream;
 /**
  * 电视用的 WebView（一个标签页一个）。六件事：
  *
@@ -79,6 +81,9 @@ public class BrowserWebView extends WebView {
         /** 网页里点了下载链接（WebView 自己不会下，交给 Activity 用系统下载器） */
         void onDownload(BrowserWebView web, String url, String userAgent,
                         String contentDisposition, String mimeType, long contentLength);
+
+        /** 长按落在链接上：交给 Activity 弹「新标签打开 / 复制链接」 */
+        void onLinkLongPress(BrowserWebView web, String url);
     }
 
     /** 冒充 Windows 上的 Chrome 122 */
@@ -162,6 +167,8 @@ public class BrowserWebView extends WebView {
     private float lastHoverX = -1f;
     private float lastHoverY = -1f;
     private int hoverCount = 0;
+    /** 是否已经给 Chromium 发过 HOVER_ENTER（发过才能发 MOVE / EXIT） */
+    private boolean hoverEntered = false;
 
     /** 按住确定的计时器：到点了还没抬手就是长按 */
     private final Runnable okLongTask = new Runnable() {
@@ -174,9 +181,24 @@ public class BrowserWebView extends WebView {
     };
 
     /** 触屏长按的计时器：到点了就把"鼠标"停到手指按住的地方 */
+    /** 触屏长按的计时器：落在链接上弹菜单，落在别处把「鼠标」停在那儿 */
     private final Runnable touchHoverTask = new Runnable() {
         @Override
         public void run() {
+            try {
+                HitTestResult r = getHitTestResult();
+                int type = r == null ? 0 : r.getType();
+                if (type == HitTestResult.SRC_ANCHOR_TYPE
+                        || type == HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
+                    String url = r.getExtra();
+                    if (url != null && !url.isEmpty()) {
+                        touchHoverActive = true;
+                        if (listener != null) listener.onLinkLongPress(BrowserWebView.this, url);
+                        return;
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
             touchHoverActive = true;
             hoverAtViewPoint(touchDownX, touchDownY);
         }
@@ -534,28 +556,46 @@ public class BrowserWebView extends WebView {
         return scale > 0f ? scale : 1f;
     }
 
+    /**
+     * 派发一次悬停。
+     *
+     * 只发 MOVE 是不行的：Chromium 要先收到 HOVER_ENTER 才会把「指针进入视图」这件事
+     * 记住，之后再 MOVE 才会去更新 CSS :hover 的那个节点。所以第一次移动前补一个 ENTER。
+     */
     private void dispatchHover(float x, float y, boolean leave) {
-        // 长按悬停是这套壳最核心的改动，留一条日志便于验收时取硬证据
         Log.d(MainActivity.TAG, "hover " + (leave ? "EXIT" : "MOVE")
                 + " @" + (int) x + "," + (int) y);
         lastHoverX = x;
         lastHoverY = y;
         hoverCount++;
         try {
-            long now = SystemClock.uptimeMillis();
-            int action = leave ? MotionEvent.ACTION_HOVER_EXIT : MotionEvent.ACTION_HOVER_MOVE;
-            MotionEvent ev = MotionEvent.obtain(now, now, action, Math.max(0f, x), Math.max(0f, y), 0);
-            ev.setSource(InputDevice.SOURCE_MOUSE);
-            boolean handled = dispatchGenericMotionEvent(ev);
-            ev.recycle();
-            if (!handled) {
-                MotionEvent hover = MotionEvent.obtain(now, now, action, Math.max(0f, x), Math.max(0f, y), 0);
-                hover.setSource(InputDevice.SOURCE_MOUSE);
-                onHoverEvent(hover);
-                hover.recycle();
+            if (leave) {
+                if (hoverEntered) {
+                    sendHover(MotionEvent.ACTION_HOVER_EXIT, x, y);
+                    hoverEntered = false;
+                }
+                return;
             }
+            if (!hoverEntered) {
+                sendHover(MotionEvent.ACTION_HOVER_ENTER, x, y);
+                hoverEntered = true;
+            }
+            sendHover(MotionEvent.ACTION_HOVER_MOVE, x, y);
         } catch (Throwable t) {
             Log.w(MainActivity.TAG, "派发悬停事件失败", t);
+        }
+    }
+
+    private void sendHover(int action, float x, float y) {
+        long now = SystemClock.uptimeMillis();
+        MotionEvent ev = MotionEvent.obtain(now, now, action, Math.max(0f, x), Math.max(0f, y), 0);
+        ev.setSource(InputDevice.SOURCE_MOUSE);
+        try {
+            // 先走 View.onHoverEvent（Chromium 真正处理悬停的入口），没吃下再补一次通用事件
+            boolean handled = onHoverEvent(ev);
+            if (!handled) dispatchGenericMotionEvent(ev);
+        } finally {
+            ev.recycle();
         }
     }
 
@@ -590,9 +630,12 @@ public class BrowserWebView extends WebView {
 
             case MotionEvent.ACTION_MOVE:
                 if (touchHoverActive) break;    // 已经悬停上了：后面是滚动/拖动，不管
-                if (Math.abs(event.getX() - touchDownX) > touchSlop()
-                        || Math.abs(event.getY() - touchDownY) > touchSlop()) {
-                    handler.removeCallbacks(touchHoverTask);   // 手指挪开了就不算长按
+                // 手指按在玻璃上一定会抖：判"挪开"要用比系统 touchSlop 宽一点的阈值，
+                // 否则真车机上稍微一动长按就取消了（这是之前"长按没反应"的主因之一）。
+                int slop = Math.max(touchSlop(), Math.max(24, getWidth() / 80));
+                if (Math.abs(event.getX() - touchDownX) > slop
+                        || Math.abs(event.getY() - touchDownY) > slop) {
+                    handler.removeCallbacks(touchHoverTask);
                 }
                 break;
 
@@ -773,6 +816,18 @@ public class BrowserWebView extends WebView {
 
     private class TvClient extends WebViewClient {
 
+        /** 广告 / 统计请求直接掐掉：返回空响应，页面照常加载，只是这些资源拿不到 */
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+            String url = request == null || request.getUrl() == null
+                    ? null : request.getUrl().toString();
+            if (AdBlock.shouldBlock(url)) {
+                return new WebResourceResponse("text/plain", "utf-8",
+                        new ByteArrayInputStream(new byte[0]));
+            }
+            return super.shouldInterceptRequest(view, request);
+        }
+
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             return handleUrl(request.getUrl() == null ? null : request.getUrl().toString());
@@ -816,6 +871,8 @@ public class BrowserWebView extends WebView {
         public void onPageFinished(WebView view, String url) {
             currentUrl = url == null ? "" : url;
             injectScripts();
+            Log.i(MainActivity.TAG, "page done " + url + " scale=" + getScale()
+                    + " contentH=" + getContentHeight() + " viewW=" + getWidth());
             if (listener != null) {
                 listener.onPageVisible(BrowserWebView.this);
                 listener.onPageLoading(BrowserWebView.this, false);

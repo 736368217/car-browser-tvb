@@ -98,6 +98,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         root.addView(column, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
+        buildFindBar();
+        FrameLayout.LayoutParams findLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, px(96f / 2880f));
+        findLp.topMargin = px(132f / 2880f);
+        root.addView(findBar, findLp);
+
         status = new TextView(this);
         status.setTextColor(Color.WHITE);
         status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
@@ -371,10 +377,25 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 || low.startsWith("file://") || low.startsWith("about:")) {
             return s;
         }
-        if (!s.contains(" ") && s.matches("[\\w\\-.:]+\\.[a-zA-Z]{2,}(:\\d+)?(/.*)?")) {
+        if (!s.contains(" ") && looksLikeAddress(s)) {
             return "https://" + s;
         }
         return searchUrlFor(s);
+    }
+
+    /**
+     * 像不像一个网址（不含协议）。
+     *
+     * 除了 example.com 这种，还得认 127.0.0.1:8099/hover.html、localhost:8080 这类
+     * 调试地址 —— 之前只认「字母 TLD」，IP 和端口会被当成搜索词去搜，很反直觉。
+     */
+    private static boolean looksLikeAddress(String s) {
+        if (s.matches("[\\w\\-.:]+\\.[a-zA-Z]{2,}(:\\d+)?(/.*)?")) return true;
+        if (s.matches("\\d{1,3}(\\.\\d{1,3}){3}(:\\d+)?(/.*)?")) return true;
+        if (s.matches("localhost(:\\d+)?(/.*)?")) return true;
+        // 带端口的局域网名：nas:5000、router:8080
+        if (s.matches("[\\w\\-]+:\\d+(/.*)?")) return true;
+        return false;
     }
 
     /** 按设置里选的搜索引擎拼搜索地址（地址栏输入的纯文字走这里） */
@@ -852,8 +873,11 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     };
 
     private static final String[][] SHEET_PAGE2 = {
+            {"页内查找", "9", "find"},
+            {"阅读模式", "5", "reader"},
             {"夜间模式", "13", "night"},
             {"无图模式", "12", "noimage"},
+            {"广告过滤", "15", "adblock"},
             {"全屏", "14", "fullscreen"},
             {"电脑模式", "12", "desktop"},
             {"清除缓存", "15", "clear"},
@@ -1116,6 +1140,14 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             toggleNightMode();
         } else if ("noimage".equals(action)) {
             toggleNoImage();
+        } else if ("find".equals(action)) {
+            showFindBar();
+        } else if ("reader".equals(action)) {
+            toggleReader();
+        } else if ("adblock".equals(action)) {
+            AdBlock.setEnabled(!AdBlock.isEnabled());
+            showStatus(AdBlock.isEnabled() ? "广告过滤：开" : "广告过滤：关", 1600);
+            if (w != null) w.reload();
         } else if ("settings".equals(action)) {
             showSettings();
         } else if ("fullscreen".equals(action)) {
@@ -1133,6 +1165,222 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         } else if ("exit".equals(action)) {
             finish();
         }
+    }
+
+    /* ------------------------------------------------------ 页内查找 -- */
+
+    private LinearLayout findBar;
+    private EditText findInput;
+    private TextView findCountText;
+    private int findTotal = 0;
+
+    private void buildFindBar() {
+        findBar = new LinearLayout(this);
+        findBar.setOrientation(LinearLayout.HORIZONTAL);
+        findBar.setGravity(Gravity.CENTER_VERTICAL);
+        findBar.setBackgroundColor(0xF2151A21);
+        int pad = px(0.01f);
+        findBar.setPadding(pad, 0, pad, 0);
+        findBar.setVisibility(View.GONE);
+
+        findInput = new EditText(this);
+        findInput.setSingleLine(true);
+        findInput.setHint("在页面中查找");
+        findInput.setHintTextColor(0xFF7A8794);
+        findInput.setTextColor(0xFFE8EDF2);
+        findInput.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(36f / 2880f));
+        findInput.setInputType(InputType.TYPE_CLASS_TEXT);
+        findInput.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
+        findInput.setBackgroundColor(0x00000000);
+        findInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override public void afterTextChanged(android.text.Editable s) {
+                doFind(s == null ? "" : s.toString());
+            }
+        });
+        findInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override public boolean onEditorAction(TextView v, int id, KeyEvent e) {
+                if (id == EditorInfo.IME_ACTION_SEARCH
+                        || (e != null && e.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                    doFind(findInput.getText().toString());
+                    hideKeyboard();
+                    return true;
+                }
+                return false;
+            }
+        });
+        findBar.addView(findInput, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+
+        findCountText = new TextView(this);
+        findCountText.setTextColor(0xFF9AA6B4);
+        findCountText.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(30f / 2880f));
+        findCountText.setPadding(px(0.008f), 0, px(0.01f), 0);
+        findBar.addView(findCountText);
+
+        int btn = px(0.04f);
+        ImageView prev = glyphButton(GlyphIcon.FORWARD, -90f, new View.OnClickListener() {
+            @Override public void onClick(View v) { findStep(false); }
+        });
+        findBar.addView(prev, new LinearLayout.LayoutParams(btn, btn));
+
+        ImageView next = glyphButton(GlyphIcon.FORWARD, 90f, new View.OnClickListener() {
+            @Override public void onClick(View v) { findStep(true); }
+        });
+        findBar.addView(next, new LinearLayout.LayoutParams(btn, btn));
+
+        ImageView close = glyphButton(GlyphIcon.CLOSE, 0f, new View.OnClickListener() {
+            @Override public void onClick(View v) { hideFindBar(); }
+        });
+        findBar.addView(close, new LinearLayout.LayoutParams(btn, btn));
+    }
+
+    private ImageView glyphButton(int glyph, float rotation, View.OnClickListener l) {
+        ImageView v = new ImageView(this);
+        v.setImageDrawable(new GlyphIcon(glyph, 0xFFE8EDF2));
+        v.setRotation(rotation);
+        v.setPadding(px(0.008f), px(0.008f), px(0.008f), px(0.008f));
+        pressable(v);
+        v.setOnClickListener(l);
+        return v;
+    }
+
+    private void showFindBar() {
+        BrowserWebView w = activeTab();
+        if (w == null || w.isHomePage()) {
+            showStatus("先在网页里再查找", 1400);
+            return;
+        }
+        findBar.setVisibility(View.VISIBLE);
+        findInput.requestFocus();
+        findInput.selectAll();
+        try {
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null) imm.showSoftInput(findInput, 0);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void hideFindBar() {
+        if (findBar == null) return;
+        findBar.setVisibility(View.GONE);
+        hideKeyboard();
+        BrowserWebView w = activeTab();
+        if (w != null) w.clearMatches();
+        findCountText.setText("");
+        findTotal = 0;
+    }
+
+    private void doFind(String q) {
+        BrowserWebView w = activeTab();
+        if (w == null) return;
+        if (q == null || q.trim().isEmpty()) {
+            w.clearMatches();
+            findCountText.setText("");
+            findTotal = 0;
+            return;
+        }
+        w.findAllAsync(q);
+    }
+
+    private void findStep(boolean forward) {
+        BrowserWebView w = activeTab();
+        if (w == null || findTotal == 0) return;
+        w.findNext(forward);
+    }
+
+    /* ------------------------------------------------------ 阅读模式 -- */
+
+    private String assetText(String name) {
+        java.io.InputStream in = null;
+        try {
+            in = getAssets().open(name);
+            byte[] buf = new byte[(int) in.available()];
+            int n = in.read(buf);
+            return n <= 0 ? "" : new String(buf, 0, n, "UTF-8");
+        } catch (Throwable t) {
+            return "";
+        } finally {
+            if (in != null) {
+                try { in.close(); } catch (Throwable ignored) { }
+            }
+        }
+    }
+
+    private void toggleReader() {
+        BrowserWebView w = activeTab();
+        if (w == null || w.isHomePage()) {
+            showStatus("先打开一篇网页再进阅读模式", 1500);
+            return;
+        }
+        String js = assetText("reader.js");
+        if (js.isEmpty()) {
+            showStatus("阅读模式脚本缺失", 1500);
+            return;
+        }
+        w.evaluateJavascript(js, null);
+    }
+
+    /* -------------------------------------------------- 长按链接菜单 -- */
+
+    @Override
+    public void onLinkLongPress(BrowserWebView web, String url) {
+        showLinkMenu(url);
+    }
+
+    private void showLinkMenu(final String url) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = px(0.014f);
+        box.setPadding(pad, pad, pad, pad / 2);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF1C1F26);
+        bg.setCornerRadius(px(0.02f));
+        bg.setStroke(Math.max(2, px(2f / 2880f)), 0xFF33383F);
+        box.setBackground(bg);
+
+        TextView t = new TextView(this);
+        t.setText(url);
+        t.setTextColor(0xFF8C98A6);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(28f / 2880f));
+        t.setMaxLines(2);
+        t.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        t.setPadding(px(0.008f), px(0.004f), px(0.008f), px(0.012f));
+        box.addView(t);
+
+        final AlertDialog dlg = new AlertDialog.Builder(this).setView(box).create();
+
+        box.addView(linkMenuRow("在新标签页打开", 0xFFE6E9F0, new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                dlg.dismiss();
+                openTab(url);
+            }
+        }));
+        box.addView(linkMenuRow("复制链接", 0xFF6FA8FF, new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                dlg.dismiss();
+                copyLink(url);
+            }
+        }));
+        box.addView(linkMenuRow("取消", 0xFF8C98A6, new View.OnClickListener() {
+            @Override public void onClick(View v) { dlg.dismiss(); }
+        }));
+
+        dlg.show();
+        styleDialog(dlg, 1200f);
+    }
+
+    private View linkMenuRow(String label, int color, View.OnClickListener l) {
+        TextView b = new TextView(this);
+        b.setText(label);
+        b.setTextColor(color);
+        b.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(38f / 2880f));
+        b.setPadding(px(0.008f), px(0.014f), px(0.008f), px(0.014f));
+        pressable(b);
+        b.setOnClickListener(l);
+        return b;
     }
 
     /* ------------------------------------------------------ 整页容器 -- */
@@ -1437,6 +1685,19 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 new View.OnClickListener() {
                     @Override public void onClick(View v) {
                         toggleNoImage();
+                        showSettings();
+                    }
+                }, null));
+        body.addView(pageRow("广告过滤",
+                AdBlock.isEnabled()
+                        ? "已开启 · 本次启动拦截 " + AdBlock.blockedCount() + " 个请求"
+                        : "已关闭（有些站会因此变快，但也可能拦不到广告）",
+                AdBlock.isEnabled() ? "关闭" : "开启", false,
+                new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        AdBlock.setEnabled(!AdBlock.isEnabled());
+                        BrowserWebView cur = activeTab();
+                        if (cur != null) cur.reload();
                         showSettings();
                     }
                 }, null));
@@ -1788,6 +2049,20 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         web.setBridge(bridge);
         web.setListener(this);
         web.configure();
+        web.setFindListener(new WebView.FindListener() {
+            @Override
+            public void onFindResultReceived(int activeMatchOrdinal, int numberOfMatches,
+                                             boolean isDoneCounting) {
+                if (findCountText == null) return;
+                findTotal = numberOfMatches;
+                if (numberOfMatches == 0) {
+                    findCountText.setText("无结果");
+                } else {
+                    // activeMatchOrdinal 是从 0 开始的，显示成 1/2 更符合直觉
+                    findCountText.setText((activeMatchOrdinal + 1) + "/" + numberOfMatches);
+                }
+            }
+        });
         host.addView(web, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         web.setVisibility(View.GONE);
