@@ -29,10 +29,21 @@ $sdk = $env:ANDROID_HOME
 if (-not $sdk -or -not (Test-Path $sdk)) { $sdk = "$env:LOCALAPPDATA\Android\Sdk" }
 
 $buildTools = Join-Path $sdk 'build-tools\34.0.0'
+# 装了几个版本就挑最新的那个（d8 在 34 上有过内部报错，35 正常）
+$btRoot = Join-Path $sdk 'build-tools'
+if (Test-Path $btRoot) {
+  $btPick = Get-ChildItem $btRoot -Directory |
+    Sort-Object { [int]($_.Name.Split('.')[0]) } -Descending |
+    Where-Object { Test-Path (Join-Path $_.FullName 'aapt2.exe') } |
+    Select-Object -First 1
+  if ($btPick) { $buildTools = $btPick.FullName }
+}
 $aapt2 = Join-Path $buildTools 'aapt2.exe'
 $zipalign = Join-Path $buildTools 'zipalign.exe'
 $apksigner = Join-Path $buildTools 'apksigner.bat'
 $d8 = Join-Path $sdk 'cmdline-tools\latest\bin\d8.bat'
+# 有的 SDK 只装了 build-tools、没有 cmdline-tools：d8 就在 build-tools 里
+if (-not (Test-Path $d8)) { $d8 = Join-Path $buildTools 'd8.bat' }
 $androidJar = Join-Path $sdk 'platforms\android-35\android.jar'
 
 foreach ($p in @($aapt2, $zipalign, $apksigner, $d8, $androidJar)) {

@@ -77,6 +77,9 @@ public class BrowserWebView extends WebView {
         void onFullscreen(BrowserWebView web, View view, WebChromeClient.CustomViewCallback callback);
 
         void onFullscreenExit(BrowserWebView web);
+        /** 加载进度 0..100（画顶部细进度条） */
+        void onProgress(BrowserWebView web, int progress);
+
 
         /** 网页里点了下载链接（WebView 自己不会下，交给 Activity 用系统下载器） */
         void onDownload(BrowserWebView web, String url, String userAgent,
@@ -216,17 +219,20 @@ public class BrowserWebView extends WebView {
                     String js = "(function(){try{var el=document.elementFromPoint(" + cx + "," + cy
                             + ");var a=el&&el.closest?el.closest('a'):null;"
                             + "return a&&a.href?a.href:'';}catch(e){return '';}})()";
-                    evaluateJavascript(js, value -> {
-                        if (destroyed || seq != touchSeq) return;
-                        String href = value == null ? "" : value.trim();
-                        if (href.length() > 1 && href.charAt(0) == '"') {
-                            href = href.substring(1, href.length() - 1);
-                        }
-                        touchHoverActive = true;
-                        if (SiteStore.isHttpUrl(href)) {
-                            if (listener != null) listener.onLinkLongPress(BrowserWebView.this, href);
-                        } else {
-                            hoverAtViewPoint(downX, downY);
+                    // 这里刻意不用 lambda：d8 在某些 anonymous Runnable 内的 lambda 上会内部报错
+                    evaluateJavascript(js, new android.webkit.ValueCallback<String>() {
+                        @Override public void onReceiveValue(String value) {
+                            if (destroyed || seq != touchSeq) return;
+                            String href = value == null ? "" : value.trim();
+                            if (href.length() > 1 && href.charAt(0) == '"') {
+                                href = href.substring(1, href.length() - 1);
+                            }
+                            touchHoverActive = true;
+                            if (SiteStore.isHttpUrl(href)) {
+                                if (listener != null) listener.onLinkLongPress(BrowserWebView.this, href);
+                            } else {
+                                hoverAtViewPoint(downX, downY);
+                            }
                         }
                     });
                     return;
@@ -923,6 +929,7 @@ public class BrowserWebView extends WebView {
             }
         }
 
+
         @Override
         public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
             // 历史更新 = 新文档已经建好了（比 onPageFinished 早得多）：
@@ -965,6 +972,11 @@ public class BrowserWebView extends WebView {
         @Override
         public void onHideCustomView() {
             if (listener != null) listener.onFullscreenExit(BrowserWebView.this);
+        }
+
+        @Override
+        public void onProgressChanged(WebView view, int newProgress) {
+            if (listener != null) listener.onProgress(BrowserWebView.this, newProgress);
         }
 
         @Override

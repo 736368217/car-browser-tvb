@@ -72,6 +72,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     /** 标签页容器：一个标签页一个 WebView，只显示最上面那个 */
     private FrameLayout host;
     private TextView status;
+    /** 顶部加载进度条 */
+    private View loadBar;
 
     private final ArrayDeque<BrowserWebView> tabs = new ArrayDeque<>();
     /** 当前显示的是哪一个。不再靠"栈顶"表示，首屏才能被切到前面而不打乱标签顺序 */
@@ -117,6 +119,16 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         uiHandler.postDelayed(addrSync, 500);
         root.addView(column, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        // 顶部加载进度条：3px，随 onProgressChanged 长；加载完淡出
+        loadBar = new View(this);
+        GradientDrawable barBg = new GradientDrawable();
+        barBg.setColor(0xFF3F80C0);
+        loadBar.setBackground(barBg);
+        loadBar.setAlpha(0f);
+        FrameLayout.LayoutParams barLp = new FrameLayout.LayoutParams(0, px(3f / 2880f));
+        barLp.topMargin = px(132f / 2880f);
+        root.addView(loadBar, barLp);
+
 
         buildFindBar();
         FrameLayout.LayoutParams findLp = new FrameLayout.LayoutParams(
@@ -652,6 +664,41 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 row.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
             }
         }
+
+        // 标签多了以后，一个个点 ✕ 太慢：给一个「关闭其他」的兜底
+        if (arr.length > 1) {
+            TextView closeOthers = new TextView(this);
+            closeOthers.setText("关闭其他标签页");
+            closeOthers.setTextColor(0xFF8B95A5);
+            closeOthers.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(30f / 2880f));
+            closeOthers.setGravity(Gravity.CENTER);
+            closeOthers.setPadding(0, px(0.022f), 0, px(0.022f));
+            pressable(closeOthers);
+            closeOthers.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    askConfirm("关闭其他标签页", "只保留当前显示的这一页（首屏保留）。", "关闭", new Runnable() {
+                        @Override public void run() {
+                            BrowserWebView keep = activeTab();
+                            boolean keepIsHome = keep != null && keep.isHomePage();
+                            // 留下的本身就是首屏时，由它接管 homeView
+                            if (keepIsHome) homeView = keep;
+                            java.util.ArrayList<BrowserWebView> others = new java.util.ArrayList<>();
+                            for (BrowserWebView w : tabs) {
+                                if (w == keep) continue;
+                                if (!keepIsHome && w == homeView) continue;
+                                others.add(w);
+                            }
+                            for (BrowserWebView w : others) destroyTab(w);
+                            showTabs();
+                        }
+                    });
+                }
+            });
+            LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            closeLp.topMargin = px(0.02f);
+            body.addView(closeOthers, closeLp);
+        }
     }
 
     /** 标签卡片：标题 + 网址 + 右上角关闭 */
@@ -1067,7 +1114,6 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             {"阅读模式", "5", "reader"},
             {"夜间模式", "13", "night"},
             {"无图模式", "12", "noimage"},
-            {"广告过滤", "15", "adblock"},
             {"全屏", "14", "fullscreen"},
             {"电脑模式", "12", "desktop"},
             {"清除缓存", "15", "clear"},
@@ -2577,6 +2623,19 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
         lastExitAt = now;
         showStatus(getString(R.string.exit_hint), 2000);
+    }
+
+    @Override
+    public void onProgress(BrowserWebView web, int progress) {
+        if (!isActiveTab(web) || loadBar == null) return;
+        int screenW = getResources().getDisplayMetrics().widthPixels;
+        ViewGroup.LayoutParams lp = loadBar.getLayoutParams();
+        lp.width = Math.max(0, (int) (screenW * (progress / 100f)));
+        loadBar.setLayoutParams(lp);
+        loadBar.setAlpha(1f);
+        if (progress >= 100) {
+            loadBar.animate().alpha(0f).setStartDelay(200).setDuration(220).start();
+        }
     }
 
     @Override

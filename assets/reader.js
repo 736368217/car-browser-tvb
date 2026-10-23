@@ -41,19 +41,28 @@
     var html = best.innerHTML;
     var wrap = document.createElement('div');
     wrap.id = '__kb_reader';
+    // 阅读偏好跟着页面走：字号与主题调过一次，本次会话里再进阅读模式还是这个设置
+    var prefs = window.__kbReaderPrefs || (window.__kbReaderPrefs = { scale: 1, dark: true });
+    var btnStyle = 'background:#1c222b;color:#e6e9f0;border:1px solid #2a3442;' +
+      'border-radius:999px;padding:6px 16px;font-size:15px;margin-left:8px';
     wrap.setAttribute('style', 'position:fixed;inset:0;z-index:2147483647;background:#0f1216;' +
       'color:#e6e9f0;overflow:auto;-webkit-overflow-scrolling:touch;');
     wrap.innerHTML =
-      '<div style="max-width:860px;margin:0 auto;padding:36px 36px 90px;' +
-      'font:19px/1.9 -apple-system,\'Microsoft YaHei\',sans-serif">' +
+      '<div id="__kb_reader_inner" style="max-width:860px;margin:0 auto;padding:36px 36px 90px;' +
+      'font-size:' + Math.round(19 * prefs.scale) + 'px;line-height:1.9;' +
+      'font-family:-apple-system,\'Microsoft YaHei\',sans-serif">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;' +
       'font-size:15px;color:#8b95a5;margin-bottom:22px">' +
       '<span>阅读模式</span>' +
-      '<button id="__kb_reader_close" style="background:#1c222b;color:#e6e9f0;' +
-      'border:1px solid #2a3442;border-radius:999px;padding:6px 18px;font-size:15px">退出</button>' +
-      '</div>' +
+      '<span style="display:flex;align-items:center">' +
+      '<button id="__kb_reader_smaller" style="' + btnStyle + '">A-</button>' +
+      '<button id="__kb_reader_bigger" style="' + btnStyle + '">A+</button>' +
+      '<button id="__kb_reader_theme" style="' + btnStyle + '">' + (prefs.dark ? '日间' : '夜间') + '</button>' +
+      '<button id="__kb_reader_close" style="' + btnStyle + '">退出</button>' +
+      '</span></div>' +
       '<h1 style="font-size:30px;line-height:1.35;margin:0 0 20px;color:#f2f4f8">' + title + '</h1>' +
       '<div id="__kb_reader_body">' + html + '</div></div>';
+    if (!prefs.dark) wrap.classList.add('__kb-reader-light');
     document.body.appendChild(wrap);
 
     // 正文开头常带站点 logo / 小图标，抠进阅读层会叠在标题上。只收拾正文最上面那一段里的，
@@ -92,7 +101,14 @@
       '#__kb_reader pre{background:#161b22;padding:14px;border-radius:8px;overflow:auto}' +
       '#__kb_reader pre code{font:15px/1.6 ui-monospace,Consolas,monospace;color:#c9d1d9;background:none;padding:0}' +
       '#__kb_reader :not(pre)>code{background:#161b22;color:#e6e9f0;padding:1px 6px;border-radius:5px;font-size:.9em}' +
-      '#__kb_reader blockquote{border-left:3px solid #2a3442;margin:1em 0;padding:.2em 1em;color:#9aa6b4}';
+      '#__kb_reader blockquote{border-left:3px solid #2a3442;margin:1em 0;padding:.2em 1em;color:#9aa6b4}' +
+      '#__kb_reader.__kb-reader-light{background:#fafafa!important;color:#1c1f26!important}' +
+      '#__kb_reader.__kb-reader-light h1,#__kb_reader.__kb-reader-light h2,#__kb_reader.__kb-reader-light h3{color:#111!important}' +
+      '#__kb_reader.__kb-reader-light pre{background:#f1f2f4!important}' +
+      '#__kb_reader.__kb-reader-light pre code{color:#222!important}' +
+      '#__kb_reader.__kb-reader-light :not(pre)>code{background:#eef0f3!important;color:#222!important}' +
+      '#__kb_reader.__kb-reader-light a{color:#0b62d6!important}' +
+      '#__kb_reader.__kb-reader-light blockquote{color:#5a6472!important;border-left-color:#d7dbe0!important}';
     wrap.appendChild(st);
 
     function closeReader() {
@@ -100,6 +116,26 @@
       window.__kbReaderOpen = false;
       document.documentElement.style.overflow = '';
     }
+    var bSmaller = document.getElementById('__kb_reader_smaller');
+    var bBigger = document.getElementById('__kb_reader_bigger');
+    var bTheme = document.getElementById('__kb_reader_theme');
+    function applyReaderScale() {
+      var inner = document.getElementById('__kb_reader_inner');
+      if (inner) inner.style.fontSize = Math.round(19 * prefs.scale) + 'px';
+    }
+    if (bSmaller) bSmaller.onclick = function () {
+      prefs.scale = Math.max(0.85, Math.round((prefs.scale - 0.15) * 100) / 100);
+      applyReaderScale();
+    };
+    if (bBigger) bBigger.onclick = function () {
+      prefs.scale = Math.min(1.8, Math.round((prefs.scale + 0.15) * 100) / 100);
+      applyReaderScale();
+    };
+    if (bTheme) bTheme.onclick = function () {
+      prefs.dark = !prefs.dark;
+      wrap.classList.toggle('__kb-reader-light', !prefs.dark);
+      bTheme.textContent = prefs.dark ? '日间' : '夜间';
+    };
     document.getElementById('__kb_reader_close').onclick = closeReader;
     // 兜底：点阅读层的空白处也能退出（有些页面的 button 会被自己的脚本吃掉）
     wrap.addEventListener('click', function (e) {
