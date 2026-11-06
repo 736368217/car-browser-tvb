@@ -3,47 +3,49 @@ package com.carweb.tvb;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
-import android.graphics.Color;
-import android.content.DialogInterface;
-import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.database.Cursor;
+import android.content.ClipData;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.Rect;
+import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Message;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.os.SystemClock;
+import android.text.InputType;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.PixelCopy;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.webkit.CookieManager;
 import android.webkit.URLUtil;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
-import android.widget.FrameLayout;
-import android.widget.TextView;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.Bitmap;
-import android.graphics.Rect;
-import android.os.Build;
-import android.view.PixelCopy;
-import android.net.Uri;
-import android.text.InputType;
-import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import org.json.JSONObject;
 
-import java.util.ArrayDeque;
 import java.io.File;
+import java.util.ArrayDeque;
 
 /**
  * 电视机上的浏览器。
@@ -110,6 +112,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         store = new SiteStore(this);
+        loadUpdateState();
 
         root = new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
@@ -137,16 +140,23 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         root.addView(findBar, findLp);
 
         status = new TextView(this);
-        status.setTextColor(Color.WHITE);
-        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        status.setTextColor(0xFFF2F4F8);
+        // 车机提示条：全部按屏宽比例，不再用 SP / density（d160 与 d240 同物理尺寸）
+        status.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(34f / 2880f));
         status.setGravity(Gravity.CENTER);
-        status.setBackgroundColor(0xCC000000);
-        status.setPadding(36, 18, 36, 18);
+        status.setBackgroundColor(0xEE151C24);
+        status.setPadding(px(0.018f), px(0.008f), px(0.018f), px(0.008f));
+        status.setMinHeight(px(0.038f));
+        status.setLineSpacing(px(0.003f), 1f);
         status.setVisibility(View.GONE);
+        GradientDrawable statusBg = new GradientDrawable();
+        statusBg.setColor(0xEE151C24);
+        statusBg.setCornerRadius(px(0.012f));
+        status.setBackground(statusBg);
         FrameLayout.LayoutParams statusParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        statusParams.bottomMargin = Math.round(getResources().getDisplayMetrics().density * 28);
+        statusParams.bottomMargin = px(0.025f);
         root.addView(status, statusParams);
 
         // 全屏时工具条整条 GONE，必须留一个触屏能点的恢复入口，否则用户被困在网页里
@@ -888,6 +898,232 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 .show();
     }
 
+    /* ------------------------------------------------------ 版本更新 -- */
+    /*
+     * 与工作区其他车机软件同一口径：固定读自己产品的 latest.json，只检查版本，
+     * 不自动下载、不静默安装；下载动作在「已是最新 / 检查失败」后也保留，
+     * 避免用户遇到死路。清单未上线或网络异常时给出可读原因和发布页兜底。
+     * 弹窗一律整页（Via 风格），所以这里不做系统 AlertDialog 提示。
+     */
+
+    private static final String UPDATE_PREFS = "update_state";
+    private static final String UPDATE_KEY_STATUS = "status_text";
+    private static final String UPDATE_KEY_LATEST = "latest_version";
+    private static final String UPDATE_KEY_ERROR = "error_text";
+    private static final long UPDATE_MANUAL_MIN_GAP_MS = 1500L;
+
+    private boolean updateChecking = false;
+    private boolean updateAutoChecked = false;
+    private long updateLastCheckAt = 0L;
+    private UpdateChecker.Result updateResult = null;
+    private String updateStatusText = "点「检查更新」获取车机版发布信息";
+    private String updateErrorText = "";
+    private TextView updateStatusView;
+    private TextView updateDetailView;
+    private TextView updateCheckButton;
+    private TextView updateCopyButton;
+    private TextView updateOpenButton;
+
+    private String currentVersionName() {
+        try {
+            @SuppressWarnings("deprecation")
+            PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+            if (pi != null && pi.versionName != null && !pi.versionName.trim().isEmpty()) {
+                return pi.versionName.trim();
+            }
+        } catch (Throwable ignored) {
+        }
+        return BuildConfig.VERSION_NAME;
+    }
+
+    private static String shortSha(String sha) {
+        if (sha == null || sha.length() < 12) return sha == null ? "" : sha;
+        return sha.substring(0, 12).toUpperCase(java.util.Locale.US) + "…";
+    }
+
+    private TextView updateActionButton(String text, View.OnClickListener click) {
+        TextView b = new TextView(this);
+        b.setText(text);
+        b.setTextColor(0xFF9CCBFF);
+        b.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(34f / 2880f));
+        b.setGravity(Gravity.CENTER);
+        b.setMinHeight(px(0.036f));
+        b.setMinimumWidth(px(0.09f));
+        b.setPadding(px(0.016f), px(0.009f), px(0.016f), px(0.009f));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF1C2733);
+        bg.setCornerRadius(px(0.012f));
+        b.setBackground(bg);
+        b.setContentDescription(text);   // 语义标签，控件树/无障碍都能读到
+        pressable(b);
+        b.setOnClickListener(click);
+        return b;
+    }
+
+    private void saveUpdateState(String status, String latest, String error) {
+        try {
+            getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE).edit()
+                    .putString(UPDATE_KEY_STATUS, status)
+                    .putString(UPDATE_KEY_LATEST, latest)
+                    .putString(UPDATE_KEY_ERROR, error)
+                    .apply();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** 上次检查结果带进本次启动：不用重新联网也能先看到「已是最新 / 有新版本」。 */
+    private void loadUpdateState() {
+        try {
+            SharedPreferences p = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE);
+            String status = p.getString(UPDATE_KEY_STATUS, "");
+            if (!status.isEmpty()) updateStatusText = status;
+            updateErrorText = p.getString(UPDATE_KEY_ERROR, "");
+            String last = p.getString(UPDATE_KEY_LATEST, "");
+            if (!last.isEmpty() && UpdateChecker.compareVersions(last, currentVersionName()) > 0) {
+                updateStatusText = "上次检查发现 " + last + " · 当前 " + currentVersionName();
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void startUpdateCheck(boolean manual, boolean quiet) {
+        if (updateChecking) {
+            if (manual) showStatus("正在检查更新，请稍候", 1800);
+            return;
+        }
+        long now = SystemClock.elapsedRealtime();
+        if (manual && updateLastCheckAt > 0L
+                && now - updateLastCheckAt < UPDATE_MANUAL_MIN_GAP_MS) {
+            showStatus("刚刚检查过，请稍候再试", 1800);
+            return;
+        }
+        updateLastCheckAt = now;
+        updateChecking = true;
+        updateStatusText = "正在检查车机版更新…";
+        updateErrorText = "";
+
+        refreshUpdateViews();
+        if (!quiet) showStatus("正在检查更新…", 1800);
+        new Thread(new Runnable() {
+            @Override public void run() {
+                UpdateChecker.Result result = null;
+                String error = "";
+                try {
+                    result = UpdateChecker.check(MainActivity.this);
+                } catch (UpdateChecker.UpdateException e) {
+                    error = e.getMessage() == null ? "检查失败" : e.getMessage();
+                } catch (Throwable t) {
+                    error = "检查失败，请稍后重试";
+                }
+                final UpdateChecker.Result r = result;
+                final String err = error;
+                uiHandler.post(new Runnable() {
+                    @Override public void run() {
+                        updateChecking = false;
+                        if (r != null) {
+                            // 保留最后一次成功结果：检查失败时下载动作不能消失
+                            updateResult = r;
+                            updateErrorText = "";
+                            updateStatusText = r.hasUpdate()
+                                    ? "发现新版本 " + r.latestVersion + " · 当前 " + r.currentVersion
+                                    : "已是最新 · 当前版本 " + r.currentVersion;
+                            saveUpdateState(updateStatusText, r.latestVersion, "");
+                            if (!quiet) showStatus(updateStatusText, r.hasUpdate() ? 4200 : 2400);
+                        } else {
+                            updateErrorText = err.isEmpty() ? "检查失败，请稍后重试" : err;
+                            updateStatusText = "检查失败：" + updateErrorText;
+                            saveUpdateState(updateStatusText, "", updateErrorText);
+                            if (!quiet) showStatus(updateStatusText, 5000);
+                        }
+                        refreshUpdateViews();
+                    }
+                });
+            }
+        }, "update-check").start();
+    }
+
+
+    /**
+     * 进入关于页时做一次静默检查（每次冷启动最多一次）。
+     * 只检查、不下载也不弹窗；有新版本时状态文字变绿，用户自己决定下一步。
+     */
+    private void scheduleAutoUpdateCheck(boolean force) {
+        if ((updateAutoChecked && !force) || updateChecking || isFinishing()) return;
+        if (!force && updateLastCheckAt > 0L) return;
+        updateAutoChecked = true;
+        uiHandler.postDelayed(new Runnable() {
+            @Override public void run() {
+                if (!isFinishing() && !updateChecking && pageVisible()) {
+                    startUpdateCheck(false, true);
+                }
+            }
+        }, 450L);
+    }
+
+    private void refreshUpdateViews() {
+        // openPage() 会把这些引用清空；非关于页时直接返回，不碰已销毁的 View
+        if (updateStatusView == null || !pageVisible()) return;
+        updateStatusView.setText(updateChecking ? "正在检查更新…" : updateStatusText);
+        updateStatusView.setTextColor(
+                !updateErrorText.isEmpty() ? 0xFFFFC46B
+                        : (updateResult != null && updateResult.hasUpdate()
+                        ? 0xFF7DDC9A : 0xFFD8E0E8));
+        if (updateErrorText.isEmpty() && updateResult != null) {
+            UpdateChecker.Result r = updateResult;
+            String detail = r.latestVersion + " · " + UpdateChecker.prettySize(r.sizeBytes)
+                    + " · SHA " + shortSha(r.sha256);
+            if (!r.releasedAt.isEmpty()) detail += " · " + r.releasedAt;
+            updateDetailView.setText(detail);
+        } else if (!updateErrorText.isEmpty()) {
+            updateDetailView.setText("原因：" + updateErrorText
+                    + "\n可重试检查，或点「打开发布页」手动查看 APK");
+        } else {
+            updateDetailView.setText("发布源：" + UpdateChecker.FEED_URL);
+        }
+        updateCheckButton.setEnabled(!updateChecking);
+        updateCheckButton.setText(updateChecking ? "检查中…" : "检查更新");
+        // 清单未拿到时禁用复制链接，但按钮仍常驻，避免新手误以为按钮消失
+        updateCopyButton.setEnabled(updateResult != null);
+        updateCopyButton.setAlpha(updateResult == null ? 0.55f : 1f);
+        updateOpenButton.setEnabled(true);
+    }
+
+    private void copyUpdateLink() {
+        if (updateResult == null) {
+            showStatus("请先检查更新，或点「打开发布页」", 2400);
+            return;
+        }
+        String url = updateResult.downloadUrl;
+        if (!UpdateChecker.isAllowedDownloadUrl(url)) {
+            showStatus("下载地址不受信任，已阻止复制", 2600);
+            return;
+        }
+        boolean ok = false;
+        try {
+            ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (cm != null) {
+                cm.setPrimaryClip(ClipData.newPlainText("车览浏览器更新下载", url));
+                ok = true;
+            }
+        } catch (Throwable ignored) {
+        }
+        showStatus(ok ? "下载链接已复制到剪贴板" : "复制下载链接失败", 2400);
+    }
+
+    private void openUpdatePage() {
+        String url = updateResult != null
+                && UpdateChecker.isAllowedDownloadUrl(updateResult.downloadUrl)
+                ? updateResult.downloadUrl : UpdateChecker.RELEASE_PAGE_URL;
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            showStatus("已打开发布页，下载后手动安装", 3200);
+        } catch (Throwable t) {
+            showStatus("没有能打开下载页的应用，可复制下载链接后处理", 3200);
+        }
+    }
+
     private void showAbout() {
         String ua = "";
         String engine = "";
@@ -905,15 +1141,71 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         name.setText("车览浏览器");
         name.setTextColor(0xFFF2F4F8);
         name.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(60f / 2880f));
-        name.setPadding(px(0.01f), px(0.03f), 0, 0);
+        name.setPadding(px(0.01f), px(0.018f), 0, 0);
         body.addView(name);
 
         TextView ver = new TextView(this);
         ver.setText("版本 " + BuildConfig.VERSION_NAME + " · B 线（基于 tv-browser 改造）");
-        ver.setTextColor(0xFF7C8794);
-        ver.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(30f / 2880f));
-        ver.setPadding(px(0.01f), px(0.006f), 0, px(0.02f));
+        ver.setTextColor(0xFF9AA6B4);
+        ver.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(32f / 2880f));
+        ver.setPadding(px(0.01f), px(0.006f), 0, px(0.012f));
         body.addView(ver);
+
+        body.addView(pageLabel("版本更新"));
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(0xFF151C24);
+        cardBg.setCornerRadius(px(0.012f));
+        card.setBackground(cardBg);
+        int cardPad = px(0.012f);
+        card.setPadding(cardPad, cardPad, cardPad, cardPad);
+
+        updateStatusView = new TextView(this);
+        updateStatusView.setTextColor(0xFFC8D2DE);
+        updateStatusView.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(36f / 2880f));
+        updateStatusView.setLineSpacing(px(0.004f), 1f);
+        card.addView(updateStatusView);
+
+        updateDetailView = new TextView(this);
+        updateDetailView.setTextColor(0xFFAAB7C5);
+        updateDetailView.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(28f / 2880f));
+        updateDetailView.setPadding(0, px(0.006f), 0, px(0.012f));
+        updateDetailView.setLineSpacing(px(0.003f), 1f);
+        card.addView(updateDetailView);
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        updateCheckButton = updateActionButton("检查更新",
+                new View.OnClickListener() {
+                    @Override public void onClick(View v) { startUpdateCheck(true, false); }
+                });
+        updateCopyButton = updateActionButton("复制下载链接",
+                new View.OnClickListener() {
+                    @Override public void onClick(View v) { copyUpdateLink(); }
+                });
+        updateOpenButton = updateActionButton("打开发布页",
+                new View.OnClickListener() {
+                    @Override public void onClick(View v) { openUpdatePage(); }
+                });
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        btnLp.rightMargin = px(0.008f);
+        row.addView(updateCheckButton, btnLp);
+        row.addView(updateCopyButton, btnLp);
+        row.addView(updateOpenButton, btnLp);
+        card.addView(row);
+
+        TextView note = new TextView(this);
+        note.setText("只检查版本，不自动下载或安装；清单未上线时仍可打开发布页手动查看 APK。");
+        note.setTextColor(0xFF9AA8B7);
+        note.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(28f / 2880f));
+        note.setPadding(0, px(0.008f), 0, 0);
+        card.addView(note);
+        body.addView(card, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        refreshUpdateViews();
 
         body.addView(pageLabel("运行环境"));
         body.addView(pageRow("渲染内核", "Android System WebView " + engine, null, false, null, null));
@@ -927,13 +1219,14 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
         body.addView(pageLabel("说明"));
         body.addView(pageRow("上游项目", "viyiviyi/tv-browser（无 LICENSE，仅限自用，不对外分发）", null, false, null, null));
+        scheduleAutoUpdateCheck(false);
     }
 
     /** 多行说明文字（UA 这种一行放不下的） */
     private View pageNote(String text) {
         TextView t = new TextView(this);
         t.setText(text);
-        t.setTextColor(0xFF8C98A6);
+        t.setTextColor(0xFFAAB7C5);
         t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(26f / 2880f));
         t.setLineSpacing(px(8f / 2880f), 1f);
         t.setPadding(px(0.01f), px(0.006f), px(0.01f), px(0.02f));
@@ -1589,7 +1882,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
         TextView t = new TextView(this);
         t.setText(shown);
-        t.setTextColor(0xFF8C98A6);
+        t.setTextColor(0xFFAAB7C5);
         t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(32f / 2880f));
         t.setMaxLines(2);
         t.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
@@ -1652,6 +1945,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     /** 开一整页，返回可以往里塞内容的纵向容器 */
     private LinearLayout openPage(String title, String action, View.OnClickListener onAction) {
+        // 换页时把上一页的更新卡片引用清掉，后台检查回调不再碰旧 View
+        updateStatusView = null;
+        updateDetailView = null;
+        updateCheckButton = null;
+        updateCopyButton = null;
+        updateOpenButton = null;
         pageLayer.removeAllViews();
         pageLayer.setVisibility(View.VISIBLE);
         pageLayer.setAlpha(0f);
@@ -1717,6 +2016,11 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     }
 
     private void closePage() {
+        updateStatusView = null;
+        updateDetailView = null;
+        updateCheckButton = null;
+        updateCopyButton = null;
+        updateOpenButton = null;
         if (pageLayer == null || pageLayer.getVisibility() != View.VISIBLE) return;
         pageLayer.animate().alpha(0f).setDuration(100).withEndAction(new Runnable() {
             @Override public void run() {
@@ -1768,7 +2072,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if (sub != null && !sub.isEmpty()) {
             TextView s = new TextView(this);
             s.setText(sub);
-            s.setTextColor(0xFF7C8794);
+            s.setTextColor(0xFF98A5B3);
             s.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(28f / 2880f));
             s.setSingleLine(true);
             s.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -1805,7 +2109,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private View pageLabel(String text) {
         TextView t = new TextView(this);
         t.setText(text);
-        t.setTextColor(0xFF6E7A88);
+        t.setTextColor(0xFF8A98A8);
         t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(28f / 2880f));
         t.setPadding(px(0.01f), px(0.026f), 0, px(0.008f));
         return t;
@@ -1961,8 +2265,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                     @Override public void onClick(View v) { confirmClearBrowsingData(); }
                 }, null));
 
-        body.addView(pageLabel("关于"));
-        body.addView(pageRow("关于车览浏览器", "版本 " + BuildConfig.VERSION_NAME, "›", false,
+        body.addView(pageLabel("版本与关于"));
+        body.addView(pageRow("检查更新", "读取车机版发布清单，已是最新也可复制下载链接", "›", false,
+                new View.OnClickListener() {
+                    @Override public void onClick(View v) { showAbout(); }
+                }, null));
+        body.addView(pageRow("关于车览浏览器", "版本 " + BuildConfig.VERSION_NAME + " · 发布源与运行环境", "›", false,
                 new View.OnClickListener() {
                     @Override public void onClick(View v) { showAbout(); }
                 }, null));

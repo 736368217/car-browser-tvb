@@ -1,0 +1,20 @@
+{
+    "software":  "car-browser-tvb",
+    "packageName":  "com.carweb.tvb",
+    "version":  "6.8",
+    "versionCode":  18,
+    "versionName":  "6.8",
+    "releasedAt":  "2026-11-06T15:39:05+08:00",
+    "files":  [
+                  {
+                      "name":  "car-browser-6.8.apk",
+                      "type":  "apk",
+                      "size":  698996,
+                      "sha256":  "2a80419af8429d315be7d725acc1c301ac28eb2a543b90c4d00d627dcbdf6176",
+                      "url":  "https://dl.z736.vip/car-browser-tvb/6.8/car-browser-6.8.apk"
+                  }
+              ],
+    "url":  "https://dl.z736.vip/car-browser-tvb/6.8/car-browser-6.8.apk",
+    "sha256":  "2a80419af8429d315be7d725acc1c301ac28eb2a543b90c4d00d627dcbdf6176",
+    "size":  698996
+}

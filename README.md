@@ -69,6 +69,39 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 首次构建会自动生成签名证书到 `keystore/carweb.jks`（**不进仓库**）。
 想用自己的证书：设 `CARWEB_KEYSTORE` / `CARWEB_KEYSTORE_PASS` / `CARWEB_KEYSTORE_ALIAS`。
 
+## 自动更新与发布
+
+客户端固定读取 `https://dl.z736.vip/car-browser-tvb/latest.json`，字段与工作区其他产品一致：
+
+```json
+{
+  "software": "car-browser-tvb",
+  "packageName": "com.carweb.tvb",
+  "version": "6.8",
+  "versionCode": 18,
+  "releasedAt": "...",
+  "files": [{
+    "name": "car-browser-6.8.apk",
+    "type": "apk",
+    "size": 698996,
+    "sha256": "<64 hex>",
+    "url": "https://dl.z736.vip/car-browser-tvb/6.8/car-browser-6.8.apk"
+  }],
+  "url": "...",
+  "sha256": "<64 hex>",
+  "size": 698996
+}
+```
+
+构建后运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\publish-manifest.ps1 `
+  -Apk .\dist\car-browser-6.8.apk
+```
+
+脚本生成 `publish/latest.json`、`publish/versions.json` 与 `.sha256` sidecar。把清单与 APK 部署到可信发布目录；`versions.json` 保留当前与上一版本供回滚。**GitHub Release 只挂 APK，不挂清单。** 私有仓库的 Release/API 匿名不可达，所以 APK 不内嵌 token；发布源未上线时，关于页会显示可读错误并允许「打开发布页」手动查看 APK。
+
 ### 两个构建坑（已修，别踩回去）
 
 1. **`build.ps1` 必须存成 UTF-8 with BOM**。PowerShell 5.1 会按 ANSI(GBK) 解析无 BOM 的 UTF-8，
@@ -101,6 +134,8 @@ res/drawable/ic_launcher_bg.xml     自适应图标底色（径向渐变）
 ```
 
 ## 版本
+
+- **6.8** — 自动更新与其他车机软件对齐：固定读取 `https://dl.z736.vip/car-browser-tvb/latest.json`，校验 `software/packageName/version/versionCode/files[0].url/size/sha256` 与可信 HTTPS 下载域名；「设置 › 检查更新」与「关于」页都有入口，关于页常驻「检查更新 / 复制下载链接 / 打开发布页」三按钮，已是最新/检查失败时下载动作不消失；只检查版本，不自动下载或安装，APK 里不含任何 GitHub token。新增 `UpdateChecker.java` 与 `publish-manifest.ps1`（生成 `latest.json` / `versions.json` / `.sha256`；清单不挂 Release 资产）。按本轮视觉/易用复核把状态提示条从 15sp 改为按屏宽 px 字号、圆角深底，提高整页次级文字对比度，检查失败补可读原因与发布页兜底。
 - **6.7** — 排版与细节打磨：① 功能页两页各 10 项（每页正好两行），「广告过滤」按钮从功能页移除（设置页里仍可开关）；② 阅读模式补 A- / A+ 字号调节、日间/夜间主题切换（本次会话内记住）；③ 标签页底部加「关闭其他标签页」（带确认，首屏保留）；④ 顶部加载进度条（3px，随 onProgressChanged 长、加载完淡出）；⑤ 构建脚本自适应 build-tools 版本与 d8 位置，不再绑死 34.0.0
 - **6.6** — 一轮「照着代码逐条挑毛病」的修复：① 标签缩略图/WebView 生命周期（统一 destroyTab，淘汰与 Activity 销毁都回收；抓图回调校验标签还在不在，1.2s 内不重复抓 18MB 全屏位图）；② 标签切换不再靠「栈顶」表示当前页（新增 activeWeb），首屏可以切到前面而不破坏返回逻辑；③ 图片链接坐标换算只除 getScale()（原来多除了 density，d240 车机必偏）；④ 长按回调加触摸序号/destroy 校验、双指手势取消长按、链接只认 http(s)；⑤ 后台标签的 window.open / 视频全屏不再抢前台；⑥ 整页层上的提示被盖住（bringToFront）、功能页从空白处起拖会跳页（补 lastX）；⑦ 设置里切网页版式重复 reload、无图模式对新标签不生效；⑧ 下载服务空指针与 mime 兜底；⑨ keynav 手指点击后不清理旧选中框
 - **6.5** — 标签页卡片加真实缩略图（PixelCopy 抓当前画面，纯黑/淡入中的不存，切标签前顺手刷新）；修「新开的标签页首屏是空的」（收藏数据只推给了第一个 WebView，现在推给所有停在首屏的标签）；图片链接长按也能弹「新标签页打开 / 复制链接」（JS 查 `<a href>`，查不到退回悬停）；链接菜单里的地址做百分号解码；阅读模式补代码块样式、正文图片懒加载、正文重复标题去重、正文中间的小图不再被误删
