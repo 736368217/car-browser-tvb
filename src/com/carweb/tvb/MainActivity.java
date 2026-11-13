@@ -1096,7 +1096,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
         try {
             if (Build.VERSION.SDK_INT >= 33) {
-                registerReceiver(downloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+                // 下载完成广播由系统 download provider 发出，必须用 EXPORTED 才收得到
+                registerReceiver(downloadReceiver, filter, Context.RECEIVER_EXPORTED);
             } else {
                 registerReceiver(downloadReceiver, filter);
             }
@@ -1113,6 +1114,16 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         } catch (Throwable ignored) {
         }
         downloadReceiver = null;
+    }
+
+    /** 重进应用时续查一次待安装的下载：可能下载在后台已经完成。 */
+    private void resumePendingUpdate() {
+        if (pendingDownloadId <= 0) return;
+        uiHandler.postDelayed(new Runnable() {
+            @Override public void run() {
+                if (pendingDownloadId > 0) finishUpdateDownload(pendingDownloadId);
+            }
+        }, 800L);
     }
 
     /** 工作线程请求 API，结果回主线程；不阻塞 UI。 */
@@ -1252,6 +1263,15 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         } catch (Throwable ignored) {
         } finally {
             if (c != null) c.close();
+        }
+        // 还在下就别当失败：重进应用时的续查会走到这里
+        if (status == DownloadManager.STATUS_RUNNING
+                || status == DownloadManager.STATUS_PENDING
+                || status == DownloadManager.STATUS_PAUSED) {
+            updateStatusText = "正在下载 " + (pendingVersion == null ? "" : pendingVersion) + "…";
+            updateErrorText = "";
+            refreshUpdateCard();
+            return;
         }
         if (status != DownloadManager.STATUS_SUCCESSFUL) {
             clearPendingDownload();
@@ -3266,6 +3286,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     protected void onResume() {
         super.onResume();
         applyImmersive();
+        resumePendingUpdate();
         BrowserWebView web = activeTab();
         if (web != null) {
             web.onResume();
