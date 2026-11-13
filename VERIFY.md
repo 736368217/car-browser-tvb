@@ -1,6 +1,41 @@
 # 实机验收记录
 
+## 2026-11-12 · v6.9（versionCode 19）
+
+- 构建：`dist/car-browser-6.9.apk`（698,996 B）；SHA-256：`F5583005345E351571CAE6CED789A90B2114A3ADF23339F78751E3753E8108B4`
+- 身份：`com.carweb.tvb` / `6.9 (19)`；`zipalign -c -v 4` 与 `apksigner verify` 通过，v1/v2/v3 签名有效。
+- 设备：MuMu vm0，Android 15；实例配置 `custom 2880×1620 @160dpi`，`system_volume_close=true`。
+- 几何：`init=1620x2880 160dpi noscale`；`cur=2880x1620 app=2880x1620`；输入 viewport 的 logical/physical frame 均为 `[0,0,2880,1620]`。
+- 安装和启动通过 MuMu 插件完成。应用在可连接时位于前台；应用 crash buffer 未见 `FATAL EXCEPTION`。MuMu 实例曾在重复 UiAutomator dump 后停止，重新启动后应用 PID 改变，故不将全程描述为单一 PID 稳定。
+
+| 项目 | 结果 | 证据 |
+|---|---|---|
+| 首页与触摸格 | 7 列网格；首格 bounds `[410,549][640,833]`，站点格宽 230px | 本轮 fresh UI 树 |
+| 功能面板 | 菜单打开，设置入口可触达；面板显示期间悬浮返回隐藏 | 本轮 fresh UI 树 |
+| 应用内返回 | 设置页开关为 on；触摸后出现节点 `[2696,1272][2828,1404]`，空闲后隐藏；点按返回首屏 | fresh UI 树及前后台节点对照 |
+| 偏好持久化 | 关闭开关后 `ui_state.xml` 写入 `false`；guest 重启后值仍为 `false`；随后恢复为 `true`，隐藏时间仍为 4 秒 | guest SharedPreferences 读回 |
+| 标签保留 | 回首屏后标签页显示 `标签页 · 2`，仍保留 `https://www.baidu.com/` | 本轮 fresh UI 树 |
+| 全屏 | 工具栏隐藏；恢复手柄 bounds `[2759,35][2845,121]`；点按后工具栏控件重新出现 | 全屏前后 fresh UI 树 |
+| 功能页第二页 | 左滑后箭头变「上一页」；10 项：页内查找 / 阅读模式 / 夜间模式 / 无图模式 / 电脑模式 / 清除缓存 / 广告过滤 / 清除数据 / 手动更新 / 关闭标签 | fresh UI 树 + `ux69b-sheet-p2.png` |
+| 设置子页返回父页 | 设置 → 搜索引擎 → 返回：`settings` 与 `settings-return` 截图逐字节相同 | 两图 SHA-256 均为 `98E7F117…AC949B8` |
+| 下载 | 地址栏输入 `http://10.0.2.2:8099/test.zip`：应用私有目录出现 26 字节 `test.zip`，内容与源文件逐字节一致；应用内列表显示 `test.zip / 已完成` | guest `od -c` + 下载页 fresh UI 树 + `ux69b-downloads.png` |
+
+### 截图与像素证据
+
+七张 PNG，全部 2880×1620，存于 `car-browser/smoke/ux69b-*.png`：`home`、`sheet-p1`、`sheet-p2`、`settings`、`engine`、`settings-return`、`downloads`。
+
+- 首屏列扫描（y=690）：7 列，列间距 305px，logo 墨迹宽 182px，左右边距各 434px，网格居中。
+- 功能页翻页：高亮圆点在 p1 位于 `x=1413..1432`，p2 移至 `x=1447..1466`（p1 该位置为暗点）。
+- `settings` 与 `settings-return` 的 SHA-256 相同（`98E7F117879A5399BD88E1E56AD3C73D4B226FDCA6C3579896898C826AC949B8`），`engine` 为另一张（`A1B06E9A…FA479393`）。
+
+### 边界
+
+- UiAutomator 通过 system_server namespace 可写出 fresh XML，但随后报 `Segmentation fault`；重复采集期间 MuMu 实例多次停止，直接因果未确认。截图与 UI 树分别记录。
+- 截图只做尺寸与像素几何量化，未做 OCR；界面文案以上述同轮 UI 树为准。
+- 未连接零跑 B01 真车；MuMu 证据不替代真车验收。
+
 ## 2026-11-06 · v6.8（versionCode 18）
+> 历史记录仅适用于 v6.8；其中的清单源已在 v6.9 退役，不能作为当前版本更新入口。
 
 - 构建：`dist/car-browser-6.8.apk`（698,996 B）
 - SHA256：`2A80419AF8429D315BE7D725ACC1C301AC28EB2A543B90C4D00D627DCBDF6176`

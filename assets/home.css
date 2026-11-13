@@ -438,3 +438,38 @@ html, body { height: 100%; }
   justify-content: center;
   padding-bottom: 3vw;
 }
+
+/* 6.9 home: quieter visual weight, same seven-column touch grid. */
+:root { --radius: 1.05vw; }
+body { background: var(--bg); }
+.page { padding: 0.8vw 0 1.2vw; }
+.block { margin-top: 0; }
+.block-title, .hint { display: none !important; }
+.site {
+  gap: 0.55vw;
+  transition: transform 160ms cubic-bezier(.2,.8,.2,1);
+}
+.site:active, .site:hover { transform: scale(.975); }
+.icon.has-icon {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+ .icon.has-icon img {
+  inset: 10% auto auto 10%;
+  width: 80%;
+  height: 80%;
+  border-radius: 0;
+  object-fit: contain;
+ }
+.site:hover .icon.has-icon, .site:active .icon.has-icon {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.name {
+  font-size: 1vw;
+  font-weight: 500;
+  color: #D7DEE4;
+}
+.icon .initial { font-size: calc(var(--cell) * 0.22); }

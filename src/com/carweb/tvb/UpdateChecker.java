@@ -1,205 +1,168 @@
 package com.carweb.tvb;
 
-import android.content.Context;
-import android.content.pm.PackageInfo;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Locale;
 
 /**
- * 车览 B 线的自动更新清单检查。
+ * GitHub Release 自动更新检查。
  *
- * 与工作区其他车机软件保持同一约定：固定读取自己产品的 latest.json，
- * 只检查、不静默下载、不静默安装；下载地址必须落在可信 HTTPS 域名上。
- * 私有 GitHub 仓库的 Release API 需要 token，所以 APK 里不放任何凭据，
- * 也不把私有 Release 当匿名数据源。
+ * 6.10 起仓库转为公开，所以匿名 GET 就能拿到 releases/latest：APK 里**不内嵌任何 token**，
+ * 也不依赖已停用的 dl.z736.vip（服务器 22/443/4450 均不可达）。
+ *
+ * 约定：
+ *   · 只认 HTTPS + GitHub 系域名，下载地址不接受其它站点；
+ *   · tag 形如 v6.10，版本号按数字段比较（6.10 > 6.9，不是字符串比较）；
+ *   · Release 里只挂 APK；API 若给出 digest，就用它做 sha256 校验。
  */
 public final class UpdateChecker {
 
     public static final String SOFTWARE = "car-browser-tvb";
+    public static final String OWNER = "736368217";
     public static final String APPLICATION_ID = "com.carweb.tvb";
-    public static final String FEED_URL =
-            "https://dl.z736.vip/" + SOFTWARE + "/latest.json";
-    public static final String RELEASE_PAGE_URL =
-            "https://github.com/736368217/" + SOFTWARE + "/releases/latest";
-    public static final String TRUSTED_HOST = "dl.z736.vip";
 
-    private static final int CONNECT_TIMEOUT_MS = 12000;
-    private static final int READ_TIMEOUT_MS = 20000;
-    private static final int MAX_FEED_BYTES = 64 * 1024;
+    /** releases/latest：匿名可读（仓库已公开）。 */
+    public static final String API_LATEST =
+            "https://api.github.com/repos/" + OWNER + "/" + SOFTWARE + "/releases/latest";
+    public static final String RELEASE_PAGE_URL =
+            "https://github.com/" + OWNER + "/" + SOFTWARE + "/releases/latest";
 
     private UpdateChecker() {
     }
 
+    /** 一次检查的结果。字段都来自 GitHub API，不做本地猜测。 */
     public static final class Result {
-        public final String currentVersion;
-        public final int currentVersionCode;
-        public final String latestVersion;
-        public final int latestVersionCode;
-        public final String releasedAt;
-        public final String fileName;
-        public final long sizeBytes;
+        public final String tag;
+        public final String versionName;
+        public final String apkName;
+        public final String apkUrl;
+        public final long size;
+        /** 小写十六进制；API 没给就是空串（此时只校验大小）。 */
         public final String sha256;
-        public final String downloadUrl;
+        public final String notes;
 
-        Result(String currentVersion, int currentVersionCode, String latestVersion,
-               int latestVersionCode, String releasedAt, String fileName,
-               long sizeBytes, String sha256, String downloadUrl) {
-            this.currentVersion = currentVersion;
-            this.currentVersionCode = currentVersionCode;
-            this.latestVersion = latestVersion;
-            this.latestVersionCode = latestVersionCode;
-            this.releasedAt = releasedAt;
-            this.fileName = fileName;
-            this.sizeBytes = sizeBytes;
+        Result(String tag, String versionName, String apkName, String apkUrl,
+               long size, String sha256, String notes) {
+            this.tag = tag;
+            this.versionName = versionName;
+            this.apkName = apkName;
+            this.apkUrl = apkUrl;
+            this.size = size;
             this.sha256 = sha256;
-            this.downloadUrl = downloadUrl;
+            this.notes = notes;
         }
 
-        public boolean hasUpdate() {
-            int cmp = compareVersions(latestVersion, currentVersion);
-            return cmp > 0 || (latestVersionCode > currentVersionCode && cmp >= 0);
-        }
-    }
-
-    /** 用中文把网络/清单错误直接告诉用户，不让「检查失败」成为死路。 */
-    public static final class UpdateException extends Exception {
-        public UpdateException(String message) {
-            super(message);
-        }
-
-        public UpdateException(String message, Throwable cause) {
-            super(message, cause);
+        public boolean isNewerThan(String currentVersionName) {
+            return compareVersions(versionName, currentVersionName) > 0;
         }
     }
 
-    public static Result check(Context context) throws UpdateException {
-        String current = BuildConfig.VERSION_NAME;
-        int currentCode = BuildConfig.VERSION_CODE;
-        try {
-            @SuppressWarnings("deprecation")
-            PackageInfo pi = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            if (pi != null) {
-                if (pi.versionName != null && !pi.versionName.trim().isEmpty()) {
-                    current = pi.versionName.trim();
-                }
-                if (pi.versionCode > 0) currentCode = pi.versionCode;
-            }
-        } catch (Throwable ignored) {
-            // 拿不到 PackageInfo 时退回 BuildConfig，不影响检查。
+    /**
+     * 数字段比较版本号：6.10 > 6.9，6.9 == 6.9.0。非数字后缀（-beta）忽略。
+     * 返回 >0 表示 a 比 b 新。
+     */
+    public static int compareVersions(String a, String b) {
+        int[] pa = numeric(a);
+        int[] pb = numeric(b);
+        int n = Math.max(pa.length, pb.length);
+        for (int i = 0; i < n; i++) {
+            int va = i < pa.length ? pa[i] : 0;
+            int vb = i < pb.length ? pb[i] : 0;
+            if (va != vb) return va > vb ? 1 : -1;
         }
-
-        final String json = httpJson(FEED_URL);
-        try {
-            JSONObject root = new JSONObject(json);
-            String software = root.optString("software", "");
-            if (!software.isEmpty() && !SOFTWARE.equalsIgnoreCase(software)) {
-                throw new UpdateException("这份清单属于 " + software + "，不是车览浏览器");
-            }
-            String packageName = root.optString("packageName",
-                    root.optString("applicationId", ""));
-            if (!packageName.isEmpty() && !APPLICATION_ID.equals(packageName)) {
-                throw new UpdateException("清单包名与本应用不一致");
-            }
-
-            String latest = firstNonEmpty(root.optString("version", ""),
-                    root.optString("versionName", ""));
-            if (latest.isEmpty()) throw new UpdateException("清单缺少 version");
-
-            JSONObject file = null;
-            JSONArray files = root.optJSONArray("files");
-            if (files != null && files.length() > 0) {
-                file = files.optJSONObject(0);
-            }
-            String rawUrl = file != null
-                    ? firstNonEmpty(file.optString("url", ""), root.optString("url", ""))
-                    : root.optString("url", "");
-            String downloadUrl = absoluteDownloadUrl(rawUrl);
-            if (!isAllowedDownloadUrl(downloadUrl)) {
-                throw new UpdateException("下载地址不是受信任的 HTTPS 地址");
-            }
-
-            String sha256 = file != null
-                    ? firstNonEmpty(file.optString("sha256", ""), root.optString("sha256", ""))
-                    : root.optString("sha256", "");
-            if (!sha256.matches("(?i)[0-9a-f]{64}")) {
-                throw new UpdateException("清单 SHA-256 格式无效");
-            }
-            long size = file != null ? file.optLong("size", 0L) : 0L;
-            if (size <= 0L) size = root.optLong("size", 0L);
-            int latestCode = root.optInt("versionCode", 0);
-            if (latestCode <= 0 && file != null) latestCode = file.optInt("versionCode", 0);
-            String fileName = file != null
-                    ? firstNonEmpty(file.optString("name", ""), fileNameFromUrl(downloadUrl))
-                    : fileNameFromUrl(downloadUrl);
-
-            return new Result(current, currentCode, latest.trim(), latestCode,
-                    root.optString("releasedAt", "").trim(), fileName, size,
-                    sha256.trim(), downloadUrl);
-        } catch (UpdateException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new UpdateException("清单格式无法解析", e);
-        }
+        return 0;
     }
 
-    private static String httpJson(String urlText) throws UpdateException {
+    private static int[] numeric(String v) {
+        if (v == null) return new int[0];
+        String s = v.trim();
+        if (s.startsWith("v") || s.startsWith("V")) s = s.substring(1);
+        String[] parts = s.split("[^0-9]+");
+        java.util.ArrayList<Integer> out = new java.util.ArrayList<>();
+        for (String p : parts) {
+            if (p.isEmpty()) continue;
+            try {
+                out.add(Integer.parseInt(p));
+            } catch (NumberFormatException ignored) {
+                break;
+            }
+        }
+        int[] arr = new int[out.size()];
+        for (int i = 0; i < arr.length; i++) arr[i] = out.get(i);
+        return arr;
+    }
+
+    /** 阻断主线程请求：必须在工作线程调用。 */
+    public static Result fetchLatest() throws Exception {
         HttpURLConnection conn = null;
         try {
-            URL url = new URL(urlText);
+            URL url = new URL(API_LATEST);
             conn = (HttpURLConnection) url.openConnection();
-            conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
-            conn.setReadTimeout(READ_TIMEOUT_MS);
-            conn.setInstanceFollowRedirects(true);
-            conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("Cache-Control", "no-cache");
-            conn.setRequestProperty("User-Agent", "CheLanBrowser-Update/" + BuildConfig.VERSION_NAME);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(15000);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/vnd.github+json");
+            conn.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
             int code = conn.getResponseCode();
-            if (code < 200 || code >= 300) {
-                if (code == 404) throw new UpdateException("发布源尚未上线（HTTP 404）");
-                throw new UpdateException("发布清单暂不可用（HTTP " + code + "）");
+            if (code == 404) throw new IllegalStateException("发布页没有 Release");
+            if (code == 403) throw new IllegalStateException("GitHub 限流，稍后再试");
+            if (code != 200) throw new IllegalStateException("HTTP " + code);
+
+            String body = readAll(conn.getInputStream());
+            JSONObject root = new JSONObject(body);
+            String tag = root.optString("tag_name", "");
+            String version = tag.startsWith("v") || tag.startsWith("V") ? tag.substring(1) : tag;
+            String notes = root.optString("body", "");
+
+            JSONArray assets = root.optJSONArray("assets");
+            if (assets == null || assets.length() == 0) {
+                throw new IllegalStateException("Release 里没有资产");
             }
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(conn.getInputStream(), "UTF-8"));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            int total = 0;
-            while ((line = reader.readLine()) != null) {
-                total += line.length() + 1;
-                if (total > MAX_FEED_BYTES) throw new UpdateException("发布清单超出大小上限");
-                sb.append(line).append('\n');
+            String apkName = "";
+            String apkUrl = "";
+            long size = 0L;
+            String sha = "";
+            for (int i = 0; i < assets.length(); i++) {
+                JSONObject a = assets.optJSONObject(i);
+                if (a == null) continue;
+                String name = a.optString("name", "");
+                if (!name.toLowerCase(Locale.US).endsWith(".apk")) continue;
+                apkName = name;
+                apkUrl = a.optString("browser_download_url", "");
+                size = a.optLong("size", 0L);
+                String digest = a.optString("digest", "");
+                if (digest.toLowerCase(Locale.US).startsWith("sha256:")) {
+                    sha = digest.substring(7).trim().toLowerCase(Locale.US);
+                }
+                break;
             }
-            reader.close();
-            String body = sb.toString().trim();
-            if (!body.startsWith("{")) throw new UpdateException("发布源返回的不是 JSON");
-            return body;
-        } catch (UpdateException e) {
-            throw e;
-        } catch (java.net.SocketTimeoutException e) {
-            throw new UpdateException("连接超时，请检查车机网络后重试", e);
-        } catch (java.net.UnknownHostException e) {
-            throw new UpdateException("找不到发布源，请检查网络后重试", e);
-        } catch (Exception e) {
-            throw new UpdateException("无法连接发布源：" + safeReason(e), e);
+            if (apkName.isEmpty() || !isAllowedDownloadUrl(apkUrl)) {
+                throw new IllegalStateException("Release 里没有可用的 APK");
+            }
+            return new Result(tag, version, apkName, apkUrl, size, sha, notes);
         } finally {
             if (conn != null) conn.disconnect();
         }
     }
 
-    private static String absoluteDownloadUrl(String rawUrl) throws UpdateException {
-        String s = rawUrl == null ? "" : rawUrl.trim();
-        if (s.isEmpty()) throw new UpdateException("清单没有 APK 下载地址");
-        if (s.startsWith("/")) return "https://" + TRUSTED_HOST + s;
-        return s;
+    private static String readAll(InputStream in) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        BufferedReader r = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+        String line;
+        while ((line = r.readLine()) != null) sb.append(line).append('\n');
+        r.close();
+        return sb.toString();
     }
 
-    /** 下载域名白名单：不许清单把用户带去任意站点。 */
+    /**
+     * 域名白名单：只认 HTTPS + GitHub 系域名，不许被跳去任意站点。
+     */
     public static boolean isAllowedDownloadUrl(String value) {
         if (value == null || value.isEmpty()) return false;
         try {
@@ -207,72 +170,14 @@ public final class UpdateChecker {
             if (!"https".equalsIgnoreCase(u.getProtocol())) return false;
             if (u.getUserInfo() != null && !u.getUserInfo().isEmpty()) return false;
             String host = u.getHost();
-            return TRUSTED_HOST.equalsIgnoreCase(host)
-                    || "github.com".equalsIgnoreCase(host)
-                    || "objects.githubusercontent.com".equalsIgnoreCase(host)
-                    || "raw.githubusercontent.com".equalsIgnoreCase(host);
+            if (host == null) return false;
+            host = host.toLowerCase(Locale.US);
+            return "github.com".equals(host)
+                    || "objects.githubusercontent.com".equals(host)
+                    || "release-assets.githubusercontent.com".equals(host)
+                    || "raw.githubusercontent.com".equals(host);
         } catch (Exception e) {
             return false;
         }
-    }
-
-    /** 去 v、按 [.-] 分段；同段都是数字时按数值比，否则忽略大小写按字典比。 */
-    public static int compareVersions(String left, String right) {
-        String[] a = normalizeVersion(left).split("[.\\-]");
-        String[] b = normalizeVersion(right).split("[.\\-]");
-        int n = Math.max(a.length, b.length);
-        for (int i = 0; i < n; i++) {
-            String x = i < a.length ? a[i] : "";
-            String y = i < b.length ? b[i] : "";
-            Long xn = parseLong(x);
-            Long yn = parseLong(y);
-            int cmp = (xn != null && yn != null)
-                    ? Long.compare(xn, yn)
-                    : x.compareToIgnoreCase(y);
-            if (cmp != 0) return cmp;
-        }
-        return 0;
-    }
-
-    private static String normalizeVersion(String v) {
-        String s = v == null ? "" : v.trim();
-        if (s.startsWith("v") || s.startsWith("V")) s = s.substring(1);
-        return s;
-    }
-
-    private static Long parseLong(String s) {
-        if (s.isEmpty()) return null;
-        try {
-            return Long.valueOf(Long.parseLong(s));
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private static String firstNonEmpty(String a, String b) {
-        return a == null || a.trim().isEmpty() ? (b == null ? "" : b.trim()) : a.trim();
-    }
-
-    private static String fileNameFromUrl(String url) {
-        int slash = url == null ? -1 : url.lastIndexOf('/');
-        if (slash < 0 || slash == url.length() - 1) return "update.apk";
-        String name = url.substring(slash + 1);
-        int query = name.indexOf('?');
-        if (query >= 0) name = name.substring(0, query);
-        return name.isEmpty() ? "update.apk" : name;
-    }
-
-    private static String safeReason(Throwable t) {
-        String s = t.getMessage();
-        if (s == null || s.trim().isEmpty()) return t.getClass().getSimpleName();
-        return s.length() > 80 ? s.substring(0, 80) : s;
-    }
-
-    public static String prettySize(long bytes) {
-        if (bytes <= 0L) return "大小未提供";
-        if (bytes < 1024L * 1024L) {
-            return String.format(Locale.US, "%.0f KB", bytes / 1024.0);
-        }
-        return String.format(Locale.US, "%.1f MB", bytes / 1048576.0);
     }
 }

@@ -250,15 +250,9 @@
     var W = document.documentElement.clientWidth || window.innerWidth || 960;
     var H = document.documentElement.clientHeight || window.innerHeight || 540;
 
-    /*
-     * 车机固定 7 列、瓦片 10vw（2880 上 288px，约 4.5cm）。
-     *
-     * 上游那套 min(W*0.155, H*0.19) 上限 168px 的算法是给电视遥控器准备的：
-     * 在 2880 宽的车机上算出来是 168px，只占屏宽 5.8%，会排成 12 列小图标 ——
-     * 手指点不准，看着也像一堆碎片。
-     */
-    var cell = Math.round(W * 0.10);
-    var gap = Math.round(W * 0.022);
+    // Seven-column shortcut grid with smaller brand marks and generous touch cells.
+    var cell = Math.round(W * 0.08);
+    var gap = Math.round(W * 0.026);
     var cols = 7;
 
     var root = document.documentElement.style;
