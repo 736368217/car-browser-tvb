@@ -332,6 +332,9 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         buildSheet();
         buildFloatBack();
         registerUpdateReceiver();
+        DownloadCenter.get(this).setListener(new DownloadCenter.Listener() {
+            @Override public void onDownloadsChanged() { MainActivity.this.onDownloadsChanged(); }
+        });
         setContentView(root);
 
         // 每次都从首屏开始：电视上"接着上次继续"的收益远不如"一打开就能搜"来得实在
@@ -1533,139 +1536,370 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     }
 
     /* ------------------------------------------------------------ 下载 -- */
+    /*
+     * 6.14 起下载不再直接交给系统 DownloadManager：
+     *   · 目录可选（系统「下载」/ 应用私有 / 自选文件夹），默认落在系统下载目录；
+     *   · 点一条已完成记录 = 用系统查看器打开文件（APK 走安装流程）；
+     *   · 长按 = 打开 / 分享 / 打开所在目录 / 复制路径 / 重试 / 取消 / 删除；
+     *   · 下载中有真实进度与失败原因，可取消、可重试。
+     */
+
+    private static final int REQ_DOWNLOAD_TREE = 0x5D1;
+    private final java.util.LinkedHashMap<String, TextView> downloadStates =
+            new java.util.LinkedHashMap<>();
+    private int downloadRowCount = -1;
 
     @Override
     public void onDownload(BrowserWebView web, String url, String userAgent,
                            String contentDisposition, String mimeType, long contentLength) {
         try {
             Log.i(TAG, "下载请求: " + url + " mime=" + mimeType);
-            String name = URLUtil.guessFileName(url, contentDisposition, mimeType);
-            DownloadManager.Request req =
-                    new DownloadManager.Request(android.net.Uri.parse(url));
-            if (mimeType == null || mimeType.isEmpty()) mimeType = "application/octet-stream";
-            req.setMimeType(mimeType);
-            if (userAgent != null) req.addRequestHeader("User-Agent", userAgent);
-            String cookie = CookieManager.getInstance().getCookie(url);
-            if (cookie != null) req.addRequestHeader("Cookie", cookie);
-            req.setTitle(name);
-            req.setDescription("正在下载");
-            req.setNotificationVisibility(
-                    DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            // 车机没有「下载」系统 App，也不一定有存储权限；放应用自己的下载目录最稳
-            req.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, name);
-            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-            if (dm != null) {
-                long id = dm.enqueue(req);
-                Log.i(TAG, "已加入下载队列 id=" + id);
-                showStatus("开始下载：" + name, 2600);
-            } else {
-                showStatus("系统下载服务不可用", 2600);
+            String cookie = null;
+            try {
+                cookie = CookieManager.getInstance().getCookie(url);
+            } catch (Throwable ignored) {
             }
+            DownloadCenter center = DownloadCenter.get(this);
+            DownloadCenter.Task t = center.enqueue(url, userAgent, cookie,
+                    contentDisposition, mimeType, contentLength);
+            if (t == null) {
+                showStatus("下载失败：地址为空", 2400);
+                return;
+            }
+            Log.i(TAG, "开始下载 " + t.name + " -> " + center.destinationLabel(this));
+            showStatus("开始下载：" + t.name, 2400);
         } catch (Throwable t) {
             Log.e(TAG, "下载失败", t);
             showStatus("下载失败：" + t.getMessage(), 2600);
         }
     }
 
-    /** 应用内下载列表：不依赖车机上有没有「下载」这个系统 App */
+    /** 下载列表：保存位置 + 每条记录的可操作状态。 */
     private void showDownloads() {
-        final DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        if (dm == null) {
-            showStatus("系统下载服务不可用", 1600);
-            return;
-        }
-        final java.util.List<Long> ids = new java.util.ArrayList<>();
-        final java.util.List<String> mimes = new java.util.ArrayList<>();
-        final java.util.List<String> names = new java.util.ArrayList<>();
-        final java.util.List<String> states = new java.util.ArrayList<>();
-        Cursor c = null;
-        try {
-            c = dm.query(new DownloadManager.Query().setFilterByStatus(
-                    DownloadManager.STATUS_PENDING | DownloadManager.STATUS_RUNNING
-                            | DownloadManager.STATUS_PAUSED | DownloadManager.STATUS_SUCCESSFUL
-                            | DownloadManager.STATUS_FAILED));
-            while (c != null && c.moveToNext()) {
-                long id = c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_ID));
-                String title = c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE));
-                String mime = c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_MEDIA_TYPE));
-                int status = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-                long done = c.getLong(c.getColumnIndexOrThrow(
-                        DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-                long total = c.getLong(c.getColumnIndexOrThrow(
-                        DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-                String state;
-                if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                    state = total > 0 ? "已完成 " + mb(total) : "已完成";
-                } else if (status == DownloadManager.STATUS_RUNNING) {
-                    state = total > 0 ? "下载中 " + (done * 100 / total) + "%" : "下载中";
-                } else if (status == DownloadManager.STATUS_PAUSED) {
-                    state = "已暂停";
-                } else if (status == DownloadManager.STATUS_FAILED) {
-                    state = "失败";
-                } else {
-                    state = "等待中";
+        final DownloadCenter center = DownloadCenter.get(this);
+        final java.util.List<DownloadCenter.Task> list = center.tasks();
+        LinearLayout body = openPage("下载 · " + list.size(), "打开目录", new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (!center.openFolder(MainActivity.this)) {
+                    if (center.destination() == DownloadCenter.DEST_PRIVATE) {
+                        DownloadCenter.copyText(MainActivity.this, "保存位置",
+                                center.destinationDetail(MainActivity.this));
+                        showStatus("私有目录受系统保护，文件管理器进不去；路径已复制，可改用系统下载目录", 3600);
+                    } else {
+                        showStatus("没有可用的文件管理器；保存位置已复制", 2600);
+                    }
                 }
-                ids.add(id);
-                mimes.add(mime == null ? "application/octet-stream" : mime);
-                names.add(title);
-                states.add(state);
             }
-        } catch (Throwable t) {
-            showStatus("读取下载列表失败", 1600);
+        });
+        downloadStates.clear();
+        downloadRowCount = list.size();
+
+        body.addView(pageLabel("保存位置"));
+        body.addView(pageRow(center.destinationLabel(this), center.destinationDetail(this),
+                "更改", false, new View.OnClickListener() {
+                    @Override public void onClick(View v) { showDownloadDestination(); }
+                }, null));
+
+        if (list.isEmpty()) {
+            body.addView(pageEmpty("还没有下载",
+                    "在网页里点下载链接即可；下载完成后点一下就能打开"));
             return;
-        } finally {
-            if (c != null) c.close();
         }
 
-        LinearLayout body = openPage("下载 · " + ids.size(), null, null);
-        if (ids.isEmpty()) {
-            body.addView(pageEmpty("还没有下载", "在网页里点下载链接，文件会保存到下面这个目录"));
-        } else {
-            for (int i = 0; i < ids.size(); i++) {
-                final long id = ids.get(i);
-                final String mime = mimes.get(i);
-                body.addView(pageRow(names.get(i), states.get(i), "✕", true,
-                        new View.OnClickListener() {
-                            @Override public void onClick(View v) { openDownload(id, mime); }
-                        },
-                        new View.OnClickListener() {
-                            @Override public void onClick(View v) {
-                                try {
-                                    dm.remove(id);
-                                } catch (Throwable ignored) {
-                                }
-                                showDownloads();
-                            }
-                        }));
-            }
+        body.addView(pageLabel("文件"));
+        for (final DownloadCenter.Task t : list) {
+            body.addView(downloadRow(t));
         }
-        body.addView(pageLabel("文件保存位置"));
-        body.addView(pageRow("Android/data/com.carweb.tvb/files/Download", null, null, false, null, null));
+        body.addView(pageRow("清除已结束的记录", "同时删除这些记录对应的文件", "清除", true,
+                new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        askConfirm("清除下载记录", "会删除所有已结束记录及其文件，正在下载的不受影响。",
+                                "清除", new Runnable() {
+                                    @Override public void run() {
+                                        DownloadCenter.get(MainActivity.this).clearFinished();
+                                        showStatus("已清除下载记录", 1600);
+                                        showDownloads();
+                                    }
+                                });
+                    }
+                }, null));
     }
 
-    private void openDownload(long id, String mime) {
-        DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        if (dm == null) {
-            showStatus("系统下载服务不可用", 1600);
+    private View downloadRow(final DownloadCenter.Task t) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(px(0.008f), px(0.009f), px(0.008f), px(0.009f));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF141A21);
+        bg.setCornerRadius(px(0.008f));
+        row.setBackground(bg);
+        pressable(row);
+
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        TextView name = new TextView(this);
+        name.setText(t.name);
+        name.setTextColor(0xFFE6E9F0);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(36f / 2880f));
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        col.addView(name);
+
+        TextView state = new TextView(this);
+        state.setText(DownloadCenter.stateLine(t));
+        state.setTextColor(t.status == DownloadCenter.ST_FAILED ? 0xFFE07070 : 0xFF98A5B3);
+        state.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(27f / 2880f));
+        state.setSingleLine(true);
+        state.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        state.setPadding(0, px(0.004f), 0, 0);
+        col.addView(state);
+        downloadStates.put(t.id, state);
+
+        row.addView(col, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView action = new TextView(this);
+        action.setText(downloadActionLabel(t));
+        action.setTextColor(t.status == DownloadCenter.ST_DONE ? 0xFF8EC5FF : 0xFF9AA6B4);
+        action.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(30f / 2880f));
+        action.setGravity(Gravity.CENTER);
+        action.setMinWidth(px(0.075f));
+        action.setMinHeight(px(0.04f));
+        action.setPadding(px(0.012f), px(0.006f), px(0.008f), px(0.006f));
+        action.setContentDescription(downloadActionLabel(t));
+        pressable(action);
+        action.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { onDownloadTap(t); }
+        });
+        row.addView(action);
+
+        row.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { onDownloadTap(t); }
+        });
+        row.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override public boolean onLongClick(View v) {
+                showDownloadMenu(t);
+                return true;
+            }
+        });
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.addView(row, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        View gap = new View(this);
+        wrap.addView(gap, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, px(0.006f)));
+        return wrap;
+    }
+
+    private String downloadActionLabel(DownloadCenter.Task t) {
+        if (t.status == DownloadCenter.ST_DONE) return "打开";
+        if (t.status == DownloadCenter.ST_RUNNING || t.status == DownloadCenter.ST_QUEUED) return "取消";
+        return "重试";
+    }
+
+    /** 点一下：完成→打开文件；进行中→取消；失败→重试。 */
+    private void onDownloadTap(DownloadCenter.Task t) {
+        if (t.status == DownloadCenter.ST_DONE) {
+            openDownloadedFile(t);
+        } else if (t.status == DownloadCenter.ST_RUNNING || t.status == DownloadCenter.ST_QUEUED) {
+            DownloadCenter.get(this).cancel(t.id);
+            showStatus("已取消：" + t.name, 1800);
+        } else {
+            DownloadCenter.get(this).retry(t.id);
+            showStatus("重新下载：" + t.name, 1800);
+        }
+    }
+
+    /** 打开文件：APK 走安装器，其它交给系统查看器；没有查看器时退到分享/复制路径。 */
+    private void openDownloadedFile(DownloadCenter.Task t) {
+        final DownloadCenter center = DownloadCenter.get(this);
+        if ("application/vnd.android.package-archive".equals(t.mime)) {
+            installDownloadedApk(center, t);
             return;
         }
-        Uri uri = null;
-        try {
-            uri = dm.getUriForDownloadedFile(id);
-        } catch (Throwable ignored) {
+        if (center.openFile(this, t)) return;
+        if (center.shareFile(this, t)) {
+            showStatus("没有直接打开它的应用，已改为分享", 2600);
+            return;
         }
+        DownloadCenter.copyText(this, "下载文件路径", t.uri);
+        showStatus("没有能打开该文件的应用；路径已复制", 2800);
+    }
+
+    private void installDownloadedApk(final DownloadCenter center, final DownloadCenter.Task t) {
+        if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+            askConfirm("允许安装应用",
+                    "系统要求先允许「车览浏览器」安装应用。点「去设置」打开开关，返回后再点一次。",
+                    "去设置", new Runnable() {
+                        @Override public void run() {
+                            try {
+                                Intent i = new Intent(
+                                        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                        Uri.parse("package:" + getPackageName()));
+                                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(i);
+                            } catch (Throwable ignored) {
+                            }
+                        }
+                    });
+            return;
+        }
+        Uri uri = center.contentUri(t);
         if (uri == null) {
-            showStatus("文件还没下载完", 1600);
+            showStatus("文件不存在或已被删除", 2400);
             return;
         }
-        if (mime == null || mime.isEmpty()) mime = "application/octet-stream";
         try {
             Intent view = new Intent(Intent.ACTION_VIEW);
-            view.setDataAndType(uri, mime);
-            view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            view.setDataAndType(uri, "application/vnd.android.package-archive");
+            view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(view);
+        } catch (Throwable e) {
+            showStatus("无法启动安装器：" + e.getMessage(), 2800);
+        }
+    }
+
+    /** 长按菜单：常用动作一次到齐，不再靠猜。 */
+    private void showDownloadMenu(final DownloadCenter.Task t) {
+        final DownloadCenter center = DownloadCenter.get(this);
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Integer> actions = new java.util.ArrayList<>();
+        if (t.status == DownloadCenter.ST_DONE) {
+            labels.add("打开文件"); actions.add(0);
+            labels.add("分享文件"); actions.add(1);
+            labels.add("打开所在目录"); actions.add(2);
+        }
+        if (t.status == DownloadCenter.ST_FAILED || t.status == DownloadCenter.ST_CANCELED) {
+            labels.add("重试下载"); actions.add(3);
+        }
+        if (t.status == DownloadCenter.ST_RUNNING || t.status == DownloadCenter.ST_QUEUED) {
+            labels.add("取消下载"); actions.add(4);
+        }
+        labels.add("复制文件路径"); actions.add(5);
+        labels.add("删除记录和文件"); actions.add(6);
+
+        new AlertDialog.Builder(this)
+                .setTitle(t.name)
+                .setItems(labels.toArray(new String[0]), new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface d, int which) {
+                        int action = actions.get(which);
+                        if (action == 0) {
+                            openDownloadedFile(t);
+                        } else if (action == 1) {
+                            if (!center.shareFile(MainActivity.this, t)) {
+                                showStatus("没有可分享的应用", 2200);
+                            }
+                        } else if (action == 2) {
+                            if (!center.openFolder(MainActivity.this)) {
+                                DownloadCenter.copyText(MainActivity.this, "保存位置",
+                                        center.destinationDetail(MainActivity.this));
+                                showStatus("没有文件管理器；保存位置已复制", 2800);
+                            }
+                        } else if (action == 3) {
+                            center.retry(t.id);
+                            showStatus("重新下载：" + t.name, 1800);
+                        } else if (action == 4) {
+                            center.cancel(t.id);
+                            showStatus("已取消：" + t.name, 1800);
+                        } else if (action == 5) {
+                            DownloadCenter.copyText(MainActivity.this, "文件路径",
+                                    t.dest == DownloadCenter.DEST_PRIVATE
+                                            ? t.uri : center.destinationDetail(MainActivity.this));
+                            showStatus("路径已复制", 1800);
+                        } else if (action == 6) {
+                            askConfirm("删除文件", "会删除这条记录，以及它在磁盘上的文件。",
+                                    "删除", new Runnable() {
+                                        @Override public void run() {
+                                            center.remove(t.id);
+                                            showStatus("已删除：" + t.name, 1600);
+                                            showDownloads();
+                                        }
+                                    });
+                        }
+                    }
+                })
+                .show();
+    }
+
+    /** 选择保存位置：系统下载目录 / 应用私有 / 自选文件夹。 */
+    private void showDownloadDestination() {
+        final DownloadCenter center = DownloadCenter.get(this);
+        final String[] labels = new String[]{
+                "系统下载目录（Download）" + (center.destination() == DownloadCenter.DEST_PUBLIC ? "  ✓" : ""),
+                "应用内私有目录" + (center.destination() == DownloadCenter.DEST_PRIVATE ? "  ✓" : ""),
+                "选择其他文件夹…" + (center.destination() == DownloadCenter.DEST_TREE ? "  ✓" : "")
+        };
+        new AlertDialog.Builder(this)
+                .setTitle("下载保存位置")
+                .setItems(labels, new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface d, int which) {
+                        if (which == 0) {
+                            center.setDestination(DownloadCenter.DEST_PUBLIC);
+                            afterDestinationChanged();
+                        } else if (which == 1) {
+                            center.setDestination(DownloadCenter.DEST_PRIVATE);
+                            afterDestinationChanged();
+                        } else {
+                            pickDownloadFolder();
+                        }
+                    }
+                })
+                .show();
+    }
+
+    private void pickDownloadFolder() {
+        try {
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                    | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+            startActivityForResult(i, REQ_DOWNLOAD_TREE);
+        } catch (Throwable e) {
+            showStatus("系统没有文件选择器，无法自选目录", 2800);
+        }
+    }
+
+    private void afterDestinationChanged() {
+        DownloadCenter center = DownloadCenter.get(this);
+        showStatus("下载保存到：" + center.destinationLabel(this), 2400);
+        if (pageVisible()) showDownloads();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_DOWNLOAD_TREE) return;
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        Uri tree = data.getData();
+        try {
+            getContentResolver().takePersistableUriPermission(tree,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         } catch (Throwable t) {
-            showStatus("没有能打开这个文件的应用", 1600);
+            Log.w(TAG, "无法保留目录授权", t);
+        }
+        DownloadCenter center = DownloadCenter.get(this);
+        center.setTreeUri(tree.toString());
+        center.setDestination(DownloadCenter.DEST_TREE);
+        afterDestinationChanged();
+    }
+
+    /** 下载进度回调：同一批记录只刷新文字，不整页重建，避免闪烁与跳动。 */
+    private void onDownloadsChanged() {
+        if (!pageVisible() || !"下载".equals(currentPageRoute)) return;
+        java.util.List<DownloadCenter.Task> list = DownloadCenter.get(this).tasks();
+        if (list.size() != downloadRowCount) {
+            showDownloads();
+            return;
+        }
+        for (DownloadCenter.Task t : list) {
+            TextView tv = downloadStates.get(t.id);
+            if (tv == null) continue;
+            tv.setText(DownloadCenter.stateLine(t));
+            tv.setTextColor(t.status == DownloadCenter.ST_FAILED ? 0xFFE07070 : 0xFF98A5B3);
         }
     }
 
@@ -2709,6 +2943,11 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
         body.addView(durations);
 
+        body.addView(pageRow("下载目录",
+                DownloadCenter.get(this).destinationLabel(this), "更改", false,
+                new View.OnClickListener() {
+                    @Override public void onClick(View v) { showDownloadDestination(); }
+                }, null));
         body.addView(pageLabel("数据"));
         body.addView(pageRow("清除缓存", mb(cacheSize()), "清除", false,
                 new View.OnClickListener() {
@@ -3311,6 +3550,10 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     protected void onDestroy() {
         unregisterUpdateReceiver();
         uiHandler.removeCallbacksAndMessages(null);
+        try {
+            DownloadCenter.get(this).setListener(null);
+        } catch (Throwable ignored) {
+        }
         for (BrowserWebView web : tabs) {
             host.removeView(web);
             web.destroy();

@@ -1,5 +1,31 @@
 # 实机验收记录
 
+## 2026-11-14 · v6.14（versionCode 24）下载中心
+
+- 构建：`dist/car-browser-6.14.apk`（702.6 KB）；SHA-256 `6E807C5316FD1F1E0204484EB5E467AAA89EA3A089A98F8F733A380D5F427F6B`
+- 设备：MuMu vm0，Android 15，custom 2880×1620 @160dpi；本地 HTTP 服务 `10.0.2.2:8099`（强制 `Content-Disposition: attachment`，确保走下载而不是内联渲染）
+- 验证范围：目录切换、真实进度、取消、失败与重试、打开文件、打开目录、私有目录 Provider、SAF 选择器
+
+| 项目 | 结果 | 证据 |
+|---|---|---|
+| 默认目录（系统下载） | `shot.png` 落到 `/sdcard/Download/shot.png`（6,511 B），MediaStore 行 `_display_name=shot.png` | `ls -l` + `content query` + 日志 `开始下载 shot.png -> 系统下载目录（Download）` |
+| 列表呈现 | `下载 · N`、保存位置行（可“更改”）、每条文件名 + 状态（如 `已完成 · 6 KB`）+ 右侧动作（打开/取消/重试） | fresh UI 树 + `ux614-list.png` |
+| 打开文件 | 点“打开”进入系统“打开方式”（图库 / CX文件管理器 / 文件启动器），返回后回到应用 | fresh UI 树（ResolverActivity）+ `ux614-opened.png` |
+| 打开目录 | 系统目录：列出“文件 / CX文件管理器 / 文件启动器”供选择 | fresh UI 树 + `ux614-folder-public.png` |
+| 切到私有目录 | 下载 `note.txt` → `/storage/emulated/0/Android/data/com.carweb.tvb/files/Download/note.txt`（26 B） | 日志 `-> 应用内私有目录` + `ls -l` |
+| 私有目录打开 | `LocalFileProvider` 授权后可被其它应用读取；外壳直接访问被拒（`SecurityException ... not exported from UID 10079`） | ResolverActivity 列表 + adb `content read` 拒绝证据 |
+| 取消 | 20 MB 慢速下载中点“取消”，`/sdcard/Download` 无 slow 残留 | `ls | grep slow` 无结果 + `ux614-progress.png` / `ux614-canceled.png` |
+| 失败与重试 | 404 地址显示 `失败：服务器返回 HTTP 404`，右侧动作变为“重试” | fresh UI 树 + `ux614-fail.png` |
+| 自选文件夹 | “更改 → 选择其他文件夹…”打开系统 DocumentsUI（`com.android.documentsui/.picker.PickActivity`） | `dumpsys activity` + `ux614-saf.png` |
+| 长按菜单 | 打开文件 / 分享文件 / 打开所在目录 / 复制文件路径 / 删除记录和文件 | fresh UI 树 + `ux614-menu.png` |
+| 私有目录定位说明 | 私有目录点“打开目录”不再静默失败：复制路径并提示系统限制、建议改系统下载目录 | 代码 + `ux614-folder-private` 截图 |
+
+### 边界
+
+- 未在真车验证；MuMu 上系统“下载”目录对应 `/sdcard/Download`，真车若被 OEM 改路径以实际为准。
+- 自选文件夹的**写入**未在本轮打勾（只验证到选择器打开与授权流程）；Android 11+ 对 `Android/data` 的访问限制不影响 SAF 其它目录。
+- UiAutomator 仍会“先写出 XML 再 SIGSEGV”，本轮同样按一次性 dump + 宿主解析使用。
+
 ## 2026-11-13 · v6.13（versionCode 23）自动更新
 
 - 构建：`dist/car-browser-6.13.apk`（707,188 B）；SHA-256 `8DC9FD0F39336F1E039B95CC01F4DDF5BDD076E4BFF4D7296316F1A003567396`

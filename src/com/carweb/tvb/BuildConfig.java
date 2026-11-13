@@ -15,8 +15,8 @@ public final class BuildConfig {
     public static final boolean DEBUG = true;
     public static final String APPLICATION_ID = "com.carweb.tvb";
     public static final String BUILD_TYPE = "release";
-    public static final int VERSION_CODE = 23;
-    public static final String VERSION_NAME = "6.13";
+    public static final int VERSION_CODE = 24;
+    public static final String VERSION_NAME = "6.14";
 
     private BuildConfig() {
     }
