@@ -1,5 +1,34 @@
 # 实机验收记录
 
+## 2026-11-13 · v6.13（versionCode 23）自动更新
+
+- 构建：`dist/car-browser-6.13.apk`（707,188 B）；SHA-256 `8DC9FD0F39336F1E039B95CC01F4DDF5BDD076E4BFF4D7296316F1A003567396`
+- 发布：GitHub Release `v6.13` 的资产**只有** `car-browser-6.13.apk`（707,188 B）；API `digest` 与本地 SHA 完全一致
+- 仓库可见性：转为公开后匿名 `api.github.com` 返回 200（此前私有库为 404）；APK 内不含任何 token
+- 设备：MuMu vm0，Android 15，custom 2880×1620 @160dpi
+
+| 项目 | 结果 | 证据 |
+|---|---|---|
+| 发现新版本 | 装 6.12 后检查：`发现新版本 6.13`，副行 `car-browser-6.13.apk · 0.7 MB · SHA 8dc9fd0f3933`，操作按钮为「下载并安装」 | 本轮 fresh UI 树 |
+| 已是最新 | 装 6.13 后检查：`已是最新 6.13`，同样显示资产名、大小与 SHA 前 12 位 | 本轮 fresh UI 树 |
+| 下载 | 点「重新下载安装」后应用私有目录出现 707,188 B 的 `car-browser-6.13.apk` | guest `ls -l` |
+| 校验 | 下载文件 sha256 与 API `digest` 一致；logcat `更新包已交给安装器 sha=8dc9fd0f3933` | `toybox sha256sum` + `TvBrowser` 日志 |
+| 安装器 | 系统安装器弹出「要更新此应用吗？当前数据不会丢失。」；点「更新」后 `versionName=6.13 / versionCode=23`，应用进程结束，crash buffer 无 `FATAL EXCEPTION` | 安装器 fresh UI 树 + `dumpsys package` |
+| 限流兜底 | 匿名配额耗尽时（HTTP 403，`X-RateLimit-Remaining: 0`）自动回落发布页，仍显示 `已是最新 6.13 / car-browser-6.13.apk · 0.7 MB` | 宿主复现 403 响应头 + 设备端 fresh UI 树 |
+| 网络不可达 | 访客未配代理直连 GitHub：`检查失败`，原因 `connection closed；发布页兜底也失败：connection closed` | 本轮 fresh UI 树 |
+
+### 自动更新的网络前提
+
+- MuMu 访客未配代理时，直连 `api.github.com:443` 的 TLS 会被重置（TCP 可达，应用侧表现为 `connection closed`）。测试时用宿主临时 TCP 转发 + 访客 `http_proxy` 打通，测完已撤销（`settings put global http_proxy :0`）。
+- 车机端同理：网络必须能访问 GitHub（或经同类代理），否则只显示上述可读失败原因，不伪造成功。
+- API 路径校验 sha256 与大小；发布页兜底路径拿不到 digest，只按资产名探测，不校验哈希。
+
+### UiAutomator 现状（本轮定性）
+
+- `uiautomator dump` 在这版 MuMu Android 15 镜像上，无论走 MuMuManager `sh`、`nsenter` 包装还是插件 `adb` 通道，都是**先写出完整 XML，再以 139/SIGSEGV（偶发 Bus error）退出**；XML 可解析，问题在工具退出路径而非应用。
+- 因此按「同一动作只 dump 一次 → 宿主解析校验」使用：删旧文件、dump、确认 XML 可解析且含目标包，再取文案。连续多次 dump 期间实例会停，需用插件重启（直接因果未证实）。
+- 界面视觉证据仍以 2880×1620 截图为准；本轮更新流程的文案证据来自上述一次性 UI 树。
+
 ## 2026-11-12 · v6.9（versionCode 19）
 
 - 构建：`dist/car-browser-6.9.apk`（698,996 B）；SHA-256：`F5583005345E351571CAE6CED789A90B2114A3ADF23339F78751E3753E8108B4`
