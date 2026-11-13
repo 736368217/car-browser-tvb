@@ -190,28 +190,41 @@ public final class UpdateChecker {
             if (slash > 0) tag = tag.substring(0, slash);
             if (tag.isEmpty()) throw new IllegalStateException("发布页没有 Release");
             String version = tag.startsWith("v") || tag.startsWith("V") ? tag.substring(1) : tag;
-            String name = SOFTWARE + "-" + version + ".apk";
-            String assetUrl = "https://github.com/" + OWNER + "/" + SOFTWARE
-                    + "/releases/download/" + tag + "/" + name;
+            // 资产命名以 car-browser-<版本>.apk 为准，同时兼容早期的 car-browser-tvb-<版本>.apk
+            String[] candidates = new String[]{
+                    "car-browser-" + version + ".apk",
+                    SOFTWARE + "-" + version + ".apk"
+            };
+            String name = "";
+            String assetUrl = "";
             long size = 0L;
-            HttpURLConnection head = null;
-            try {
-                head = (HttpURLConnection) new URL(assetUrl).openConnection();
-                head.setInstanceFollowRedirects(true);
-                head.setRequestMethod("HEAD");
-                head.setConnectTimeout(10000);
-                head.setReadTimeout(10000);
-                head.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
-                int hc = head.getResponseCode();
-                if (hc == 404) throw new IllegalStateException("Release 里没有 " + name);
-                int len = head.getContentLength();
-                if (len > 0) size = len;
-            } catch (IllegalStateException ise) {
-                throw ise;
-            } catch (Throwable ignored) {
-                // HEAD 不被 CDN 支持时不影响下载，只是没有大小可对比
-            } finally {
-                if (head != null) head.disconnect();
+            for (String candidate : candidates) {
+                String url = "https://github.com/" + OWNER + "/" + SOFTWARE
+                        + "/releases/download/" + tag + "/" + candidate;
+                HttpURLConnection head = null;
+                try {
+                    head = (HttpURLConnection) new URL(url).openConnection();
+                    head.setInstanceFollowRedirects(true);
+                    head.setRequestMethod("HEAD");
+                    head.setConnectTimeout(10000);
+                    head.setReadTimeout(10000);
+                    head.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
+                    int hc = head.getResponseCode();
+                    if (hc >= 200 && hc < 400) {
+                        name = candidate;
+                        assetUrl = url;
+                        int len = head.getContentLength();
+                        if (len > 0) size = len;
+                        break;
+                    }
+                } catch (Throwable ignored) {
+                    // HEAD 不被 CDN 接受时继续试下一个候选
+                } finally {
+                    if (head != null) head.disconnect();
+                }
+            }
+            if (name.isEmpty()) {
+                throw new IllegalStateException("Release 里没有 " + candidates[0]);
             }
             return new Result(tag, version, name, assetUrl, size, "", "");
         } finally {
