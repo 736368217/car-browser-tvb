@@ -99,7 +99,7 @@ public final class UpdateChecker {
     }
 
     /** 阻断主线程请求：必须在工作线程调用。 */
-    public static Result fetchLatest() throws Exception {
+    private static Result fetchFromApi() throws Exception {
         HttpURLConnection conn = null;
         try {
             URL url = new URL(API_LATEST);
@@ -146,6 +146,74 @@ public final class UpdateChecker {
                 throw new IllegalStateException("Release 里没有可用的 APK");
             }
             return new Result(tag, version, apkName, apkUrl, size, sha, notes);
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    /**
+     * 检查最新发布：先用 API（能拿到 sha256 digest），API 限流或不可用时回落到发布页 HTML。
+     * 匿名 API 只有 60 次/小时，车机上偶发 403 不该让更新功能整个失效。
+     */
+    public static Result fetchLatest() throws Exception {
+        Exception apiError;
+        try {
+            return fetchFromApi();
+        } catch (Exception e) {
+            apiError = e;
+        }
+        try {
+            return fetchFromHtml();
+        } catch (Exception e) {
+            throw new IllegalStateException(apiError.getMessage() + "；发布页兜底也失败：" + e.getMessage());
+        }
+    }
+
+    /** 兜底路径：跟着 releases/latest 的跳转取 tag，再按资产命名约定拼下载地址。 */
+    private static Result fetchFromHtml() throws Exception {
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(RELEASE_PAGE_URL).openConnection();
+            conn.setInstanceFollowRedirects(true);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(15000);
+            conn.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
+            int code = conn.getResponseCode();
+            if (code != 200) throw new IllegalStateException("HTTP " + code);
+            String finalUrl = conn.getURL().toString();
+            int idx = finalUrl.indexOf("/releases/tag/");
+            if (idx < 0) throw new IllegalStateException("发布页没有 Release");
+            String tag = finalUrl.substring(idx + "/releases/tag/".length()).trim();
+            int cut = tag.indexOf('?');
+            if (cut > 0) tag = tag.substring(0, cut);
+            int slash = tag.indexOf('/');
+            if (slash > 0) tag = tag.substring(0, slash);
+            if (tag.isEmpty()) throw new IllegalStateException("发布页没有 Release");
+            String version = tag.startsWith("v") || tag.startsWith("V") ? tag.substring(1) : tag;
+            String name = SOFTWARE + "-" + version + ".apk";
+            String assetUrl = "https://github.com/" + OWNER + "/" + SOFTWARE
+                    + "/releases/download/" + tag + "/" + name;
+            long size = 0L;
+            HttpURLConnection head = null;
+            try {
+                head = (HttpURLConnection) new URL(assetUrl).openConnection();
+                head.setInstanceFollowRedirects(true);
+                head.setRequestMethod("HEAD");
+                head.setConnectTimeout(10000);
+                head.setReadTimeout(10000);
+                head.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
+                int hc = head.getResponseCode();
+                if (hc == 404) throw new IllegalStateException("Release 里没有 " + name);
+                int len = head.getContentLength();
+                if (len > 0) size = len;
+            } catch (IllegalStateException ise) {
+                throw ise;
+            } catch (Throwable ignored) {
+                // HEAD 不被 CDN 支持时不影响下载，只是没有大小可对比
+            } finally {
+                if (head != null) head.disconnect();
+            }
+            return new Result(tag, version, name, assetUrl, size, "", "");
         } finally {
             if (conn != null) conn.disconnect();
         }
