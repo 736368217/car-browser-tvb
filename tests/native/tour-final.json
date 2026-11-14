@@ -1,4 +1,4 @@
-[
+﻿[
  {"name":"home","expect":["百度","YouTube"]},
  {"name":"menu-1","op":"click","target":"菜单","expect":["新建标签","设置","下载"]},
  {"name":"menu-2","op":"swipe","x":2300,"y":1200,"toX":700,"toY":1200,"expect":["页内查找","关闭标签","检查更新"]},
@@ -10,7 +10,7 @@
  {"name":"settings-lower","op":"swipe","x":2100,"y":1450,"toX":2100,"toY":300,"duration":600},
  {"name":"settings-folder-dialog","op":"click","target":"下载目录","expect":["选择其他文件夹"]},
  {"name":"settings-folder-stays","op":"click","target":"应用内目录","expect":["设置","下载目录"]},
- {"name":"about","op":"click","target":"关于车览浏览器","expect":["检查更新","版本 6.15"]},
+ {"name":"about","op":"click","target":"关于车览浏览器","expect":["检查更新","版本 6.16"]},
  {"name":"settings-return","op":"click","target":"返回"},
  {"name":"home-return","op":"click","target":"返回","expect":["百度"]},
  {"name":"tabs","op":"click","target":"标签页","expect":["新建","首屏"]},
@@ -31,7 +31,6 @@
  {"name":"history-close","op":"click","target":"返回"},
  {"name":"menu-fullscreen","op":"click","target":"菜单"},
  {"name":"fullscreen","op":"click","target":"全屏","absent":["输入网址或搜索"]},
- {"name":"wake-back","op":"tap","x":1500,"y":1450},
- {"name":"fullscreen-restore","op":"click","target":"应用内返回","expect":["10.0.2.2"]},
+ {"name":"fullscreen-restore","op":"click","target":"退出全屏","expect":["10.0.2.2"]},
  {"name":"download-behavior","op":"backend","settle":700}
 ]

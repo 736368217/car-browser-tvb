@@ -358,6 +358,12 @@ public class BrowserWebView extends WebView {
         s.setBuiltInZoomControls(true);
         s.setDisplayZoomControls(false);   // 不要那两个 +/- 浮层
         s.setTextZoom(100);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) s.setOffscreenPreRaster(true);
+        // 滚动手感：去掉边缘拉伸与滚动条，避免拖动时的那一下「皮筋」
+        setOverScrollMode(View.OVER_SCROLL_NEVER);
+        setVerticalScrollBarEnabled(false);
+        setHorizontalScrollBarEnabled(false);
+        setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
 
         s.setUserAgentString(DESKTOP_UA);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);

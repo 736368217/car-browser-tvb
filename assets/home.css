@@ -14,9 +14,9 @@
  */
 
 :root {
-  --cell: 10vw;             /* 一个瓦片（含图标方块）的宽度 */
-  --gap: 2.2vw;             /* 瓦片间隔 */
-  --radius: 1.7vw;
+  --cell: 11.5vw;           /* 一个瓦片（含图标方块）的宽度 */
+  --gap: 1.6vw;             /* 瓦片间隔 */
+  --radius: 1.35vw;         /* 全站统一的圆角 */
   --bg: #0B0E12;
   --card: #161B22;
   --card-hi: #1F2733;
@@ -439,37 +439,46 @@ html, body { height: 100%; }
   padding-bottom: 3vw;
 }
 
-/* 6.9 home: quieter visual weight, same seven-column touch grid. */
-:root { --radius: 1.05vw; }
+/* 6.11 home: 一种图标语言 —— 每格都是同一张圆角卡片，logo 居中放在卡片里。
+   上游的「logo 直接铺满整格 + border-radius:0」会和首字母的圆角卡片混在一起，
+   看起来一半圆角一半直角，也显得小。 */
 body { background: var(--bg); }
-.page { padding: 0.8vw 0 1.2vw; }
+.page { padding: 0.7vw 0 1vw; }
 .block { margin-top: 0; }
 .block-title, .hint { display: none !important; }
 .site {
-  gap: 0.55vw;
+  gap: 0.7vw;
   transition: transform 160ms cubic-bezier(.2,.8,.2,1);
 }
 .site:active, .site:hover { transform: scale(.975); }
-.icon.has-icon {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
+.icon {
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, .10);
+  box-shadow: 0 .32vw .9vw rgba(0, 0, 0, .30);
 }
- .icon.has-icon img {
-  inset: 10% auto auto 10%;
-  width: 80%;
-  height: 80%;
+/* 有 logo 的站点保留同一张卡片：卡片负责圆角，logo 缩小居中 */
+.icon.has-icon {
+  background: linear-gradient(158deg, var(--tint-top, #1A222C) 0%, var(--tint-bottom, #10151C) 100%);
+  border-color: rgba(255, 255, 255, .10);
+  box-shadow: 0 .32vw .9vw rgba(0, 0, 0, .30);
+}
+.icon.has-icon img {
+  inset: 19%;
+  width: 62%;
+  height: 62%;
   border-radius: 0;
   object-fit: contain;
- }
+}
+.icon.has-icon .initial { display: none; }
 .site:hover .icon.has-icon, .site:active .icon.has-icon {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
+  background: var(--card-hi);
+  border-color: #35503F;
+  box-shadow: 0 0 0 .12vw rgba(34, 197, 94, .25);
+  filter: none;
 }
+.icon .initial { width: 52%; height: 52%; font-size: calc(var(--cell) * 0.24); }
 .name {
-  font-size: 1.1vw;
+  font-size: 1.3vw;
   font-weight: 500;
-  color: #D7DEE4;
+  color: #DCE3EA;
 }
-.icon .initial { font-size: calc(var(--cell) * 0.22); }

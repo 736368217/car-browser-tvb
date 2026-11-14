@@ -251,9 +251,10 @@
     var W = document.documentElement.clientWidth || window.innerWidth || 960;
     var H = document.documentElement.clientHeight || window.innerHeight || 540;
 
-    // Seven-column shortcut grid with smaller brand marks and generous touch cells.
-    var cell = Math.round(W * 0.08);
-    var gap = Math.round(W * 0.026);
+    // 七列快捷网格：格子按屏宽算（车机 2880 上是 302px），左右只留 6.5% 边距。
+    // 原来 8vw + 2.6vw 间距只用了 72% 宽度，两侧空 14%，图标看着又小又散。
+    var cell = Math.round(W * 0.105);
+    var gap = Math.round(W * 0.022);
     var cols = 7;
 
     var root = document.documentElement.style;

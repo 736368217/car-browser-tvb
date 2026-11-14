@@ -2010,14 +2010,17 @@ const TV_CSS = `
 `;
 
 /**
- * 外部网站按桌面宽度排版。
+/**
+ * 外部网站按桌面宽度排版，但按车机可点性放大。
  *
- * 电视 WebView 的逻辑宽度通常只有 960 CSS px（1080p / densityDpi=320），
- * 网站据此会给出平板版甚至手机版布局。把 viewport 钉在 1440 之后配合
- * WebView 的 useWideViewPort + loadWithOverviewMode，浏览器会把整页缩放
- * 到正好铺满屏幕 —— 也就是"把电脑网页投到电视上"。
+ * 电视/车机 WebView 的逻辑宽度就是屏幕 CSS 宽度（本项目车机档 2880）。
+ * 把 viewport 钉在 PAGE_WIDTH 之后，配合 useWideViewPort + loadWithOverviewMode，
+ * 浏览器会把整页缩放到正好铺满屏幕，缩放比 = 屏宽 / PAGE_WIDTH。
+ *
+ * 原来钉 1440：等于「1440 宽的桌面页原样投到大屏」，16px 正文在大屏上只占屏宽
+ * 1.1%，按钮更小、更难戳。改成 1160 后同一屏放大 24%，桌面版式不变。
  */
-const PAGE_WIDTH = 1440;
+const PAGE_WIDTH = 1160;
 
 let installed = false;
 
