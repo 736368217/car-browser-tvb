@@ -28,6 +28,7 @@
   var NAMES = {
     'bilibili.com': '哔哩哔哩',
     'baidu.com': '百度',
+    'google.com': 'Google',
     'weibo.com': '微博',
     'zhihu.com': '知乎',
     'taobao.com': '淘宝',

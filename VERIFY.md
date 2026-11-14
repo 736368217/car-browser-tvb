@@ -1,4 +1,49 @@
 # 实机验收记录
+## 2026-11-14 · v6.15（versionCode 25）美观 + 易用性闭环
+
+- 构建：`dist/car-browser-6.15.apk`（723,572 B）；SHA-256 `583D75B4D2BF44A84DFD34C525BEF32C0F8849BC985FB483675654FC92268E9A`
+- 设备：MuMu vm0（Android 15，实例级 `custom 2880x1620 @160dpi`）
+  - `init=1620x2880 160dpi mMinSizeOfResizeableTaskDp=220 noscale` / `cur=2880x1620 app=2880x1620` / `w2880dp h1620dp 160dpi land`
+  - 驱动：`tests/native/UiAudit.java`（自建 instrumentation 包 `com.carweb.audit`，只用于验收，跑完即卸载）
+  - 固定服务：`tests/native/fixture_server.py` → `10.0.2.2:8099`（`/article` `/page2` `/small.bin` `/note.txt` `/percent` `/cut.bin` `/slow.bin` `/missing.zip`）
+
+### 修的是什么（按报告逐项）
+
+| 报告问题 | 修复 | 验证 |
+|---|---|---|
+| 下载行右侧按钮取消后仍写「取消」 | 按钮由任务状态驱动（`queued/running/done/failed/canceled`），并新增「更多」二级菜单（打开/分享/所在文件夹/删除文件/仅删记录） | 35 步回归第 20 步 `下载` 页出现 `更多`；后端 `cancel state` / `forget preserves file` 均 true |
+| 设置里改下载目录会跳页 | 目录选择对话框原地返回，停在设置页 | 第 09/10 步 `下载目录` → `应用内目录` → 仍在设置页 |
+| 下载菜单是小型系统对话框 | 统一大字号自绘对话框（行高 0.047×宽、可滚动、固定 1520px 宽） | `08-destination.png` / `07-downloads.png` |
+| 标签卡片高亮不跟手、按压发闷 | 高亮判据改为 `arr[i] == activeTab()`，按压改为约 0.975 缩放 | `06-tabs.png`，第 14 步 `标签页` 断言通过 |
+| 功能页展开时浮动返回按钮被压暗层遮住 | `floatBack.bringToFront()`，且功能页可见时不再唤醒 | 第 01–03 步 menu 开/滑/关全程可点 |
+| 设置项只有文字可点 | 整行可点（`pageRow` 行级点击） | 第 09/10 步仅点行内文字即切换 |
+| 地址栏无可访问名 | `contentDescription="地址栏"` | 第 16 步按名定位并输入成功 |
+| 首屏站点名显示域名 | `NAMES['google.com']='Google'`，站点名 1.1vw | `01-home.png` |
+| 阅读模式字号写死 px | `reader.js` 全部改 vw（正文 1.25vw、h1 2vw、按钮 ≥4vw、max-width 70vw） | 第 24 步前 `阅读模式` 断言 `A+`/`退出` |
+| 菜单项「手动更新」语义不清 | 改为「检查更新」 | 第 02 步断言含 `检查更新` |
+| 详情/状态文字偏小 | 详情字号 28f → 30f，状态行同步 | `03-settings.png` / `05-about.png` |
+| 功能页返回丢失父页 | `openPage` 压入页面栈，返回恢复父页 | 第 07/15/22/23/26/29 步连续返回均回到预期页 |
+
+下载后端同时修掉 8 个已定位缺陷：取消后立刻重试会起两个 worker（改为 `Run` + `generation` 令牌）、截断响应被记成完成（`done != length` 即失败）、进程被杀留下半截 pending 文档（启动清理）、打开文件夹用全局目标而不是该任务的目录（改为按任务 `tree`）、`Uri.getPath()` 二次解码（`LocalFileProvider` 改为不再 `decode`）、把「删除文件」和「只删记录」混为一谈（拆成 `remove`/`forget`）、非 http(s) 链接不得建任务、同名文件改用 `(n)` 保护。
+
+### 结果
+
+| 项目 | 结果 |
+|---|---|
+| 35 步原生回归（`tour-final.json`） | **35/35 通过，0 失败**，APK SHA 与上方一致（`result.json.sha256`） |
+| 下载后端 18 项（`DownloadAudit`） | **18/18 true**：`duplicate name protected`、`truncated response fails`、`cancel state`、`immediate retry completes`、`forget preserves file`、`provider preserves percent filename`、`public readable`、`unsupported URL rejected before task` 等 |
+| 网页旅程 20 步（`tour-web.json`） | 20/20 通过，末步由独立包读出真实字节：`FILE_READ_OK bytes=18 car-browser audit` |
+| SAF 自选目录 | 选择 `内部存储 / Download/CarBrowserSAF` → 设置行显示「自选：内部存储 / Download/CarBrowserSAF」→ 下载写入 18 B，内容 `car-browser audit` → `am force-stop` 后新进程（pid 3514）再下载，得到 `audit615-note (1).txt`（授权持久、同名保护生效） |
+| 崩溃 | `logcat -b crash` 中 `FATAL` 计数 0，进程存活、Activity 在前台 |
+| 截图 | `smoke/v615/01..12`（首屏/菜单/设置/目录对话框/关于/标签/下载/目录选择/书签/全屏/恢复/SAF 目录） |
+
+### 边界与取舍
+
+- **「选择器弹出」不等于「文件已打开」**：v6.14 只证明了系统解析器会弹出，本轮改用 `ViewProbe` 由独立包读取内容并打印字节数，才算通过。
+- SAF 权限只能由 `com.carweb.tvb` 自己持有的持久授权写入，因此 SAF 写入是通过应用 UI 完成的，不由审计包反射调用。
+- 未做真机（零跑 B01）验证；MuMu 几何与 dpi 一致，但不能替代真机。
+- MuMu vm0 在本轮出现多次空闲自停（与应用无关），每次用 `mumu_instance_action launch` 恢复后重测；受影响的只是时间成本。
+
 
 ## 2026-11-14 · v6.14（versionCode 24）下载中心
 

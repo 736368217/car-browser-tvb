@@ -41,7 +41,7 @@ public final class LocalFileProvider extends ContentProvider {
         String path = uri.getPath();
         if (path == null || !path.startsWith("/download/")) throw new FileNotFoundException("不支持该地址");
         String raw = path.substring("/download/".length());
-        File f = new File(Uri.decode(raw));
+        File f = new File(raw); // Uri.getPath() has already decoded once.
         try {
             String canonical = f.getCanonicalPath();
             String[] roots = new String[]{

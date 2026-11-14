@@ -44,15 +44,15 @@
     // 阅读偏好跟着页面走：字号与主题调过一次，本次会话里再进阅读模式还是这个设置
     var prefs = window.__kbReaderPrefs || (window.__kbReaderPrefs = { scale: 1, dark: true });
     var btnStyle = 'background:#1c222b;color:#e6e9f0;border:1px solid #2a3442;' +
-      'border-radius:999px;padding:6px 16px;font-size:15px;margin-left:8px';
+      'border-radius:999px;padding:.5vw .9vw;font-size:1.15vw;margin-left:.35vw;min-width:4vw;min-height:4vw';
     wrap.setAttribute('style', 'position:fixed;inset:0;z-index:2147483647;background:#0f1216;' +
       'color:#e6e9f0;overflow:auto;-webkit-overflow-scrolling:touch;');
     wrap.innerHTML =
-      '<div id="__kb_reader_inner" style="max-width:860px;margin:0 auto;padding:36px 36px 90px;' +
-      'font-size:' + Math.round(19 * prefs.scale) + 'px;line-height:1.9;' +
+      '<div id="__kb_reader_inner" style="max-width:70vw;margin:0 auto;padding:1.4vw 1.4vw 3.5vw;' +
+      'font-size:' + (1.25 * prefs.scale).toFixed(3) + 'vw;line-height:1.9;' +
       'font-family:-apple-system,\'Microsoft YaHei\',sans-serif">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;' +
-      'font-size:15px;color:#8b95a5;margin-bottom:22px">' +
+      'font-size:1.1vw;color:#aeb9c6;margin-bottom:1vw">' +
       '<span>阅读模式</span>' +
       '<span style="display:flex;align-items:center">' +
       '<button id="__kb_reader_smaller" style="' + btnStyle + '">A-</button>' +
@@ -60,7 +60,7 @@
       '<button id="__kb_reader_theme" style="' + btnStyle + '">' + (prefs.dark ? '日间' : '夜间') + '</button>' +
       '<button id="__kb_reader_close" style="' + btnStyle + '">退出</button>' +
       '</span></div>' +
-      '<h1 style="font-size:30px;line-height:1.35;margin:0 0 20px;color:#f2f4f8">' + title + '</h1>' +
+      '<h1 style="font-size:2vw;line-height:1.35;margin:0 0 1vw;color:#f2f4f8">' + title + '</h1>' +
       '<div id="__kb_reader_body">' + html + '</div></div>';
     if (!prefs.dark) wrap.classList.add('__kb-reader-light');
     document.body.appendChild(wrap);
@@ -99,7 +99,7 @@
       '#__kb_reader p{margin:0 0 1.1em}' +
       '#__kb_reader h2,#__kb_reader h3{color:#f2f4f8;margin:1.4em 0 .6em}' +
       '#__kb_reader pre{background:#161b22;padding:14px;border-radius:8px;overflow:auto}' +
-      '#__kb_reader pre code{font:15px/1.6 ui-monospace,Consolas,monospace;color:#c9d1d9;background:none;padding:0}' +
+      '#__kb_reader pre code{font:1.05vw/1.6 ui-monospace,Consolas,monospace;color:#c9d1d9;background:none;padding:0}' +
       '#__kb_reader :not(pre)>code{background:#161b22;color:#e6e9f0;padding:1px 6px;border-radius:5px;font-size:.9em}' +
       '#__kb_reader blockquote{border-left:3px solid #2a3442;margin:1em 0;padding:.2em 1em;color:#9aa6b4}' +
       '#__kb_reader.__kb-reader-light{background:#fafafa!important;color:#1c1f26!important}' +
@@ -121,7 +121,7 @@
     var bTheme = document.getElementById('__kb_reader_theme');
     function applyReaderScale() {
       var inner = document.getElementById('__kb_reader_inner');
-      if (inner) inner.style.fontSize = Math.round(19 * prefs.scale) + 'px';
+      if (inner) inner.style.fontSize = (1.25 * prefs.scale).toFixed(3) + 'vw';
     }
     if (bSmaller) bSmaller.onclick = function () {
       prefs.scale = Math.max(0.85, Math.round((prefs.scale - 0.15) * 100) / 100);

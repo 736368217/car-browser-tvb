@@ -1,0 +1,7 @@
+[
+ {"name":"home"},
+ {"name":"menu","op":"click","target":"菜单"},
+ {"name":"downloads","op":"click","target":"下载","expect":["保存位置"]},
+ {"name":"folder-options","op":"click","target":"更改","expect":["选择其他文件夹"]},
+ {"name":"folder-picker","op":"click","target":"选择其他文件夹…","settle":2000,"expect":["文件夹"]}
+]

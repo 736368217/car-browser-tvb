@@ -1,0 +1,22 @@
+[
+ {"name":"home"},
+ {"name":"address-fill","op":"text","target":"地址栏","value":"http://10.0.2.2:8099/article"},
+ {"name":"article","op":"key","key":66,"settle":1200,"expect":["车览体验测试","前往第二页"]},
+ {"name":"article-page2","op":"click","target":"前往第二页","expect":["第二页"]},
+ {"name":"web-back","op":"click","target":"后退","expect":["前往第二页"]},
+ {"name":"bookmark","op":"click","target":"收藏本页"},
+ {"name":"home-keeps-tab","op":"click","target":"主页","expect":["百度"]},
+ {"name":"tabs-home-active","op":"click","target":"标签页","expect":["车览体验测试"]},
+ {"name":"restore-article","op":"click","target":"车览体验测试","expect":["前往第二页"]},
+ {"name":"reader-menu","op":"click","target":"菜单"},
+ {"name":"reader-menu2","op":"swipe","x":2300,"y":1200,"toX":700,"toY":1200},
+ {"name":"reader","op":"click","target":"阅读模式","expect":["A+","退出"]},
+ {"name":"reader-size","op":"click","target":"A+"},
+ {"name":"reader-exit","op":"click","target":"退出","expect":["前往第二页"]},
+ {"name":"download-note","op":"click","target":"下载文本","settle":1200},
+ {"name":"download-menu","op":"click","target":"菜单"},
+ {"name":"download-list","op":"click","target":"下载","expect":["audit615-note.txt","已完成"]},
+ {"name":"open-file","op":"click","target":"打开：audit615-note.txt","settle":700},
+ {"name":"choose-reader","op":"click","target":"验收文件查看器","settle":400},
+ {"name":"external-content","op":"click","target":"仅此一次","optional":true,"timeout":800,"expect":["FILE_READ_OK bytes=18","car-browser audit"]}
+]
