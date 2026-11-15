@@ -27,7 +27,16 @@ public final class UpdateChecker {
     public static final String OWNER = "736368217";
     public static final String APPLICATION_ID = "com.carweb.tvb";
 
-    /** releases/latest：匿名可读（仓库已公开）。 */
+    /**
+     * 发布通道已从 GitHub Release 迁到 Cloudflare R2（自定义域名 dl.736.de5.net）。
+     *
+     * 客户端先读 R2 上的 latest.json；读不到才回落到 GitHub（过渡期兜底，
+     * 老版本客户端仍走 GitHub，不会因此失联）。
+     */
+    public static final String CDN_BASE = "https://dl.736.de5.net";
+    public static final String MANIFEST_URL = CDN_BASE + "/car-browser/latest.json";
+
+    /** releases/latest：仅作兜底（仓库公开，匿名可读）。 */
     public static final String API_LATEST =
             "https://api.github.com/repos/" + OWNER + "/" + SOFTWARE + "/releases/latest";
     public static final String RELEASE_PAGE_URL =
@@ -152,21 +161,70 @@ public final class UpdateChecker {
     }
 
     /**
-     * 检查最新发布：先用 API（能拿到 sha256 digest），API 限流或不可用时回落到发布页 HTML。
-     * 匿名 API 只有 60 次/小时，车机上偶发 403 不该让更新功能整个失效。
+     * 检查最新发布：R2 清单 → GitHub API → 发布页 HTML，逐级兜底。
+     * 车机上偶发 DNS/限流不该让更新功能整个失效。
      */
     public static Result fetchLatest() throws Exception {
-        Exception apiError;
+        Exception first;
+        try {
+            return fetchFromManifest();
+        } catch (Exception e) {
+            first = e;
+        }
+        Exception second;
         try {
             return fetchFromApi();
         } catch (Exception e) {
-            apiError = e;
+            second = e;
         }
         try {
             return fetchFromHtml();
         } catch (Exception e) {
-            throw new IllegalStateException(apiError.getMessage() + "；发布页兜底也失败：" + e.getMessage());
+            throw new IllegalStateException(first.getMessage()
+                    + "；GitHub 兜底也失败：" + second.getMessage()
+                    + "；发布页兜底也失败：" + e.getMessage());
         }
+    }
+
+    /** R2 清单：{version, apk, size, sha256, notes}，由 tools/publish_r2.ps1 生成。 */
+    private static Result fetchFromManifest() throws Exception {
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(MANIFEST_URL).openConnection();
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+            conn.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
+            conn.setRequestProperty("Cache-Control", "no-cache");
+            int code = conn.getResponseCode();
+            if (code != 200) throw new IllegalStateException("HTTP " + code);
+            String body = readStream(conn.getInputStream());
+            org.json.JSONObject o = new org.json.JSONObject(body);
+            String version = o.optString("version", "").trim();
+            if (version.isEmpty()) throw new IllegalStateException("清单缺少 version");
+            String apk = o.optString("apk", "").trim();
+            if (apk.isEmpty()) throw new IllegalStateException("清单缺少 apk");
+            String url = apk.startsWith("http://") || apk.startsWith("https://")
+                    ? apk : CDN_BASE + "/" + apk;
+            long size = o.optLong("size", 0L);
+            String sha = o.optString("sha256", "").trim().toLowerCase(Locale.US);
+            String notes = o.optString("notes", "");
+            String name = apk.substring(apk.lastIndexOf('/') + 1);
+            return new Result("v" + version, version, name, url, size, sha, notes);
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private static String readStream(java.io.InputStream in) throws Exception {
+        if (in == null) return "";
+        StringBuilder sb = new StringBuilder();
+        java.io.BufferedReader r = new java.io.BufferedReader(
+                new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
+        char[] buf = new char[4096];
+        int n;
+        while ((n = r.read(buf)) > 0) sb.append(buf, 0, n);
+        r.close();
+        return sb.toString();
     }
 
     /** 兜底路径：跟着 releases/latest 的跳转取 tag，再按资产命名约定拼下载地址。 */
@@ -253,7 +311,8 @@ public final class UpdateChecker {
             String host = u.getHost();
             if (host == null) return false;
             host = host.toLowerCase(Locale.US);
-            return "github.com".equals(host)
+            return "dl.736.de5.net".equals(host)
+                    || "github.com".equals(host)
                     || "objects.githubusercontent.com".equals(host)
                     || "release-assets.githubusercontent.com".equals(host)
                     || "raw.githubusercontent.com".equals(host);

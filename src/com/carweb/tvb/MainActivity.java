@@ -1124,7 +1124,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if (!updateErrorText.isEmpty()) {
             detail = "原因：" + updateErrorText + "\n可重试检查，或打开发布页手动下载。";
         } else if (updateResult == null) {
-            detail = "检查 GitHub Release 的最新版本；下载后先校验 sha256，再交给系统安装器。";
+            detail = "检查 R2 发布通道的最新版本；下载后先校验 sha256，再交给系统安装器。";
         } else {
             StringBuilder sb = new StringBuilder();
             sb.append(updateResult.apkName);
@@ -1354,7 +1354,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             if (cm != null) {
                 cm.setPrimaryClip(ClipData.newPlainText(
-                        "车览浏览器发布页", UpdateChecker.RELEASE_PAGE_URL));
+                        "车览浏览器更新清单", UpdateChecker.MANIFEST_URL));
                 ok = true;
             }
         } catch (Throwable ignored) {
@@ -1364,7 +1364,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private void openReleasePage() {
         try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(UpdateChecker.RELEASE_PAGE_URL));
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(UpdateChecker.MANIFEST_URL));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         } catch (Throwable t) {
@@ -1405,7 +1405,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         release.setBackground(releaseBg);
 
         TextView title = new TextView(this);
-        title.setText("GitHub Release 自动更新");
+        title.setText("R2 发布通道 · 自动更新");
         title.setTextColor(0xFFE5EBF0);
         title.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(36f / 2880f));
         release.addView(title);
@@ -2916,7 +2916,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 }, null));
 
         body.addView(pageLabel("更新与关于"));
-        body.addView(pageRow("检查更新", "GitHub Release · 自动下载并校验", "检查", false,
+        body.addView(pageRow("检查更新", "R2 发布通道 · 自动下载并校验", "检查", false,
                 new View.OnClickListener() {
                     @Override public void onClick(View v) { showAbout(); checkForUpdate(true); }
                 }, null));
@@ -3832,3 +3832,5 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
     }
 }
+
+

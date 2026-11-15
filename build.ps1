@@ -180,7 +180,10 @@ Invoke-Step 'apksigner' {
 }
 
 $size = [math]::Round((Get-Item $outApk).Length / 1KB, 1)
-$sha = (Get-FileHash $outApk -Algorithm SHA256).Hash
+$alg = [System.Security.Cryptography.SHA256]::Create()
+$fs = [System.IO.File]::OpenRead($outApk)
+try { $hashBytes = $alg.ComputeHash($fs) } finally { $fs.Dispose(); $alg.Dispose() }
+$sha = (-join ($hashBytes | ForEach-Object { $_.ToString('x2') })).ToUpperInvariant()
 Write-Host ''
 Write-Host "APK : $outApk  ($size KB)"
 Write-Host "SHA : $sha"

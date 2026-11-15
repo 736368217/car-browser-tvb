@@ -70,17 +70,31 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 首次构建会自动生成签名证书到 `keystore/carweb.jks`（**不进仓库**）。
 想用自己的证书：设 `CARWEB_KEYSTORE` / `CARWEB_KEYSTORE_PASS` / `CARWEB_KEYSTORE_ALIAS`。
 
-## 自动更新与发布
+## 自动更新与发布（v6.17 起走 Cloudflare R2）
 
-v6.10 起仓库公开，客户端匿名读取 `api.github.com/repos/736368217/car-browser-tvb/releases/latest`：
-APK 里**不含任何 token**，也不再请求已停用的 dl.z736.vip。
+发布通道已从 GitHub Release 迁到 **Cloudflare R2 + Worker**：
 
-链路：检查版本（tag 按数字段比较，6.10 > 6.9）→ DownloadManager 下载 Release 资产 →
-校验 API 给出的 sha256 与文件大小 → 交给系统安装器。安装需要用户允许「安装未知应用」，
-关于页会提示并给出「去设置」入口；任何一步失败都显示可读原因，不伪装成功。
+- 分发域名：`https://dl.736.de5.net`（R2 自定义域名，Worker `cf-releases` 用 R2 binding 读写）
+- 清单：`https://dl.736.de5.net/car-browser/latest.json` → `{version, versionCode, apk, size, sha256, notes}`
+- 安装包：`https://dl.736.de5.net/car-browser/car-browser-<版本>.apk`
+- 客户端：先读 R2 清单（8 秒超时），读不到才回落到 GitHub API / 发布页 —— 老版本客户端仍走 GitHub，不会失联。
+- APK 里**不含任何 token**；上传口令只存在本机 `Desktop\认证\r2-upload-token.txt`，由 Worker 校验 `X-Upload-Token`。
 
-发布：Release **只挂 APK**，不挂清单。`publish-manifest.ps1` 是 v6.8 的历史工具，6.10 不再需要。
+链路：读清单（数字段比较版本）→ DownloadManager 下载 → 校验清单里的 sha256 与大小 → 交给系统安装器。
+安装需要用户允许「安装未知应用」，关于页会提示并给出「去设置」入口；任何一步失败都显示可读原因，不伪装成功。
 
+发布（一条命令，自带回读校验与免费额度守卫）：
+
+```powershell
+powershell -NoProfile -File tools\publish_r2.ps1 -Project car-browser -Version 6.17 -VersionCode 27 `
+           -Apk dist\car-browser-6.17.apk -Notes "本次改了什么"
+```
+
+它会算 SHA-256、传 APK、写 `latest.json` 与 `history/<版本>.json`，再回读确认清单里有本次 sha、APK 返回 200。
+存储守卫默认 5 GB（R2 免费额度 10 GB）：超过就直接拒绝并提示清理旧对象，删完再跑即恢复。
+
+Worker 源码与部署：`tools/r2-worker.mjs`、`tools/deploy_worker.py`（`--attach` / `--route` / `--status`）。
+本机到 R2 的 S3 端点 TLS 被中间层打断，因此**不要**改用 S3 直传；上传一律走 Worker 的 `PUT`。
 ### 验收边界
 
 MuMu 车机档已回归首屏网格、功能面板两页与翻页、工具条后退/前进、标签保留、偏好持久化、

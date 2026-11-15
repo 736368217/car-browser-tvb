@@ -1,4 +1,37 @@
 # 实机验收记录
+## 2026-11-15 · v6.17（versionCode 27）更新通道迁到 Cloudflare R2
+
+- 构建：`dist/car-browser-6.17.apk`（723,572 B）；SHA-256 `F86795DEE65F24A40D523D16773545ECB40EF62CDC563104B0CC6A5A2E407721`
+- 设备：MuMu vm0（`2880x1620 @160dpi`）；驱动 `tests/native/UiAudit.java`
+
+### 分发层（不经过 GitHub）
+
+| 项 | 实测 |
+|---|---|
+| Worker | `cf-releases`（`tools/r2-worker.mjs`，R2 binding `BUCKET`） |
+| 自定义域名 | `https://dl.736.de5.net`（zone 路由 `dl.736.de5.net/*`，与已有 catch-all `*/* → tarot-app` 并存，更具体的先匹配） |
+| 健康检查 | `GET /health` → `{"ok":true,"bucket":"bound","usable":true,"detail":""}` |
+| 写入 | `PUT /selftest/hello.txt` → `{"ok":true,"size":11}`；`GET` 回读 `hello-r2`（200） |
+| 清单 | `https://dl.736.de5.net/car-browser/latest.json` → `{version:6.17, apk, size:723572, sha256:f86795de…}` |
+| 安装包 | `HEAD /car-browser/car-browser-6.17.apk` → `200`，`Content-Length: 723572` |
+
+### 客户端（走 R2 而不是 GitHub）
+
+| 步骤 | 断言 | 证据 |
+|---|---|---|
+| 关于页 | `版本 6.17（27）` | `audit617/r2-c`、`r2-f` |
+| 检查更新（同版本） | `R2 发布通道 · 自动更新` + `已是最新 6.17` + `SHA bfb2b305db47…` | 该 SHA 只存在于 R2 清单，GitHub 上当时最新仍是 6.16 → 证明读取的是 R2 |
+| 检查更新（发现新版本） | 把 R2 清单临时改成 6.18 后，界面显示 `发现新版本 6.18` + `下载并安装` | `audit617/r2-e` 断言通过 |
+| 恢复 | 清单写回 6.17，再次检查更新回到 `已是最新 6.17` | `audit617/r2-f` |
+
+### 边界
+
+- 本机到 `<account>.r2.cloudflarestorage.com` 的 TLS 在握手阶段被中间层打断（curl/schannel、python/openssl 都一样），
+  因此上传与读取一律走 Worker，**不要**改成 S3 直传。
+- R2 管理 API 一开始 403（`code 10042 Please enable R2`），帐号开通后同一 token 即可列出/创建 bucket。
+- 发布脚本自带 5 GB 免费额度守卫；R2 免费额度为 10 GB 存储/月，本项目两个 APK 合计 1.4 MB。
+- GitHub Release 尚未删除（用户决定等 R2 跑稳再清），客户端保留 GitHub 兜底。
+
 ## 2026-11-14 · v6.16（versionCode 26）按用户反馈重做图标 / 网页缩放 / 下载 / 返回按钮 / 流畅度
 
 - 构建：`dist/car-browser-6.16.apk`（723,572 B）；SHA-256 `1DD1AB4A4E04431FA57D4643EA667C607B03A250B0C72E55DF1066359CD66408`
