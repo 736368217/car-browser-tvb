@@ -35,6 +35,8 @@ public final class UpdateChecker {
      */
     public static final String CDN_BASE = "https://dl.736.de5.net";
     public static final String MANIFEST_URL = CDN_BASE + "/car-browser/latest.json";
+    /** 手动下载页：列出 R2 上所有项目的最新包。 */
+    public static final String DOWNLOAD_PAGE_URL = CDN_BASE + "/";
 
     /** releases/latest：仅作兜底（仓库公开，匿名可读）。 */
     public static final String API_LATEST =

@@ -1,4 +1,22 @@
 # 实机验收记录
+## 2026-11-16 · v6.18（versionCode 28）R2 下载页 + 应用内「手动下载」
+
+- 构建：`dist/car-browser-6.18.apk`（723,572 B）；SHA-256 `C1670551C9D091C4F3B5D01DCE04DD193B6519427511F51DF2C431C18E21E05B`
+- 下载页：`https://dl.736.de5.net/` —— Worker 扫描 R2 顶层 `<project>/latest.json` 现场渲染，列出所有项目的最新包
+
+| 项目 | 结果 |
+|---|---|
+| 页面本身 | `GET /` → `200`，3,432 B；卡片：car-browser v6.18 / carclash-hybrid v2.11.56 / lp-toolkit v1.8 / tvboxos-car-2880 v3.1.0-car.7-r89 |
+| 卡片内容 | 名称、版本、大小、发布时间、notes、SHA-256 前缀、`下载 APK` 按钮（直链 `<project>/<apk>`） |
+| 应用内入口 | 关于页按钮由「打开发布页」改为「手动下载」（`UpdateChecker.DOWNLOAD_PAGE_URL`） |
+| 跳转实测 | MuMu 上点「手动下载」→ 系统浏览器打开 `dl.736.de5.net`，节点里读出 `车机应用下载`、`car-browser v6.18`、`SHA-256 c1670551c9d091c4…`、`下载 APK`（`audit617/r2-g`，6 步全过） |
+
+### 已知坑
+
+- **清单带 UTF-8 BOM 会让 `JSON.parse` 直接抛错**，表现出来是「页面 200 但一张卡片都没有」。
+  发布脚本已改为无 BOM 写入，Worker 也做了 `^\uFEFF` 容错（历史清单不用重传）。
+- `/_diag` 端点用来看 Worker 视角的对象列表与 manifest 命中情况，排查渲染问题很快。
+
 ## 2026-11-15 · v6.17（versionCode 27）更新通道迁到 Cloudflare R2
 
 - 构建：`dist/car-browser-6.17.apk`（723,572 B）；SHA-256 `F86795DEE65F24A40D523D16773545ECB40EF62CDC563104B0CC6A5A2E407721`

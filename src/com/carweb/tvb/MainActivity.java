@@ -1122,7 +1122,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if (updateDetailView == null) return;
         String detail;
         if (!updateErrorText.isEmpty()) {
-            detail = "原因：" + updateErrorText + "\n可重试检查，或打开发布页手动下载。";
+            detail = "原因：" + updateErrorText + "\n可重试检查，或打开下载页手动下载。";
         } else if (updateResult == null) {
             detail = "检查 R2 发布通道的最新版本；下载后先校验 sha256，再交给系统安装器。";
         } else {
@@ -1354,17 +1354,17 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             if (cm != null) {
                 cm.setPrimaryClip(ClipData.newPlainText(
-                        "车览浏览器更新清单", UpdateChecker.MANIFEST_URL));
+                        "车览浏览器下载页", UpdateChecker.DOWNLOAD_PAGE_URL));
                 ok = true;
             }
         } catch (Throwable ignored) {
         }
-        showStatus(ok ? "发布页链接已复制" : "复制发布页链接失败", 2600);
+        showStatus(ok ? "下载页链接已复制" : "复制下载页链接失败", 2600);
     }
 
     private void openReleasePage() {
         try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(UpdateChecker.MANIFEST_URL));
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(UpdateChecker.DOWNLOAD_PAGE_URL));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         } catch (Throwable t) {
@@ -1446,7 +1446,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 }
             }
         }), actionLp);
-        actions.addView(updateActionButton("打开发布页", new View.OnClickListener() {
+        actions.addView(updateActionButton("手动下载", new View.OnClickListener() {
             @Override public void onClick(View v) { openReleasePage(); }
         }), actionLp);
         actions.addView(updateActionButton("复制链接", new View.OnClickListener() {

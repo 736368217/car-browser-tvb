@@ -113,7 +113,7 @@ function UploadFile([string]$key, [string]$path, [string]$contentType) {
 UploadFile -key $apkKey -path $apkItem.FullName -contentType 'application/vnd.android.package-archive'
 
 $tmp = Join-Path $env:TEMP ("latest-$Version.json")
-Set-Content -LiteralPath $tmp -Value $manifestJson -Encoding UTF8 -NoNewline
+[System.IO.File]::WriteAllText($tmp, $manifestJson, (New-Object System.Text.UTF8Encoding($false)))
 UploadFile -key "$Project/latest.json" -path $tmp -contentType 'application/json; charset=utf-8'
 UploadFile -key "$Project/history/$Version.json" -path $tmp -contentType 'application/json; charset=utf-8'
 Remove-Item -LiteralPath $tmp -Force

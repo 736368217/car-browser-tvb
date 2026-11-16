@@ -77,6 +77,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 - 分发域名：`https://dl.736.de5.net`（R2 自定义域名，Worker `cf-releases` 用 R2 binding 读写）
 - 清单：`https://dl.736.de5.net/car-browser/latest.json` → `{version, versionCode, apk, size, sha256, notes}`
 - 安装包：`https://dl.736.de5.net/car-browser/car-browser-<版本>.apk`
+- 手动下载页：`https://dl.736.de5.net/`（Worker 现场渲染，列出所有项目的最新包；应用内「关于 → 手动下载」就是这个地址）
 - 客户端：先读 R2 清单（8 秒超时），读不到才回落到 GitHub API / 发布页 —— 老版本客户端仍走 GitHub，不会失联。
 - APK 里**不含任何 token**；上传口令只存在本机 `Desktop\认证\r2-upload-token.txt`，由 Worker 校验 `X-Upload-Token`。
 
