@@ -92,6 +92,32 @@ public final class UiAudit extends Instrumentation {
         String op=s.optString("op","capture");
         if("capture".equals(op)) return;
         if("backend".equals(op)) { JSONObject result=DownloadAudit.run(getTargetContext());write(new File(out,"download-behavior.json"),result);if(!result.optBoolean("pass"))throw new AssertionError(result.toString());return; }
+        if("cleanup-fixtures".equals(op)) {
+            Class<?> type=Class.forName("com.carweb.tvb.DownloadCenter",true,getTargetContext().getClassLoader());
+            Object center=type.getMethod("get",android.content.Context.class).invoke(null,getTargetContext());
+            java.util.List<?> records=(java.util.List<?>)type.getMethod("tasks").invoke(center);
+            java.util.List<String> selected=new java.util.ArrayList<>();
+            long since=s.getLong("since");
+            if(since<1794900000000L)throw new IllegalArgumentException("Cleanup cutoff is too broad");
+            for(Object record:records) {
+                Class<?> rt=record.getClass();
+                String url=(String)rt.getField("url").get(record);
+                long at=rt.getField("createdAt").getLong(record);
+                int dest=rt.getField("dest").getInt(record);
+                if(at>=since && dest==1 && url.startsWith("http://10.0.2.2:8099/")) {
+                    String id=(String)rt.getField("id").get(record);selected.add(id);
+                    type.getMethod("remove",String.class).invoke(center,id);
+                }
+            }
+            long until=SystemClock.uptimeMillis()+8000;int remaining;
+            do { remaining=0;for(String id:selected)if(type.getMethod("byId",String.class).invoke(center,id)!=null)remaining++;
+                if(remaining>0)SystemClock.sleep(100);
+            } while(remaining>0 && SystemClock.uptimeMillis()<until);
+            JSONObject report=new JSONObject();report.put("matched",selected.size());report.put("remaining",remaining);
+            write(new File(out,"cleanup.json"),report);
+            if(remaining!=0)throw new AssertionError("Fixture cleanup incomplete");
+            return;
+        }
         if("tap".equals(op)) { tap((float)s.getDouble("x"),(float)s.getDouble("y"),s.optInt("hold",70)); return; }
         if("back".equals(op)) { key(KeyEvent.KEYCODE_BACK); return; }
         if("key".equals(op)) { key(s.getInt("key")); return; }

@@ -1,0 +1,20 @@
+[
+ {"name":"home","absent":["应用内返回"]},
+ {"name":"addr","op":"text","target":"地址栏","value":"http://10.0.2.2:8099/article"},
+ {"name":"article","op":"key","key":66,"settle":1600,"expect":["车览体验测试","下载大文件"]},
+ {"name":"page2","op":"click","target":"前往第二页","settle":1200,"expect":["第二页"]},
+ {"name":"back","op":"click","target":"后退","settle":1000,"expect":["前往第二页"]},
+ {"name":"forward","op":"click","target":"前进","settle":900,"expect":["返回文章"]},
+ {"name":"back-again","op":"click","target":"后退","settle":900,"expect":["下载大文件"]},
+ {"name":"tabs","op":"click","target":"标签页","settle":1200,"expect":["当前","车览体验测试"],"absent":["地址栏"]},
+ {"name":"restore","op":"click","target":"车览体验测试","settle":1200,"expect":["下载大文件","地址栏"]},
+ {"name":"slow-download","op":"click","target":"下载大文件","settle":700,"expect":["下载条目操作"]},
+ {"name":"menu","op":"click","target":"菜单","settle":0},
+ {"name":"downloads","op":"click","target":"下载","settle":200,"expect":["下载中","/s","剩余"],"absent":["下载条目操作"]},
+ {"name":"close-active-downloads","op":"click","target":"返回","settle":300,"expect":["下载大文件","地址栏"]},
+ {"name":"toolbar-restored","expect":["地址栏","标签页","下载"],"absent":["应用内返回"]},
+ {"name":"direct-downloads","op":"click","target":"下载","settle":300,"expect":["下载中","保存位置"],"absent":["下载条目操作"]},
+ {"name":"active-filter","op":"tap","x":1100,"y":514,"settle":200,"expect":["下载中"]},
+ {"name":"cancel","op":"tap","x":2300,"y":728,"settle":500,"expect":["这一组没有文件","进行中 0"],"absent":["下载文件：big"]},
+ {"name":"failed-filter","op":"tap","x":2300,"y":514,"settle":700,"expect":["已取消","重试"]}
+]

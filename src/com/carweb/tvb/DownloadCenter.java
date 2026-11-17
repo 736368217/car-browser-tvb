@@ -48,6 +48,9 @@ public final class DownloadCenter {
         public volatile int status;
         public volatile long done,total;
         public long createdAt;
+        /** 运行时速度采样，不写入磁盘 */
+        public volatile long speedBps;
+        private long speedAt,speedBytes;
         private int generation;
         public boolean finished(){return status==ST_DONE;}
         public boolean active(){return status==ST_QUEUED||status==ST_RUNNING;}
@@ -163,7 +166,7 @@ public final class DownloadCenter {
     }
     private void start(Task t){
         final Run run;
-        synchronized(tasks){t.generation++;t.status=ST_QUEUED;run=new Run(t,t.generation);runs.put(t.id,run);save();}
+        synchronized(tasks){t.generation++;t.status=ST_QUEUED;t.speedBps=0;t.speedAt=android.os.SystemClock.uptimeMillis();t.speedBytes=t.done;run=new Run(t,t.generation);runs.put(t.id,run);save();}
         notifyChanged();pool.execute(()->runTask(run));
     }
     private boolean current(Run r){synchronized(tasks){return byId(r.task.id)==r.task && r.task.generation==r.generation && r.task.active();}}
@@ -211,9 +214,10 @@ public final class DownloadCenter {
                 if(out==null)throw new IOException("无法写入所选位置");
                 synchronized(tasks){check(r);t.uri=pending;save();}
             }
-            notifyChanged();byte[] buf=new byte[32768];int n;long tick=0;
+            notifyChanged();byte[] buf=new byte[32768];int n;long tick=android.os.SystemClock.uptimeMillis();
+            t.speedAt=tick;t.speedBytes=t.done;t.speedBps=0;
             while((n=r.input.read(buf))!=-1){check(r);out.write(buf,0,n);synchronized(tasks){check(r);t.done+=n;}
-                long now=System.currentTimeMillis();if(now-tick>=400){tick=now;notifyChanged();}}
+                long now=android.os.SystemClock.uptimeMillis();if(now-tick>=400){tick=now;sampleSpeed(t);notifyChanged();}}
             if(length>=0&&t.done!=length)throw new IOException("下载不完整（"+human(t.done)+" / "+human(length)+"），请重试");
             out.flush();out.close();out=null;check(r);
             if(t.dest!=DEST_PRIVATE){
@@ -302,11 +306,30 @@ public final class DownloadCenter {
     public static void copyText(Context ctx,String label,String text){
         ClipboardManager cm=(ClipboardManager)ctx.getSystemService(Context.CLIPBOARD_SERVICE);if(cm!=null)cm.setPrimaryClip(ClipData.newPlainText(label,text==null?"":text));
     }
+    private void sampleSpeed(Task t){
+        long now=android.os.SystemClock.uptimeMillis();long elapsed=now-t.speedAt;
+        if(elapsed<250)return;
+        long bytes=Math.max(0,t.done-t.speedBytes);
+        long instant=bytes*1000/Math.max(1,elapsed);
+        t.speedBps=t.speedBps<=0?instant:(t.speedBps*2+instant)/3;
+        t.speedAt=now;t.speedBytes=t.done;
+    }
+    private static String eta(long bytes,long speed){
+        if(bytes<=0||speed<=0)return "";
+        long sec=Math.max(1,(bytes+speed-1)/speed);
+        if(sec<60)return "剩余 "+sec+" 秒";
+        return "剩余 "+(sec/60)+" 分 "+(sec%60)+" 秒";
+    }
     public static String stateLine(Task t){
-        if(t.status==ST_RUNNING)return t.total>0?"下载中 "+Math.min(100,t.done*100/t.total)+"% · "+human(t.done)+" / "+human(t.total):"下载中 · "+human(t.done);
+        if(t.status==ST_RUNNING){
+            String speed=t.speedBps>0?" · "+human(t.speedBps)+"/s":"";
+            if(t.total>0){String left=t.speedBps>0?" · "+eta(t.total-t.done,t.speedBps):"";
+                return "下载中 "+Math.min(100,t.done*100/t.total)+"% · "+human(t.done)+" / "+human(t.total)+speed+left;}
+            return "下载中 · "+human(t.done)+speed;
+        }
         if(t.status==ST_QUEUED)return "等待下载";
         if(t.status==ST_DONE)return t.error.isEmpty()?"已完成 · "+human(t.done):t.error;
-        if(t.status==ST_CANCELED)return "已取消";
+        if(t.status==ST_CANCELED)return "已取消 · "+human(t.done);
         if(t.status==ST_DELETING)return "正在删除文件…";
         return "失败："+t.error;
     }

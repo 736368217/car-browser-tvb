@@ -97,6 +97,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
      */
     private final java.util.IdentityHashMap<BrowserWebView, Bitmap> tabThumbs =
             new java.util.IdentityHashMap<>();
+    private final java.util.ArrayList<Bitmap> pendingThumbRecycle = new java.util.ArrayList<>();
     /** 上一次抓图的时间：同一标签短时间内连着触发（onPageCommitVisible + onPageFinished）只抓一次 */
     private final java.util.IdentityHashMap<BrowserWebView, Long> thumbStamps =
             new java.util.IdentityHashMap<>();
@@ -123,6 +124,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private String currentPageRoute = "";
     private int currentPageScrollY;
     private long pageTransitionId;
+    private boolean pageClosing = false;
 
     private static final class PageFrame {
         final View view;
@@ -211,14 +213,14 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         loadBar.setBackground(barBg);
         loadBar.setAlpha(0f);
         FrameLayout.LayoutParams barLp = new FrameLayout.LayoutParams(0, px(3f / 2880f));
-        barLp.topMargin = px(132f / 2880f);
+        barLp.topMargin = px(TOOLBAR_H / 2880f);
         root.addView(loadBar, barLp);
 
 
         buildFindBar();
         FrameLayout.LayoutParams findLp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, px(96f / 2880f));
-        findLp.topMargin = px(132f / 2880f);
+        findLp.topMargin = px(TOOLBAR_H / 2880f);
         root.addView(findBar, findLp);
 
         status = new TextView(this);
@@ -292,6 +294,9 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private LinearLayout toolbar;
     private EditText addr;
     private ImageView btnStar;
+    private ImageView btnBack;
+    private ImageView btnFwd;
+    private ImageView btnTabs;
     /** 全屏（隐藏工具条）时右上角的恢复按钮 */
     private ImageView toolbarHandle;
     private GlyphIcon gBack;
@@ -299,6 +304,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private GlyphIcon gStar;
     private int screenW;
     private boolean addrEditing = false;
+    private static final int TOOLBAR_H = 156;
 
     /** 地址栏跟随当前页面 URL：有些页面 onPageFinished 很晚甚至不来，靠 500ms 轮询兜底 */
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
@@ -316,12 +322,13 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private void buildChrome() {
         screenW = getResources().getDisplayMetrics().widthPixels;
-        final int tbH = px(132f / 2880f);
-        final int btnW = px(120f / 2880f);
-        final int iconPx = px(64f / 2880f);
-        final int pad = px(24f / 2880f);
-        final int addrH = px(96f / 2880f);
-        final int textPx = px(40f / 2880f);
+        final int tbH = px(TOOLBAR_H / 2880f);
+        final int btnW = px(136f / 2880f);
+        final int btnH = px(128f / 2880f);
+        final int iconPx = px(70f / 2880f);
+        final int pad = px(28f / 2880f);
+        final int addrH = px(112f / 2880f);
+        final int textPx = px(44f / 2880f);
         final int iconPad = Math.max(0, (btnW - iconPx) / 2);
 
         column = new LinearLayout(this);
@@ -329,25 +336,37 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
         toolbar = new LinearLayout(this);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
-        toolbar.setBackgroundColor(0xFF12161C);
+        toolbar.setBackgroundColor(0xFF10151B);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(pad, 0, pad, 0);
+        toolbar.setPadding(pad, px(14f / 2880f), pad, px(14f / 2880f));
 
-        ImageView bBack = makeBtn(GlyphIcon.BACK, iconPad, "后退");
-        gBack = (GlyphIcon) bBack.getDrawable();
-        ImageView bFwd = makeBtn(GlyphIcon.FORWARD, iconPad, "前进");
-        gFwd = (GlyphIcon) bFwd.getDrawable();
+        btnBack = makeBtn(GlyphIcon.BACK, iconPad, "后退");
+        gBack = (GlyphIcon) btnBack.getDrawable();
+        btnFwd = makeBtn(GlyphIcon.FORWARD, iconPad, "前进");
+        gFwd = (GlyphIcon) btnFwd.getDrawable();
         ImageView bHome = makeBtn(GlyphIcon.HOME, iconPad, "主页");
-        ImageView bTabs = makeBtn(GlyphIcon.TABS, iconPad, "标签页");
-        btnStar = makeBtn(GlyphIcon.STAR, iconPad, "收藏本页");
-        gStar = (GlyphIcon) btnStar.getDrawable();
-        ImageView bReload = makeBtn(GlyphIcon.REFRESH, iconPad, "刷新");
-        ImageView bMenu = makeBtn(GlyphIcon.MENU, iconPad, "菜单");
+        btnTabs = makeBtn(GlyphIcon.TABS, iconPad, "标签页");
 
-        toolbar.addView(bBack, new LinearLayout.LayoutParams(btnW, tbH));
-        toolbar.addView(bFwd, new LinearLayout.LayoutParams(btnW, tbH));
-        toolbar.addView(bHome, new LinearLayout.LayoutParams(btnW, tbH));
-        toolbar.addView(bTabs, new LinearLayout.LayoutParams(btnW, tbH));
+        LinearLayout nav = toolbarGroup();
+        nav.addView(btnBack, new LinearLayout.LayoutParams(btnW, btnH));
+        nav.addView(btnFwd, new LinearLayout.LayoutParams(btnW, btnH));
+        nav.addView(bHome, new LinearLayout.LayoutParams(btnW, btnH));
+        nav.addView(btnTabs, new LinearLayout.LayoutParams(btnW, btnH));
+        LinearLayout.LayoutParams navLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, btnH);
+        navLp.rightMargin = px(0.006f);
+        toolbar.addView(nav, navLp);
+
+        LinearLayout addressGroup = toolbarGroup();
+        addressGroup.setGravity(Gravity.CENTER_VERTICAL);
+        addressGroup.setPadding(px(0.006f), 0, px(0.004f), 0);
+
+        ImageView pageMark = new ImageView(this);
+        pageMark.setImageDrawable(new GlyphIcon(GlyphIcon.SEARCH, 0xFF9FB0C3));
+        pageMark.setContentDescription("网址或搜索");
+        int mark = px(0.022f);
+        pageMark.setPadding(mark / 5, mark / 5, mark / 5, mark / 5);
+        addressGroup.addView(pageMark, new LinearLayout.LayoutParams(mark, mark));
 
         addr = new EditText(this);
         addr.setSingleLine(true);
@@ -358,100 +377,79 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         addr.setTextSize(TypedValue.COMPLEX_UNIT_PX, textPx);
         addr.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         addr.setImeOptions(EditorInfo.IME_ACTION_GO);
-        addr.setPadding(pad, 0, pad, 0);
+        addr.setPadding(px(0.004f), 0, px(0.006f), 0);
+        addr.setBackgroundColor(Color.TRANSPARENT);
         addr.setSelectAllOnFocus(true);
-        addr.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                addr.selectAll();
-            }
-        });
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(0xFF1C222B);
-        bg.setCornerRadius(addrH / 2f);
-        addr.setBackground(bg);
-        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(0, addrH, 1f);
-        alp.leftMargin = pad / 2;
-        alp.rightMargin = pad / 2;
-        toolbar.addView(addr, alp);
+        addr.setOnClickListener(v -> addr.selectAll());
+        addressGroup.addView(addr, new LinearLayout.LayoutParams(0, addrH, 1f));
 
-        toolbar.addView(btnStar, new LinearLayout.LayoutParams(btnW, tbH));
-        toolbar.addView(bReload, new LinearLayout.LayoutParams(btnW, tbH));
-        toolbar.addView(bMenu, new LinearLayout.LayoutParams(btnW, tbH));
+        btnStar = makeBtn(GlyphIcon.STAR, iconPad, "收藏本页");
+        gStar = (GlyphIcon) btnStar.getDrawable();
+        addressGroup.addView(btnStar, new LinearLayout.LayoutParams(btnW, btnH));
+        toolbar.addView(addressGroup, new LinearLayout.LayoutParams(0, btnH, 1f));
+
+        LinearLayout actions = toolbarGroup();
+        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, btnH);
+        actionLp.leftMargin = px(0.006f);
+        ImageView bDownloads = makeBtn(GlyphIcon.DOWN, iconPad, "下载");
+        ImageView bReload = makeBtn(GlyphIcon.REFRESH, iconPad, "刷新");
+        ImageView bMenu = makeBtn(GlyphIcon.MENU, iconPad, "菜单");
+        bDownloads.setOnClickListener(v -> { downloadFilter = 0; showDownloads(); });
+        actions.addView(bDownloads, new LinearLayout.LayoutParams(btnW, btnH));
+        actions.addView(bReload, new LinearLayout.LayoutParams(btnW, btnH));
+        actions.addView(bMenu, new LinearLayout.LayoutParams(btnW, btnH));
+        toolbar.addView(actions, actionLp);
 
         column.addView(toolbar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, tbH));
         column.addView(host, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        bBack.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                BrowserWebView w = activeTab();
-                if (w != null) onNativeBack(w, false);
+        btnBack.setOnClickListener(v -> {
+            BrowserWebView w = activeTab();
+            if (w != null) onNativeBack(w, false);
+        });
+        btnFwd.setOnClickListener(v -> {
+            BrowserWebView w = activeTab();
+            if (w != null && w.canGoForward()) w.goForward();
+            updateToolbarState();
+        });
+        bHome.setOnClickListener(v -> goHomeTab());
+        bReload.setOnClickListener(v -> {
+            BrowserWebView w = activeTab();
+            if (w != null) {
+                if (w.isHomePage()) pushHomeData();
+                else w.reload();
             }
         });
-        bFwd.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                BrowserWebView w = activeTab();
-                if (w != null && w.canGoForward()) w.goForward();
-                updateToolbarState();
-            }
-        });
-        bHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                goHomeTab();
-            }
-        });
-        bReload.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                BrowserWebView w = activeTab();
-                if (w != null) {
-                    if (w.isHomePage()) pushHomeData();
-                    else w.reload();
-                }
-            }
-        });
-        btnStar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                toggleBookmark();
-            }
-        });
-        bTabs.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showTabsWithThumb(0);
-            }
-        });
-        bMenu.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showSheet();
-            }
-        });
+        btnStar.setOnClickListener(v -> toggleBookmark());
+        btnTabs.setOnClickListener(v -> showTabsWithThumb(0));
+        bMenu.setOnClickListener(v -> showSheet());
 
-        addr.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                addrEditing = hasFocus;
-                if (!hasFocus) updateToolbarState();
-            }
+        addr.setOnFocusChangeListener((v, hasFocus) -> {
+            addrEditing = hasFocus;
+            if (!hasFocus) updateToolbarState();
         });
-        addr.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_GO
-                        || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-                    openFromAddressBar(addr.getText().toString());
-                    return true;
-                }
-                return false;
+        addr.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_GO
+                    || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                openFromAddressBar(addr.getText().toString());
+                return true;
             }
+            return false;
         });
+    }
+
+    private LinearLayout toolbarGroup() {
+        LinearLayout group = new LinearLayout(this);
+        group.setOrientation(LinearLayout.HORIZONTAL);
+        group.setGravity(Gravity.CENTER_VERTICAL);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFF1A212B);
+        bg.setCornerRadius(px(0.014f));
+        group.setBackground(bg);
+        return group;
     }
 
     /** 工具条按钮：统一按下反馈 + 可读 contentDescription（控件树/无障碍都能读到语义） */
@@ -463,6 +461,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         v.setClickable(true);
         v.setFocusable(false);
         v.setContentDescription(desc);
+        if (Build.VERSION.SDK_INT >= 26) v.setTooltipText(desc);
+        GradientDrawable mask = new GradientDrawable();
+        mask.setColor(Color.WHITE);
+        mask.setCornerRadius(px(0.011f));
+        v.setBackground(new android.graphics.drawable.RippleDrawable(
+                android.content.res.ColorStateList.valueOf(0x2EFFFFFF), null, mask));
         pressable(v);
         return v;
     }
@@ -585,8 +589,13 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             if (url == null || url.startsWith(HOME_URL)) addr.setText("");
             else addr.setText(url);
         }
-        if (gBack != null) gBack.setColor(w.canGoBack() ? 0xFFE8EDF2 : 0xFF4A5460);
-        if (gFwd != null) gFwd.setColor(w.canGoForward() ? 0xFFE8EDF2 : 0xFF4A5460);
+        // 后退不只看 WebView 历史：当前页即使没有历史，也能回到主页/父页
+        boolean canBack = w.canGoBack() || !w.isHomePage() || pageVisible();
+        boolean canForward = w.canGoForward();
+        if (gBack != null) gBack.setColor(canBack ? 0xFFE8EDF2 : 0xFF5D6875);
+        if (gFwd != null) gFwd.setColor(canForward ? 0xFFE8EDF2 : 0xFF5D6875);
+        if (btnBack != null) { btnBack.setEnabled(canBack); btnBack.setAlpha(canBack ? 1f : 0.55f); }
+        if (btnFwd != null) { btnFwd.setEnabled(canForward); btnFwd.setAlpha(canForward ? 1f : 0.55f); }
         if (gStar != null) {
             boolean marked = url != null && !url.startsWith(HOME_URL) && store.isFavorite(url);
             gStar.setColor(marked ? 0xFFF5C542 : 0xFFE8EDF2);
@@ -653,8 +662,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                     if (after != null) after.run();
                     return;
                 }
-                // 整页盖在上面时别抓，抓到的会是页面本身
-                if (pageVisible()) {
+                // 整页盖在上面或功能面板打开时别抓，抓到的会是遮罩/黑帧
+                if (pageVisible() || (sheetLayer != null && sheetLayer.getVisibility() == View.VISIBLE)) {
                     if (after != null) after.run();
                     return;
                 }
@@ -674,42 +683,37 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 final int vh = w.getHeight();
                 final int[] loc = new int[2];
                 w.getLocationInWindow(loc);
-                final Bitmap full;
+                final int tw = Math.min(560, vw);
+                final int th = Math.max(1, Math.round(tw * (float) vh / vw));
+                final Bitmap small;
                 try {
-                    full = Bitmap.createBitmap(vw, vh, Bitmap.Config.ARGB_8888);
+                    // PixelCopy 会按目标位图尺寸缩放，避免先申请整屏 17MB 再缩图。
+                    small = Bitmap.createBitmap(tw, th, Bitmap.Config.ARGB_8888);
                 } catch (Throwable t) {
                     if (after != null) after.run();
                     return;
                 }
                 try {
                     PixelCopy.request(getWindow(),
-                            new Rect(loc[0], loc[1], loc[0] + vw, loc[1] + vh), full,
+                            new Rect(loc[0], loc[1], loc[0] + vw, loc[1] + vh), small,
                             new PixelCopy.OnPixelCopyFinishedListener() {
                                 @Override public void onPixelCopyFinished(int result) {
-                                    if (result != PixelCopy.SUCCESS) {
-                                        Log.w(TAG, "thumb copy failed result=" + result);
-                                    }
-                                    if (result == PixelCopy.SUCCESS) {
-                                        int tw = 420;
-                                        int th = Math.max(1, Math.round(tw * (float) vh / vw));
-                                        Bitmap small = Bitmap.createScaledBitmap(full, tw, th, true);
-                                        // 页面还在淡入/整屏纯黑时抓下来的图等于没内容，别覆盖上一张
-                                        if (thumbUsable(small) && tabs.contains(w)) {
-                                            Bitmap old = tabThumbs.put(w, small);
-                                            thumbStamps.put(w, SystemClock.uptimeMillis());
-                                            if (old != null && old != small && !old.isRecycled() && !pageVisible()) {
-                                                old.recycle();
-                                            }
-                                        } else {
-                                            small.recycle();
+                                    if (result == PixelCopy.SUCCESS && !isFinishing() && !isDestroyed()
+                                            && tabs.contains(w) && thumbUsable(small)) {
+                                        Bitmap old = tabThumbs.put(w, small);
+                                        thumbStamps.put(w, SystemClock.uptimeMillis());
+                                        if (old != null && old != small && !old.isRecycled()) {
+                                            if (pageVisible()) pendingThumbRecycle.add(old);
+                                            else old.recycle();
                                         }
+                                    } else {
+                                        small.recycle();
                                     }
-                                    if (!full.isRecycled()) full.recycle();
-                                    if (after != null) after.run();
+                                    if (after != null && !isFinishing() && !isDestroyed()) after.run();
                                 }
-                            }, new Handler(Looper.getMainLooper()));
+                            }, uiHandler);
                 } catch (Throwable t) {
-                    if (!full.isRecycled()) full.recycle();
+                    if (!small.isRecycled()) small.recycle();
                     if (after != null) after.run();
                 }
             }
@@ -746,7 +750,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 body.addView(row, new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             }
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, px(0.2f), 1f);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, px(0.23f), 1f);
             lp.rightMargin = (i % 3 == 2) ? 0 : px(0.008f);
             lp.bottomMargin = px(0.008f);
             row.addView(makeTabCard(arr[i], arr[i] == activeTab()), lp);
@@ -762,9 +766,14 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if (arr.length > 1) {
             TextView closeOthers = new TextView(this);
             closeOthers.setText("关闭其他标签页");
-            closeOthers.setTextColor(0xFF8B95A5);
-            closeOthers.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(30f / 2880f));
+            closeOthers.setTextColor(0xFFFFB4AA);
+            closeOthers.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(32f / 2880f));
             closeOthers.setGravity(Gravity.CENTER);
+            closeOthers.setMinHeight(px(0.055f));
+            GradientDrawable closeBg = new GradientDrawable();
+            closeBg.setColor(0xFF241B20);
+            closeBg.setCornerRadius(px(0.012f));
+            closeOthers.setBackground(closeBg);
             closeOthers.setPadding(0, px(0.022f), 0, px(0.022f));
             pressable(closeOthers);
             closeOthers.setOnClickListener(new View.OnClickListener() {
@@ -801,16 +810,16 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         int pad = px(0.012f);
         card.setPadding(pad, pad, pad, pad);
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(active ? 0xFF1B2430 : 0xFF161B22);
+        bg.setColor(active ? 0xFF1A2937 : 0xFF151B23);
         bg.setCornerRadius(px(0.012f));
-        bg.setStroke(Math.max(2, px(2f / 2880f)), active ? 0xFF3F80C0 : 0xFF232B35);
+        bg.setStroke(Math.max(2, px((active ? 3f : 2f) / 2880f)),
+                active ? 0xFF77B8E8 : 0xFF27313D);
         card.setBackground(bg);
+        card.setContentDescription((active ? "当前标签：" : "标签：") + w.getTitle());
         pressable(card);
-        card.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                switchToTab(w);
-                closePage();
-            }
+        card.setOnClickListener(v -> {
+            switchToTab(w);
+            closePage();
         });
 
         String url = w.getUrl();
@@ -822,7 +831,6 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             title = url;
         }
 
-        // 缩略图：抓过的直接显示；没抓过就给一块深色占位 + 站点首字
         int thumbH = px(0.12f);
         Bitmap thumb = tabThumbs.get(w);
         if (thumb != null && !thumb.isRecycled()) {
@@ -841,11 +849,11 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             String letter = (title != null && title.length() > 0)
                     ? title.substring(0, 1).toUpperCase() : "·";
             ph.setText(letter);
-            ph.setTextColor(0xFF313D4A);
-            ph.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(96f / 2880f));
+            ph.setTextColor(active ? 0xFF77B8E8 : 0xFF536273);
+            ph.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(104f / 2880f));
             ph.setGravity(Gravity.CENTER);
             GradientDrawable phBg = new GradientDrawable();
-            phBg.setColor(0xFF0E1218);
+            phBg.setColor(active ? 0xFF15212C : 0xFF0E1218);
             phBg.setCornerRadius(px(0.008f));
             ph.setBackground(phBg);
             card.addView(ph, new LinearLayout.LayoutParams(
@@ -854,44 +862,59 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setGravity(Gravity.TOP);
+        top.setGravity(Gravity.CENTER_VERTICAL);
         top.setPadding(0, px(0.008f), 0, 0);
 
         TextView t = new TextView(this);
         t.setText(title);
         t.setTextColor(0xFFE6E9F0);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(32f / 2880f));
+        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(38f / 2880f));
         t.setMaxLines(2);
         t.setEllipsize(android.text.TextUtils.TruncateAt.END);
         top.addView(t, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
+        if (active) {
+            TextView current = new TextView(this);
+            current.setText("当前");
+            current.setTextColor(0xFF9DD4FF);
+            current.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(26f / 2880f));
+            current.setGravity(Gravity.CENTER);
+            current.setPadding(px(0.006f), px(0.004f), px(0.006f), px(0.004f));
+            GradientDrawable badge = new GradientDrawable();
+            badge.setColor(0xFF203648);
+            badge.setCornerRadius(px(0.008f));
+            current.setBackground(badge);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.rightMargin = px(0.008f);
+            top.addView(current, lp);
+        }
+
         ImageView close = new ImageView(this);
-        close.setImageDrawable(new GlyphIcon(GlyphIcon.CLOSE, 0xFF8B95A5));
-        int cs = px(0.038f);
+        close.setImageDrawable(new GlyphIcon(GlyphIcon.CLOSE, 0xFFAAB7C5));
+        int cs = px(0.042f);
         close.setContentDescription("关闭标签：" + title);
-        close.setPadding(cs / 4, cs / 6, cs / 6, cs / 6);
+        close.setPadding(cs / 4, cs / 4, cs / 4, cs / 4);
+        GradientDrawable closeBg = new GradientDrawable();
+        closeBg.setColor(0xFF222C37);
+        closeBg.setCornerRadius(cs / 2f);
+        close.setBackground(closeBg);
         pressable(close);
-        close.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                closeTabView(w);
-            }
-        });
+        close.setOnClickListener(v -> closeTabView(w));
         top.addView(close, new LinearLayout.LayoutParams(cs, cs));
         card.addView(top, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView u = new TextView(this);
         u.setText(url);
-        u.setTextColor(0xFF6E7A88);
-        u.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(24f / 2880f));
+        u.setTextColor(0xFF8B98A8);
+        u.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(28f / 2880f));
         u.setSingleLine(true);
         u.setEllipsize(android.text.TextUtils.TruncateAt.END);
         u.setPadding(0, px(0.006f), 0, 0);
         card.addView(u);
         return card;
     }
-
-    /** 统一关标签：摘栈、移除视图、回收缩略图、销毁 WebView；活动标签会自动落到剩下的最后一个 */
     private void destroyTab(BrowserWebView w) {
         if (w == null) return;
         boolean wasActive = (w == activeTab());
@@ -900,7 +923,10 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         thumbStamps.remove(w);
         Bitmap dead = tabThumbs.remove(w);
         // 标签页正开着时卡片上的 ImageView 还在用这张图，先别 recycle
-        if (dead != null && !dead.isRecycled() && !pageVisible()) dead.recycle();
+        if (dead != null && !dead.isRecycled()) {
+            if (pageVisible()) pendingThumbRecycle.add(dead);
+            else dead.recycle();
+        }
         if (activeWeb == w) activeWeb = tabs.peekLast();
         try {
             w.destroy();
@@ -911,7 +937,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             if (next != null) {
                 next.setVisibility(View.VISIBLE);
                 next.onResume();
-                next.requestFocus();
+                if (!pageVisible()) next.requestFocus();
                 next.resetBackPress();
             }
         }
@@ -939,8 +965,13 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
         activeWeb = target;
         target.setVisibility(View.VISIBLE);
+        target.setAlpha(0.94f);
+        target.setTranslationX(px(0.012f));
+        target.animate().cancel();
+        target.animate().alpha(1f).translationX(0f).setDuration(140)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
         target.onResume();
-        target.requestFocus();
+        if (!pageVisible()) target.requestFocus();
         target.resetBackPress();
         if (target.isHomePage()) pushHomeData();
         updateToolbarState();
@@ -1475,6 +1506,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private static final int REQ_DOWNLOAD_TREE = 0x5D1;
     private final java.util.LinkedHashMap<String, DownloadRowViews> downloadRows = new java.util.LinkedHashMap<>();
     private String downloadIds = "";
+    private int downloadFilter = 0;
     private static final class DownloadRowViews {
         TextView name, state, action;
         android.widget.ProgressBar progress;
@@ -1534,16 +1566,20 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
         downloadShelf = bar;
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                px(0.70f), ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
         lp.leftMargin = px(0.02f);
         lp.rightMargin = px(0.02f);
-        lp.bottomMargin = px(0.088f);
+        lp.bottomMargin = px(0.024f);
         root.addView(downloadShelf, lp);
     }
 
     private void refreshDownloadShelf() {
         if(downloadShelf == null) return;
+        if(pageVisible() || (sheetLayer != null && sheetLayer.getVisibility() == View.VISIBLE)) {
+            downloadShelf.setVisibility(View.GONE);
+            return;
+        }
         DownloadCenter center = DownloadCenter.get(this);
         DownloadCenter.Task t = shelfTaskId.isEmpty() ? null : center.byId(shelfTaskId);
         if(t == null) {
@@ -1552,8 +1588,14 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if(t == null) { downloadShelf.setVisibility(View.GONE); shelfTaskId = ""; return; }
         shelfTitle.setText(t.name + " · " + DownloadCenter.stateLine(t));
         shelfAction.setText(t.finished() ? "打开" : t.active() ? "取消" : "重试");
+        boolean wasHidden = downloadShelf.getVisibility() != View.VISIBLE;
         downloadShelf.setVisibility(View.VISIBLE);
         downloadShelf.setAlpha(1f);
+        if (wasHidden) {
+            downloadShelf.setTranslationY(px(0.024f));
+            downloadShelf.animate().translationY(0f).setDuration(180)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        }
         downloadShelf.bringToFront();
         uiHandler.removeCallbacks(hideShelfTask);
         if(!t.active()) uiHandler.postDelayed(hideShelfTask, 8000L);
@@ -1562,7 +1604,11 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private void dismissDownloadShelf() {
         uiHandler.removeCallbacks(hideShelfTask);
         if(downloadShelf == null) return;
-        downloadShelf.setVisibility(View.GONE);
+        downloadShelf.animate().cancel();
+        downloadShelf.animate().alpha(0f).translationY(px(0.018f)).setDuration(140)
+                .withEndAction(() -> {
+                    if (downloadShelf != null) downloadShelf.setVisibility(View.GONE);
+                }).start();
         shelfTaskId = "";
     }
 
@@ -1591,72 +1637,193 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private String taskIds(java.util.List<DownloadCenter.Task> list) {
         StringBuilder ids = new StringBuilder();
-        for (DownloadCenter.Task t : list) ids.append(t.id).append(';');
+        for (DownloadCenter.Task t : list) ids.append(t.id).append(':').append(t.status).append(';');
         return ids.toString();
     }
 
     private void showDownloads() {
         final DownloadCenter center = DownloadCenter.get(this);
-        java.util.List<DownloadCenter.Task> list = center.tasks();
-        LinearLayout body = openPage("下载 · " + list.size(), "打开目录", v -> openDownloadFolder(null));
+        java.util.List<DownloadCenter.Task> all = center.tasks();
+        int active = 0, done = 0, failed = 0;
+        for (DownloadCenter.Task t : all) {
+            if (t.active()) active++;
+            else if (t.finished()) done++;
+            else failed++;
+        }
+        java.util.List<DownloadCenter.Task> list = new java.util.ArrayList<>();
+        for (DownloadCenter.Task t : all) {
+            boolean match = downloadFilter == 0
+                    || (downloadFilter == 1 && t.active())
+                    || (downloadFilter == 2 && t.finished())
+                    || (downloadFilter == 3 && !t.active() && !t.finished());
+            if (match) list.add(t);
+        }
+
+        LinearLayout body = openPage("下载 · " + all.size(), "打开目录", v -> openDownloadFolder(null));
         downloadRows.clear();
-        downloadIds = taskIds(list);
-        body.addView(pageLabel("保存位置"));
-        body.addView(pageRow(center.destinationLabel(this), center.destinationDetail(this), "更改", false,
-                v -> showDownloadDestination(), null));
-        if (list.isEmpty()) {
-            body.addView(pageEmpty("还没有下载", "在网页中点下载链接，完成后可在这里打开"));
+        downloadIds = taskIds(all);
+
+        // 保存位置直接做成一张可点的卡片，不必先读说明再找「更改」
+        LinearLayout place = new LinearLayout(this);
+        place.setOrientation(LinearLayout.HORIZONTAL);
+        place.setGravity(Gravity.CENTER_VERTICAL);
+        place.setPadding(px(0.014f), px(0.012f), px(0.008f), px(0.012f));
+        GradientDrawable placeBg = new GradientDrawable();
+        placeBg.setColor(0xFF151D27);
+        placeBg.setCornerRadius(px(0.012f));
+        place.setBackground(placeBg);
+        place.setContentDescription("保存位置：" + center.destinationLabel(this));
+        pressable(place);
+        place.setOnClickListener(v -> showDownloadDestination());
+        LinearLayout placeText = new LinearLayout(this);
+        placeText.setOrientation(LinearLayout.VERTICAL);
+        TextView pt = new TextView(this);
+        pt.setText("保存到 " + center.destinationLabel(this));
+        pt.setTextColor(0xFFE6E9F0);
+        pt.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(38f / 2880f));
+        placeText.addView(pt);
+        TextView ps = new TextView(this);
+        ps.setText(center.destinationDetail(this) + " · 点这里更改");
+        ps.setTextColor(0xFF91A0B1);
+        ps.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(28f / 2880f));
+        ps.setSingleLine(true);
+        ps.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        placeText.addView(ps);
+        place.addView(placeText, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        TextView change = updateActionButton("更改", v -> showDownloadDestination());
+        place.addView(change, new LinearLayout.LayoutParams(px(0.075f), px(0.046f)));
+        body.addView(place);
+
+        LinearLayout filters = new LinearLayout(this);
+        filters.setOrientation(LinearLayout.HORIZONTAL);
+        filters.setPadding(0, px(0.016f), 0, px(0.008f));
+        String[] names = {"全部 " + all.size(), "进行中 " + active, "已完成 " + done, "失败/取消 " + failed};
+        for (int i = 0; i < names.length; i++) {
+            final int value = i;
+            TextView chip = settingChoice(names[i], downloadFilter == i, v -> {
+                downloadFilter = value;
+                showDownloads();
+            });
+            chip.setContentDescription("筛选" + names[i]);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, px(0.052f), 1f);
+            lp.rightMargin = i == names.length - 1 ? 0 : px(0.006f);
+            filters.addView(chip, lp);
+        }
+        body.addView(filters);
+
+        if (all.isEmpty()) {
+            body.addView(pageEmpty("还没有下载", "网页里点文件链接后，这里会显示进度和打开入口"));
             return;
         }
-        body.addView(pageLabel("文件"));
+        if (list.isEmpty()) {
+            body.addView(pageEmpty("这一组没有文件", "切到「全部」查看其它状态的下载"));
+            return;
+        }
         for (DownloadCenter.Task t : list) body.addView(downloadRow(t));
-        body.addView(pageRow("清除已结束的记录", "保留文件，仅清除列表记录", "清除", false,
-                v -> askConfirm("清除下载记录", "仅清除已结束的记录，文件会保留。", "清除", () -> {
-                    center.clearFinished();
-                    showStatus("记录已清除，文件已保留", 2000);
-                }), null));
+        if (done + failed > 0) {
+            body.addView(pageRow("清除已结束的记录", "只清列表，不删除已经下载的文件", "清除", false,
+                    v -> askConfirm("清除下载记录", "仅清除已结束的记录，文件会保留。", "清除", () -> {
+                        center.clearFinished();
+                        showStatus("记录已清除，文件已保留", 2000);
+                    }), null));
+        }
     }
 
     private View downloadRow(final DownloadCenter.Task t) {
         DownloadRowViews h = new DownloadRowViews();
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(px(0.012f), px(0.012f), px(0.008f), px(0.012f));
-        GradientDrawable bg = new GradientDrawable(); bg.setColor(0xFF141A21); bg.setCornerRadius(px(0.009f)); row.setBackground(bg);
-        LinearLayout text = new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL);
-        h.name = new TextView(this); h.name.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(38f / 2880f));
-        h.name.setTextColor(0xFFE6E9F0); h.name.setMaxLines(2); h.name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        row.setPadding(px(0.012f), px(0.014f), px(0.008f), px(0.014f));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(t.finished() ? 0xFF16231E : 0xFF141A21);
+        bg.setCornerRadius(px(0.012f));
+        row.setBackground(bg);
+
+        // 文件类型一眼可辨，不必先看文件名猜它是什么
+        TextView kind = new TextView(this);
+        String mime = DownloadCenter.mimeFor(t.name, t.mime);
+        String label = mime.equals("application/vnd.android.package-archive") ? "APK"
+                : mime.startsWith("image/") ? "图片"
+                : mime.startsWith("video/") ? "视频"
+                : mime.startsWith("audio/") ? "音频"
+                : mime.startsWith("text/") || mime.contains("json") ? "文本"
+                : "文件";
+        kind.setText(label);
+        kind.setTextColor(t.finished() ? 0xFF8DE0AF : 0xFF9CC7EA);
+        kind.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(26f / 2880f));
+        kind.setGravity(Gravity.CENTER);
+        GradientDrawable kindBg = new GradientDrawable();
+        kindBg.setColor(t.finished() ? 0xFF1E3A2A : 0xFF1D2C3B);
+        kindBg.setCornerRadius(px(0.01f));
+        kind.setBackground(kindBg);
+        LinearLayout.LayoutParams kindLp = new LinearLayout.LayoutParams(px(0.038f), px(0.038f));
+        kindLp.rightMargin = px(0.014f);
+        row.addView(kind, kindLp);
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        h.name = new TextView(this);
+        h.name.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(40f / 2880f));
+        h.name.setTextColor(0xFFE6E9F0);
+        h.name.setMaxLines(2);
+        h.name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
         text.addView(h.name);
-        h.state = new TextView(this); h.state.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(30f / 2880f));
-        h.state.setMaxLines(2); h.state.setPadding(0, px(0.004f), 0, px(0.004f)); text.addView(h.state);
+        h.state = new TextView(this);
+        h.state.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(30f / 2880f));
+        h.state.setMaxLines(2);
+        h.state.setPadding(0, px(0.005f), 0, px(0.005f));
+        text.addView(h.state);
         h.progress = new android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        h.progress.setMax(1000); h.progress.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFF77B8E8));
-        text.addView(h.progress, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(0.004f)));
+        h.progress.setMax(1000);
+        h.progress.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFF77B8E8));
+        h.progress.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF263240));
+        LinearLayout.LayoutParams progressLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, px(0.005f));
+        progressLp.topMargin = px(0.004f);
+        text.addView(h.progress, progressLp);
         row.addView(text, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
         h.action = updateActionButton("打开", v -> onDownloadTap(t));
-        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(px(0.075f), px(0.045f)); actionLp.leftMargin = px(0.012f);
+        LinearLayout.LayoutParams actionLp = new LinearLayout.LayoutParams(px(0.078f), px(0.05f));
+        actionLp.leftMargin = px(0.012f);
         row.addView(h.action, actionLp);
-        TextView more = updateActionButton("更多", v -> showDownloadMenu(t)); more.setContentDescription("更多：" + t.name);
-        more.setPadding(px(0.008f),px(0.009f),px(0.008f),px(0.009f));
-        LinearLayout.LayoutParams moreLp = new LinearLayout.LayoutParams(px(0.055f), px(0.045f)); moreLp.leftMargin = px(0.009f); row.addView(more, moreLp);
-        row.setOnClickListener(v -> { if(t.finished()) openDownloadedFile(t); else showDownloadMenu(t); });
+        TextView more = updateActionButton("更多", v -> showDownloadMenu(t));
+        more.setContentDescription("更多：" + t.name);
+        more.setPadding(px(0.008f), px(0.009f), px(0.008f), px(0.009f));
+        LinearLayout.LayoutParams moreLp = new LinearLayout.LayoutParams(px(0.06f), px(0.05f));
+        moreLp.leftMargin = px(0.008f);
+        row.addView(more, moreLp);
+
+        row.setOnClickListener(v -> {
+            if (t.finished()) openDownloadedFile(t);
+            else showDownloadMenu(t);
+        });
         row.setOnLongClickListener(v -> { showDownloadMenu(t); return true; });
-        downloadRows.put(t.id, h); bindDownload(t, h);
-        LinearLayout wrap = new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL); wrap.addView(row);
-        wrap.addView(new View(this), new LinearLayout.LayoutParams(1, px(0.008f))); return wrap;
+        row.setContentDescription("下载文件：" + t.name);
+        downloadRows.put(t.id, h);
+        bindDownload(t, h);
+        LinearLayout wrap = new LinearLayout(this);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.addView(row);
+        wrap.addView(new View(this), new LinearLayout.LayoutParams(1, px(0.008f)));
+        return wrap;
     }
 
     private void bindDownload(DownloadCenter.Task t, DownloadRowViews h) {
-        h.name.setText(t.name); h.state.setText(DownloadCenter.stateLine(t));
-        h.state.setTextColor(t.status == DownloadCenter.ST_FAILED ? 0xFFF09494 : 0xFFAFBBC8);
-        String action = t.finished() ? "打开" : t.active() ? "取消" : t.status == DownloadCenter.ST_DELETING ? "删除中" : "重试";
-        h.action.setText(action); h.action.setContentDescription(action + "：" + t.name);
+        h.name.setText(t.name);
+        h.state.setText(DownloadCenter.stateLine(t));
+        h.state.setTextColor(t.status == DownloadCenter.ST_FAILED ? 0xFFF09494
+                : t.finished() ? 0xFF8DE0AF
+                : t.active() ? 0xFF9CC7EA : 0xFFAFBBC8);
+        String action = t.finished() ? "打开" : t.active() ? "取消"
+                : t.status == DownloadCenter.ST_DELETING ? "删除中" : "重试";
+        h.action.setText(action);
+        h.action.setContentDescription(action + "：" + t.name);
         h.action.setEnabled(t.status != DownloadCenter.ST_DELETING);
         h.progress.setVisibility(t.active() ? View.VISIBLE : View.GONE);
         h.progress.setIndeterminate(t.total <= 0);
-        if(t.total > 0) h.progress.setProgress((int)Math.min(1000, t.done * 1000 / t.total));
+        if (t.total > 0) h.progress.setProgress((int) Math.min(1000, t.done * 1000 / t.total));
     }
-
     private void onDownloadTap(DownloadCenter.Task t) {
         if(t.finished()) openDownloadedFile(t);
         else if(t.active()) DownloadCenter.get(this).cancel(t.id);
@@ -1862,6 +2029,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private void onDownloadsChanged() {
         refreshDownloadShelf();
+        if(pageClosing) return;
         if(!pageVisible() || !"下载".equals(currentPageRoute)) return;
         java.util.List<DownloadCenter.Task> list = DownloadCenter.get(this).tasks();
         if(!taskIds(list).equals(downloadIds)) { showDownloads(); return; }
@@ -2141,6 +2309,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private void showSheet() {
         if (sheetLayer == null) return;
+        dismissDownloadShelf();
         sheetTransitionId++;
         sheetLayer.animate().cancel();
         sheetScrim.animate().cancel();
@@ -2148,6 +2317,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         sheetLayer.setTranslationY(0f);
         sheetLayer.setVisibility(View.VISIBLE);
         sheetLayer.bringToFront();
+        syncAccessibilityLayers();
         sheetScrim.setAlpha(0f);
         sheetPanel.setTranslationY(px(0.24f));
         sheetScrim.animate().alpha(1f).setDuration(140).start();
@@ -2171,6 +2341,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                         if (transition != sheetTransitionId) return;
                         sheetLayer.setVisibility(View.GONE);
                         sheetPanel.setTranslationY(0f);
+                        syncAccessibilityLayers();
                         if (status != null && status.getVisibility() == View.VISIBLE) status.bringToFront();
                     }
                 }).start();
@@ -2488,6 +2659,9 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private LinearLayout openPage(String title, String action, View.OnClickListener onAction) {
         if (pageLayer == null) return new LinearLayout(this);
+        hideKeyboard();
+        dismissDownloadShelf();
+        if (addr != null) addr.clearFocus();
         // openPage() 会把这些引用换掉；非关于页时 refreshUpdateCard() 直接返回，不碰已分离的 View
         updateStatusView = null;
         updateDetailView = null;
@@ -2500,23 +2674,22 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 restoreScrollY = ((ViewGroup) old).getChildAt(1).getScrollY();
             }
             if (!replace) {
-                if (!pageParents.isEmpty() && route.equals(pageParents.peek().route)) {
-                    restoreScrollY = pageParents.pop().scrollY;
-                } else {
-                    pageParents.push(new PageFrame(old, currentPageRoute, restoreScrollY));
-                }
+                // A→B→A 也保留 B：否则会把旧 A 和当前 B 一起丢掉，返回直接掉回网页
+                pageParents.push(new PageFrame(old, currentPageRoute, restoreScrollY));
             }
         }
         currentPageScrollY = restoreScrollY;
         currentPageRoute = route;
         pageTransitionId++;
+        pageClosing = false;
         pageLayer.animate().cancel();
         pageLayer.removeAllViews();
         pageLayer.setVisibility(View.VISIBLE);
-        pageLayer.setAlpha(0f);
+        pageLayer.setAlpha(replace ? 1f : 0f);
+        pageLayer.setTranslationX(replace ? 0f : px(0.025f));
 
-        final int barH = px(132f / 2880f);
-        final int btnW = px(120f / 2880f);
+        final int barH = px(TOOLBAR_H / 2880f);
+        final int btnW = px(136f / 2880f);
         final int pad = px(0.075f);
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
@@ -2576,15 +2749,20 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if (restoreY > 0) sv.post(new Runnable() {
             @Override public void run() { sv.scrollTo(0, restoreY); }
         });
-        pageLayer.animate().alpha(1f).setDuration(150).start();
+        if (!replace) {
+            pageLayer.animate().alpha(1f).translationX(0f).setDuration(180)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        }
+        syncAccessibilityLayers();
         return body;
     }
 
     private void closePage() {
         if (pageLayer == null || pageLayer.getVisibility() != View.VISIBLE) return;
         final long transition = ++pageTransitionId;
+        pageClosing = true;
         pageLayer.animate().cancel();
-        pageLayer.animate().alpha(0f).setDuration(120).withEndAction(new Runnable() {
+        pageLayer.animate().alpha(0f).translationX(-px(0.018f)).setDuration(140).withEndAction(new Runnable() {
             @Override public void run() {
                 if (transition != pageTransitionId) return;
                 if (!pageParents.isEmpty()) {
@@ -2594,7 +2772,8 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                     currentPageRoute = parent.route;
                     pageLayer.setAlpha(0f);
-                    pageLayer.animate().alpha(1f).setDuration(120).start();
+                    pageLayer.setTranslationX(px(0.018f));
+                    pageLayer.animate().alpha(1f).translationX(0f).setDuration(150).start();
                     parent.view.post(new Runnable() {
                         @Override public void run() {
                             if (parent.view instanceof ViewGroup
@@ -2608,8 +2787,44 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                     pageLayer.setVisibility(View.GONE);
                     pageLayer.removeAllViews();
                 }
+                pageClosing = false;
+                if (!pageVisible()) recyclePendingThumbs();
+                syncAccessibilityLayers();
+                if (pageVisible()) pageLayer.requestFocus();
+                else {
+                    BrowserWebView current = activeTab();
+                    if (current != null) current.requestFocus();
+                }
             }
         }).start();
+    }
+
+    private void recyclePendingThumbs() {
+        for (Bitmap b : pendingThumbRecycle) {
+            if (b != null && !b.isRecycled()) b.recycle();
+        }
+        pendingThumbRecycle.clear();
+    }
+
+    /** 覆盖层要真正接管焦点/读屏：否则下面的网页仍会出现在无障碍节点里，甚至抢走点击目标。 */
+    private void syncAccessibilityLayers() {
+        boolean sheet = sheetLayer != null && sheetLayer.getVisibility() == View.VISIBLE;
+        boolean page = pageVisible();
+        boolean covered = sheet || page;
+        int below = covered ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+                : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO;
+        if (column != null) {
+            column.setImportantForAccessibility(below);
+            // WebView 的虚拟可访问性节点不会可靠地跟着父标记走；整页覆盖时直接不显示底层，
+            // 否则读屏和自动验收仍能点到被盖住的文章链接。
+            column.setVisibility(covered ? View.INVISIBLE : View.VISIBLE);
+        }
+        for (BrowserWebView w : tabs) {
+            if (w != null) w.setImportantForAccessibility(below);
+        }
+        if (pageLayer != null) pageLayer.setImportantForAccessibility(sheet
+                ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+                : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
     }
 
     /** 按下时轻微缩放，避免整块降到 55% 造成生硬闪烁。 */
@@ -3480,6 +3695,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             if (b != null && !b.isRecycled()) b.recycle();
         }
         tabThumbs.clear();
+        recyclePendingThumbs();
         thumbStamps.clear();
         activeWeb = null;
         homeView = null;
@@ -3530,7 +3746,9 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             return super.dispatchKeyEvent(event);
         }
         BrowserWebView web = activeTab();
-        if (web != null && web.handleRemoteKey(event)) return true;
+        boolean covered = pageVisible()
+                || (sheetLayer != null && sheetLayer.getVisibility() == View.VISIBLE);
+        if (!covered && web != null && web.handleRemoteKey(event)) return true;
         return super.dispatchKeyEvent(event);
     }
 
