@@ -5,6 +5,7 @@
 - 最终包：`dist/car-browser-6.20.apk`，731,764 B；SHA-256 `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28`。包名 `com.carweb.tvb`，签名证书 SHA-256 `8eec23c3c7c129ab422c3f61ee2981abac7b397cf947b1c8fbef22ac6ffaeb55`；zipalign 与 v1/v2/v3 签名校验通过。
 - 构建固定 Build Tools `35.0.0`、compile SDK 35；版本 `6.20 (30)`。MuMu vm0 / Android 15 实测车机几何：`init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`；测试期间音量为 0。
 - 测试 APK 安装身份在 guest 内重新计算为上述 SHA；结果目录：`C:\Users\WIN10\Documents\MuMu共享文件夹\audit620-004daa7f`。
+- 复建一致性：发布后再次运行同一固定工具链，构建成功且 APK 仍为 731,764 B；逐 ZIP 条目内容与已验收包一致，但复建 APK SHA 为 `faa288427f332b41572614a1259eff389f253486f6f9291c570c66f88ce25e8f`，不同于已验收/发布包。为保持测试、安装、R2 三方身份一致，`dist` 保留 SHA `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28` 的已验收副本；整包字节级可复现性尚未证明。
 
 | 最终 SHA 批次 | 结果 | 覆盖 |
 |---|---:|---|
