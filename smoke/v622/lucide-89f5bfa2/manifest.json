@@ -1,0 +1,80 @@
+{
+  "apkSha256": "89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7",
+  "files": [
+    {
+      "path": "00-home-toolbar.json",
+      "bytes": 15056,
+      "sha256": "7d872437e29628e4ec89eadef7e2fef031bf759239a325e1434aa359be0c832b"
+    },
+    {
+      "path": "00-home-toolbar.png",
+      "bytes": 574028,
+      "sha256": "3c1fc5d09d34b802fa6264363a15c8e37632d79f21d5d531fd0029aeb12d2e15"
+    },
+    {
+      "path": "02-menu-page-one.json",
+      "bytes": 15976,
+      "sha256": "96c022497376cc7b34a5c13e8cad90821150be5c983a6dfd67040108ef914438"
+    },
+    {
+      "path": "02-menu-page-one.png",
+      "bytes": 58892,
+      "sha256": "a338f67852a50207b1639eb1c6e42e839d8905aedf4434d2f86795a42945658d"
+    },
+    {
+      "path": "03-menu-page-two.json",
+      "bytes": 16037,
+      "sha256": "7835f47256cba6ac050b41b8071dd6163c3a597555990be2be3a3d5121757763"
+    },
+    {
+      "path": "03-menu-page-two.png",
+      "bytes": 73579,
+      "sha256": "4924bcd1cff720b90cd9f81236ed63748b538b075bd4f0bb1c2aa4dc89ccb14f"
+    },
+    {
+      "path": "12-downloads.json",
+      "bytes": 23260,
+      "sha256": "3d6a4fbf7dfaeb6e24ac7ede1a8687217ce0e2de5a854c62396e7abdaee00d46"
+    },
+    {
+      "path": "12-downloads.png",
+      "bytes": 160756,
+      "sha256": "6187168f6d725cf27ce1bc3e3a22e85251a210298864577a020be6631f1cbf08"
+    },
+    {
+      "path": "18-settings.json",
+      "bytes": 21296,
+      "sha256": "891ff8521a6c65e7321fd9474295e05654d366d8358e736692229a2d96be7c69"
+    },
+    {
+      "path": "18-settings.png",
+      "bytes": 99881,
+      "sha256": "66f4e94dba995f6212d4e2de16b24dc402445c66f9f3a1621b26afdf92dc961a"
+    },
+    {
+      "path": "crash.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "icons.json",
+      "bytes": 3131,
+      "sha256": "642301f97cecc759e6a5b73870349d4898af1ccb1c41665251f1924d60b2d835"
+    },
+    {
+      "path": "identity.json",
+      "bytes": 397,
+      "sha256": "96c51f772567891dadf4a28163d27627c3030d795960676fc9e303fddb5d1039"
+    },
+    {
+      "path": "lucide-atlas.png",
+      "bytes": 98039,
+      "sha256": "03dca79d20f865f68f1ee7cb8f4e2c34d6245e3e52234cbca725f002aeb7a147"
+    },
+    {
+      "path": "result.json",
+      "bytes": 5982,
+      "sha256": "49bf0f03639c849162e8209ed2d66aeaa7ee154fc21af495615a9641aca92669"
+    }
+  ]
+}

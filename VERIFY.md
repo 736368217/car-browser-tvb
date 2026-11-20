@@ -1,5 +1,17 @@
 # 原生与模拟器验收记录
 
+## 2026-11-20 · v6.22（versionCode 32）Lucide 图标统一
+
+- 最终包 `dist/car-browser-6.22.apk`，763,750 B，SHA-256 `89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7`；Manifest/BuildConfig 同为 6.22/32。固定 Build Tools 35.0.0；Java、d8、zipalign、v1/v2/v3 签名校验通过，沿用原证书。
+- 引入 Lucide 官方提交 `c1a02a04d4f3f7049d44567d62b8b06cff0b9103` 的 40 个 SVG，转换为 Android 原生 VectorDrawable，普通构建/运行均离线。保留原视框、2px 描边和圆角连接；统一安全边距。原始文件及逐文件 SHA 见 `third_party/lucide/source.json`；完整 ISC/Feather MIT 许可同时保存在仓库及 APK 的 `assets/licenses/lucide.txt`。
+- 范围：工具栏、两页菜单、下载文件类型、书签/历史删除、设置箭头、全屏恢复，以及首页搜索/展开/编辑删除辅助图形；站点品牌标识和应用启动图标保留。
+- MuMu vm0 / Android 15 API 35：`init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`、`w2880dp h1620dp 160dpi … land`，音量 0；guest 安装 base.apk 重算为最终 SHA。
+- `final-icons-padded` 页面 23/23：两页菜单、新建标签、标签页、全屏进入/退出、下载类型、书签删除控件、设置进入箭头、关于版本与页面返回。图标 40/40：24/64/78px 下非空、边缘无裁切、实色着色与透明度、非正方形 bounds 等比居中；crash buffer 0 B。最后独立冷启动 Status ok、前台 MainActivity、PID 存活。
+- 第一个候选因 SVG 紧凑圆弧参数不兼容 Android PathParser 而崩溃；转换器已规范化标志分隔。小尺寸贴边由全套统一安全边距解决；先前失败结果未计入通过。颜色审计对不透明像素精确比较，对透明度单独检查，避免把抗锯齿预乘舍入误判为错误颜色。
+- R2 已发布 6.22/32；latest、远端完整下载 APK、本地 APK 与 guest 安装 SHA/763,750 B 四方一致。没有执行本轮 app 在线检查更新流程，不把主机回读写为设备在线通过。
+- 四份 SharedPreferences 逐文件 SHA 恢复；辅助 audit APK、guest 计划与本轮输出已清理，vm0 已释放、主 MuMu 保留。未连接零跑 B01 真车，API 35 结果不替代 Android 12L/API 32。
+- 报告 `reports/lucide-6.22.html` 内嵌 6 张本轮截图/原生图标总览；证据与逐文件摘要见 `smoke/v622/lucide-89f5bfa2/manifest.json`。浏览器预览截图通道超时；已保留实际 Android 截图与像素检查，不声称额外人工视觉评分。
+
 ## 2026-11-20 · v6.21（versionCode 31）下载记录路径恢复
 
 - 最终 APK：`dist/car-browser-6.21.apk`，731,764 B；SHA-256 `affb9ec8e0bbb4f78d6e5dd5148b97873ab8fdd12406d9e813b8e713a7e07d6a`。包名 `com.carweb.tvb`，证书 SHA-256 `8eec23c3c7c129ab422c3f61ee2981abac7b397cf947b1c8fbef22ac6ffaeb55`；Build Tools 35.0.0 / compile SDK 35，zipalign 与 v1/v2/v3 签名验证通过。

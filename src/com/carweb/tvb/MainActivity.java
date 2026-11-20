@@ -245,7 +245,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
         // 全屏时工具条整条 GONE，必须留一个触屏能点的恢复入口，否则用户被困在网页里
         toolbarHandle = new ImageView(this);
-        toolbarHandle.setImageDrawable(new GlyphIcon(GlyphIcon.MENU, 0xFFE8EDF2));
+        toolbarHandle.setImageDrawable(new GlyphIcon(getResources(), GlyphIcon.COLLAPSE, 0xFFE8EDF2));
         toolbarHandle.setContentDescription("退出全屏");
         GradientDrawable handleBg = new GradientDrawable();
         handleBg.setShape(GradientDrawable.OVAL);
@@ -362,7 +362,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         addressGroup.setPadding(px(0.006f), 0, px(0.004f), 0);
 
         ImageView pageMark = new ImageView(this);
-        pageMark.setImageDrawable(new GlyphIcon(GlyphIcon.SEARCH, 0xFF9FB0C3));
+        pageMark.setImageDrawable(new GlyphIcon(getResources(), GlyphIcon.SEARCH, 0xFF9FB0C3));
         pageMark.setContentDescription("网址或搜索");
         int mark = px(0.022f);
         pageMark.setPadding(mark / 5, mark / 5, mark / 5, mark / 5);
@@ -455,7 +455,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     /** 工具条按钮：统一按下反馈 + 可读 contentDescription（控件树/无障碍都能读到语义） */
     private ImageView makeBtn(int glyph, int iconPad, String desc) {
         ImageView v = new ImageView(this);
-        v.setImageDrawable(new GlyphIcon(glyph, 0xFFE8EDF2));
+        v.setImageDrawable(new GlyphIcon(getResources(), glyph, 0xFFE8EDF2));
         v.setScaleType(ImageView.ScaleType.FIT_CENTER);
         v.setPadding(iconPad, iconPad, iconPad, iconPad);
         v.setClickable(true);
@@ -891,7 +891,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
 
         ImageView close = new ImageView(this);
-        close.setImageDrawable(new GlyphIcon(GlyphIcon.CLOSE, 0xFFAAB7C5));
+        close.setImageDrawable(new GlyphIcon(getResources(), GlyphIcon.CLOSE, 0xFFAAB7C5));
         int cs = px(0.042f);
         close.setContentDescription("关闭标签：" + title);
         close.setPadding(cs / 4, cs / 4, cs / 4, cs / 4);
@@ -1544,7 +1544,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         bar.addView(shelfAction, alp);
 
         ImageView close = new ImageView(this);
-        close.setImageDrawable(new GlyphIcon(GlyphIcon.CLOSE, 0xFFB9C4D0));
+        close.setImageDrawable(new GlyphIcon(getResources(), GlyphIcon.CLOSE, 0xFFB9C4D0));
         close.setContentDescription("关闭下载提示");
         close.setPadding(px(0.006f), px(0.006f), px(0.006f), px(0.006f));
         pressable(close);
@@ -1729,7 +1729,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         row.setBackground(bg);
 
         // 文件类型一眼可辨，不必先看文件名猜它是什么
-        TextView kind = new TextView(this);
+        ImageView kind = new ImageView(this);
         String mime = DownloadCenter.mimeFor(t.name, t.mime);
         String label = mime.equals("application/vnd.android.package-archive") ? "APK"
                 : mime.startsWith("image/") ? "图片"
@@ -1737,10 +1737,13 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 : mime.startsWith("audio/") ? "音频"
                 : mime.startsWith("text/") || mime.contains("json") ? "文本"
                 : "文件";
-        kind.setText(label);
-        kind.setTextColor(t.finished() ? 0xFF8DE0AF : 0xFF9CC7EA);
-        kind.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(26f / 2880f));
-        kind.setGravity(Gravity.CENTER);
+        int fileGlyph = "APK".equals(label) ? GlyphIcon.APK : "图片".equals(label) ? GlyphIcon.FILE_IMAGE
+                : "视频".equals(label) ? GlyphIcon.FILE_VIDEO : "音频".equals(label) ? GlyphIcon.FILE_AUDIO
+                : "文本".equals(label) ? GlyphIcon.FILE_TEXT : GlyphIcon.FILE;
+        kind.setImageDrawable(new GlyphIcon(getResources(), fileGlyph, t.finished() ? 0xFF8DE0AF : 0xFF9CC7EA));
+        kind.setContentDescription("文件类型：" + label);
+        int kindPad = px(28f / 2880f);
+        kind.setPadding(kindPad, kindPad, kindPad, kindPad);
         GradientDrawable kindBg = new GradientDrawable();
         kindBg.setColor(t.finished() ? 0xFF1E3A2A : 0xFF1D2C3B);
         kindBg.setCornerRadius(px(0.01f));
@@ -2077,29 +2080,29 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private SheetPager sheetPager;
 
     private static final String[][] SHEET_PAGE1 = {
-            {"新建标签", "7", "newtab"},
-            {"标签页", "7", "tabs"},
-            {"书签", "4", "bookmarks"},
-            {"历史", "10", "history"},
-            {"下载", "8", "download"},
-            {"分享", "11", "share"},
-            {"设置", "17", "settings"},
-            {"关于", "5", "about"},
-            {"全屏", "14", "fullscreen"},
-            {"退出", "16", "exit"}
+            {"新建标签", String.valueOf(GlyphIcon.NEW_TAB), "newtab"},
+            {"标签页", String.valueOf(GlyphIcon.TABS), "tabs"},
+            {"书签", String.valueOf(GlyphIcon.STAR), "bookmarks"},
+            {"历史", String.valueOf(GlyphIcon.CLOCK), "history"},
+            {"下载", String.valueOf(GlyphIcon.DOWN), "download"},
+            {"分享", String.valueOf(GlyphIcon.SHARE), "share"},
+            {"设置", String.valueOf(GlyphIcon.SETTINGS), "settings"},
+            {"关于", String.valueOf(GlyphIcon.ABOUT), "about"},
+            {"全屏", String.valueOf(GlyphIcon.EXPAND), "fullscreen"},
+            {"退出", String.valueOf(GlyphIcon.POWER), "exit"}
     };
 
     private static final String[][] SHEET_PAGE2 = {
-            {"页内查找", "9", "find"},
-            {"阅读模式", "5", "reader"},
-            {"夜间模式", "13", "night"},
-            {"无图模式", "12", "noimage"},
-            {"电脑模式", "12", "desktop"},
-            {"清除缓存", "15", "clear"},
-            {"广告过滤", "17", "adblock"},
-            {"清除数据", "15", "cleardata"},
-            {"检查更新", "2", "updates"},
-            {"关闭标签", "6", "closetab"}
+            {"页内查找", String.valueOf(GlyphIcon.SEARCH), "find"},
+            {"阅读模式", String.valueOf(GlyphIcon.READER), "reader"},
+            {"夜间模式", String.valueOf(GlyphIcon.MOON), "night"},
+            {"无图模式", String.valueOf(GlyphIcon.NO_IMAGE), "noimage"},
+            {"电脑模式", String.valueOf(GlyphIcon.DESKTOP), "desktop"},
+            {"清除缓存", String.valueOf(GlyphIcon.ERASER), "clear"},
+            {"广告过滤", String.valueOf(GlyphIcon.SHIELD), "adblock"},
+            {"清除数据", String.valueOf(GlyphIcon.TRASH), "cleardata"},
+            {"检查更新", String.valueOf(GlyphIcon.UPDATE), "updates"},
+            {"关闭标签", String.valueOf(GlyphIcon.CLOSE), "closetab"}
     };
 
     private void buildSheet() {
@@ -2152,7 +2155,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
         int btn = px(0.038f);
         ImageView closeSheet = new ImageView(this);
-        closeSheet.setImageDrawable(new GlyphIcon(GlyphIcon.CLOSE, 0xFF9AA6B4));
+        closeSheet.setImageDrawable(new GlyphIcon(getResources(), GlyphIcon.CLOSE, 0xFF9AA6B4));
         closeSheet.setContentDescription("关闭功能页");
         closeSheet.setPadding(btn / 4, btn / 4, btn / 4, btn / 4);
         pressable(closeSheet);
@@ -2187,7 +2190,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         dots.addView(sheetDot2, new LinearLayout.LayoutParams(ds, ds));
 
         sheetArrow = new ImageView(this);
-        sheetArrow.setImageDrawable(new GlyphIcon(GlyphIcon.FORWARD, 0xFF9AA6B4));
+        sheetArrow.setImageDrawable(new GlyphIcon(getResources(), GlyphIcon.CHEVRON_RIGHT, 0xFF9AA6B4));
         sheetArrow.setRotation(0f);
         sheetArrow.setContentDescription("下一页");
         sheetArrow.setPadding(btn / 4, btn / 4, btn / 4, btn / 4);
@@ -2277,7 +2280,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         item.setClickable(true);
 
         ImageView icon = new ImageView(this);
-        icon.setImageDrawable(new GlyphIcon(glyph, 0xFFE8EDF2));
+        icon.setImageDrawable(new GlyphIcon(getResources(), glyph, 0xFFE8EDF2));
         int s = px(0.027f);
         LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(s, s);
         ip.bottomMargin = px(0.008f);
@@ -2453,12 +2456,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         findBar.addView(findCountText);
 
         int btn = px(0.04f);
-        ImageView prev = glyphButton(GlyphIcon.FORWARD, -90f, new View.OnClickListener() {
+        ImageView prev = glyphButton(GlyphIcon.CHEVRON_RIGHT, -90f, new View.OnClickListener() {
             @Override public void onClick(View v) { findStep(false); }
         });
         findBar.addView(prev, new LinearLayout.LayoutParams(btn, btn));
 
-        ImageView next = glyphButton(GlyphIcon.FORWARD, 90f, new View.OnClickListener() {
+        ImageView next = glyphButton(GlyphIcon.CHEVRON_RIGHT, 90f, new View.OnClickListener() {
             @Override public void onClick(View v) { findStep(true); }
         });
         findBar.addView(next, new LinearLayout.LayoutParams(btn, btn));
@@ -2471,7 +2474,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private ImageView glyphButton(int glyph, float rotation, View.OnClickListener l) {
         ImageView v = new ImageView(this);
-        v.setImageDrawable(new GlyphIcon(glyph, 0xFFE8EDF2));
+        v.setImageDrawable(new GlyphIcon(getResources(), glyph, 0xFFE8EDF2));
         v.setRotation(rotation);
         v.setPadding(px(0.008f), px(0.008f), px(0.008f), px(0.008f));
         pressable(v);
@@ -2872,7 +2875,16 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
         row.addView(col, new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        if (right != null) {
+        if ("✕".equals(right) || "›".equals(right)) {
+            ImageView r = new ImageView(this);
+            r.setImageDrawable(new GlyphIcon(getResources(), danger ? GlyphIcon.TRASH : GlyphIcon.CHEVRON_RIGHT,
+                    danger ? 0xFFE07070 : 0xFF8EC5FF));
+            int w = px(0.08f), h = px(0.036f), size = px(40f / 2880f);
+            r.setPadding((w-size)/2, (h-size)/2, (w-size)/2, (h-size)/2);
+            r.setContentDescription((danger ? "删除：" : "打开：") + title);
+            if (rightClick != null) { pressable(r); r.setOnClickListener(rightClick); }
+            row.addView(r, new LinearLayout.LayoutParams(w, h));
+        } else if (right != null) {
             TextView r = new TextView(this);
             r.setText(right);
             r.setTextColor(danger ? 0xFFE07070 : 0xFF8EC5FF);

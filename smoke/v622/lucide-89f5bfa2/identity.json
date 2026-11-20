@@ -1,0 +1,13 @@
+{
+  "version": "6.22",
+  "versionCode": 32,
+  "bytes": 763750,
+  "sha256": "89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7",
+  "r2Verified": true,
+  "upstreamRevision": "c1a02a04d4f3f7049d44567d62b8b06cff0b9103",
+  "nativeIconChecks": 40,
+  "uiSteps": 23,
+  "crashBytes": 0,
+  "device": "MuMu Android 15 / API 35; 2880x1620 @160dpi",
+  "realHeadUnitTested": false
+}

@@ -44,3 +44,9 @@
 
 `BrowserWebView.java`、`MainActivity.java` 等文件顶部的原始注释与类说明未删除，
 `remote key` 策略、`TOUCH_HOVER_MS = 400` 的取值理由等说明性注释均原样保留。
+
+## Lucide 界面图标（v6.22 起）
+
+操作图标来自 `https://github.com/lucide-icons/lucide`，固定源码提交 `c1a02a04d4f3f7049d44567d62b8b06cff0b9103`。原始 SVG、完整 ISC 及其中列明的 Feather MIT 许可保存在 `third_party/lucide/`；APK 内附 `assets/licenses/lucide.txt`。
+
+`tools/import_lucide.py` 将官方 SVG 几何转换为 Android 原生矢量 XML（规范化圆弧标志分隔，保留 24×24 视框、2px 描边与圆角线帽/连接）。普通构建与运行均不联网；图标实例保留原有着色和透明度行为。

@@ -1,0 +1,1259 @@
+{
+  "nodes": [
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        156
+      ]
+    },
+    {
+      "desc": "返回",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        0,
+        352,
+        156
+      ]
+    },
+    {
+      "text": "下载 · 6",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        352,
+        0,
+        2458,
+        156
+      ]
+    },
+    {
+      "text": "打开目录",
+      "desc": "打开目录",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2458,
+        0,
+        2664,
+        156
+      ]
+    },
+    {
+      "class": "android.widget.ScrollView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "desc": "保存位置：应用内目录",
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        191,
+        2664,
+        393
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        256,
+        243,
+        2425,
+        341
+      ]
+    },
+    {
+      "text": "保存到 应用内目录",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        256,
+        243,
+        2425,
+        299
+      ]
+    },
+    {
+      "text": "\/storage\/emulated\/0\/Android\/data\/com.carweb.tvb\/files\/Download · 点这里更改",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        256,
+        299,
+        2425,
+        341
+      ]
+    },
+    {
+      "text": "更改",
+      "desc": "更改",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2425,
+        226,
+        2641,
+        358
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        393,
+        2664,
+        612
+      ]
+    },
+    {
+      "text": "全部 6",
+      "desc": "筛选全部 6",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        439,
+        815,
+        589
+      ]
+    },
+    {
+      "text": "进行中 0",
+      "desc": "筛选进行中 0",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        832,
+        439,
+        1431,
+        589
+      ]
+    },
+    {
+      "text": "已完成 6",
+      "desc": "筛选已完成 6",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1448,
+        439,
+        2047,
+        589
+      ]
+    },
+    {
+      "text": "失败\/取消 0",
+      "desc": "筛选失败\/取消 0",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2064,
+        439,
+        2664,
+        589
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        612,
+        2664,
+        859
+      ]
+    },
+    {
+      "desc": "下载文件：audit615-note (6).txt",
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        612,
+        2664,
+        836
+      ]
+    },
+    {
+      "desc": "文件类型：文本",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        251,
+        669,
+        360,
+        778
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        661,
+        2185,
+        787
+      ]
+    },
+    {
+      "text": "audit615-note (6).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        661,
+        2185,
+        715
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        715,
+        2185,
+        787
+      ]
+    },
+    {
+      "text": "打开",
+      "desc": "打开：audit615-note (6).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2220,
+        652,
+        2445,
+        796
+      ]
+    },
+    {
+      "text": "更多",
+      "desc": "更多：audit615-note (6).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2468,
+        652,
+        2641,
+        796
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        836,
+        217,
+        859
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        859,
+        2664,
+        1106
+      ]
+    },
+    {
+      "desc": "下载文件：audit615-note (5).txt",
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        859,
+        2664,
+        1083
+      ]
+    },
+    {
+      "desc": "文件类型：文本",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        251,
+        916,
+        360,
+        1025
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        908,
+        2185,
+        1034
+      ]
+    },
+    {
+      "text": "audit615-note (5).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        908,
+        2185,
+        962
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        962,
+        2185,
+        1034
+      ]
+    },
+    {
+      "text": "打开",
+      "desc": "打开：audit615-note (5).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2220,
+        899,
+        2445,
+        1043
+      ]
+    },
+    {
+      "text": "更多",
+      "desc": "更多：audit615-note (5).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2468,
+        899,
+        2641,
+        1043
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1083,
+        217,
+        1106
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1106,
+        2664,
+        1353
+      ]
+    },
+    {
+      "desc": "下载文件：audit615-note (4).txt",
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1106,
+        2664,
+        1330
+      ]
+    },
+    {
+      "desc": "文件类型：文本",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        251,
+        1163,
+        360,
+        1272
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        1155,
+        2185,
+        1281
+      ]
+    },
+    {
+      "text": "audit615-note (4).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        1155,
+        2185,
+        1209
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        1209,
+        2185,
+        1281
+      ]
+    },
+    {
+      "text": "打开",
+      "desc": "打开：audit615-note (4).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2220,
+        1146,
+        2445,
+        1290
+      ]
+    },
+    {
+      "text": "更多",
+      "desc": "更多：audit615-note (4).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2468,
+        1146,
+        2641,
+        1290
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1330,
+        217,
+        1353
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1353,
+        2664,
+        1600
+      ]
+    },
+    {
+      "desc": "下载文件：audit615-note (3).txt",
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1353,
+        2664,
+        1577
+      ]
+    },
+    {
+      "desc": "文件类型：文本",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        251,
+        1410,
+        360,
+        1519
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        1402,
+        2185,
+        1528
+      ]
+    },
+    {
+      "text": "audit615-note (3).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        1402,
+        2185,
+        1456
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        400,
+        1456,
+        2185,
+        1528
+      ]
+    },
+    {
+      "text": "打开",
+      "desc": "打开：audit615-note (3).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2220,
+        1393,
+        2445,
+        1537
+      ]
+    },
+    {
+      "text": "更多",
+      "desc": "更多：audit615-note (3).txt",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2468,
+        1393,
+        2641,
+        1537
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1577,
+        217,
+        1600
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1600,
+        2664,
+        1620
+      ]
+    },
+    {
+      "desc": "下载文件：audit615-note (2).txt",
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1600,
+        2664,
+        1620
+      ]
+    },
+    {
+      "text": "工具条已显示",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1286,
+        1439,
+        1594,
+        1548
+      ]
+    }
+  ],
+  "nativeViews": [
+    {
+      "text": "下载 · 6",
+      "textPx": 44,
+      "color": "#FFE8EDF2",
+      "bounds": [
+        352,
+        0,
+        2458,
+        156
+      ]
+    },
+    {
+      "text": "打开目录",
+      "textPx": 34,
+      "color": "#FF8EC5FF",
+      "bounds": [
+        2458,
+        0,
+        2664,
+        156
+      ]
+    },
+    {
+      "text": "保存到 应用内目录",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        256,
+        243,
+        2425,
+        299
+      ]
+    },
+    {
+      "text": "\/storage\/emulated\/0\/Android\/data\/com.carweb.tvb\/files\/Download · 点这里更改",
+      "textPx": 28,
+      "color": "#FF91A0B1",
+      "bounds": [
+        256,
+        299,
+        2425,
+        341
+      ]
+    },
+    {
+      "text": "更改",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2425,
+        226,
+        2641,
+        358
+      ]
+    },
+    {
+      "text": "全部 6",
+      "textPx": 30,
+      "color": "#FFC6E6CC",
+      "bounds": [
+        216,
+        439,
+        815,
+        589
+      ]
+    },
+    {
+      "text": "进行中 0",
+      "textPx": 30,
+      "color": "#FFAFBAC5",
+      "bounds": [
+        832,
+        439,
+        1431,
+        589
+      ]
+    },
+    {
+      "text": "已完成 6",
+      "textPx": 30,
+      "color": "#FFAFBAC5",
+      "bounds": [
+        1448,
+        439,
+        2047,
+        589
+      ]
+    },
+    {
+      "text": "失败\/取消 0",
+      "textPx": 30,
+      "color": "#FFAFBAC5",
+      "bounds": [
+        2064,
+        439,
+        2664,
+        589
+      ]
+    },
+    {
+      "text": "audit615-note (6).txt",
+      "textPx": 40,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        400,
+        661,
+        2185,
+        715
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "textPx": 30,
+      "color": "#FF8DE0AF",
+      "bounds": [
+        400,
+        715,
+        2185,
+        787
+      ]
+    },
+    {
+      "text": "打开",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2220,
+        652,
+        2445,
+        796
+      ]
+    },
+    {
+      "text": "更多",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2468,
+        652,
+        2641,
+        796
+      ]
+    },
+    {
+      "text": "audit615-note (5).txt",
+      "textPx": 40,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        400,
+        908,
+        2185,
+        962
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "textPx": 30,
+      "color": "#FF8DE0AF",
+      "bounds": [
+        400,
+        962,
+        2185,
+        1034
+      ]
+    },
+    {
+      "text": "打开",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2220,
+        899,
+        2445,
+        1043
+      ]
+    },
+    {
+      "text": "更多",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2468,
+        899,
+        2641,
+        1043
+      ]
+    },
+    {
+      "text": "audit615-note (4).txt",
+      "textPx": 40,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        400,
+        1155,
+        2185,
+        1209
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "textPx": 30,
+      "color": "#FF8DE0AF",
+      "bounds": [
+        400,
+        1209,
+        2185,
+        1281
+      ]
+    },
+    {
+      "text": "打开",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2220,
+        1146,
+        2445,
+        1290
+      ]
+    },
+    {
+      "text": "更多",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2468,
+        1146,
+        2641,
+        1290
+      ]
+    },
+    {
+      "text": "audit615-note (3).txt",
+      "textPx": 40,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        400,
+        1402,
+        2185,
+        1456
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "textPx": 30,
+      "color": "#FF8DE0AF",
+      "bounds": [
+        400,
+        1456,
+        2185,
+        1528
+      ]
+    },
+    {
+      "text": "打开",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2220,
+        1393,
+        2445,
+        1537
+      ]
+    },
+    {
+      "text": "更多",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2468,
+        1393,
+        2641,
+        1537
+      ]
+    },
+    {
+      "text": "audit615-note (2).txt",
+      "textPx": 40,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        400,
+        1649,
+        2185,
+        1703
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "textPx": 30,
+      "color": "#FF8DE0AF",
+      "bounds": [
+        400,
+        1703,
+        2185,
+        1775
+      ]
+    },
+    {
+      "text": "打开",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2220,
+        1640,
+        2445,
+        1784
+      ]
+    },
+    {
+      "text": "更多",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2468,
+        1640,
+        2641,
+        1784
+      ]
+    },
+    {
+      "text": "audit615-note (1).txt",
+      "textPx": 40,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        400,
+        1896,
+        2185,
+        1950
+      ]
+    },
+    {
+      "text": "已完成 · 18 B",
+      "textPx": 30,
+      "color": "#FF8DE0AF",
+      "bounds": [
+        400,
+        1950,
+        2185,
+        2022
+      ]
+    },
+    {
+      "text": "打开",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2220,
+        1887,
+        2445,
+        2031
+      ]
+    },
+    {
+      "text": "更多",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        2468,
+        1887,
+        2641,
+        2031
+      ]
+    },
+    {
+      "text": "清除已结束的记录",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        2120,
+        2434,
+        2176
+      ]
+    },
+    {
+      "text": "只清列表，不删除已经下载的文件",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        2176,
+        2434,
+        2232
+      ]
+    },
+    {
+      "text": "清除",
+      "textPx": 32,
+      "color": "#FF8EC5FF",
+      "bounds": [
+        2434,
+        2124,
+        2664,
+        2228
+      ]
+    },
+    {
+      "text": "工具条已显示",
+      "textPx": 34,
+      "color": "#FFF2F4F8",
+      "bounds": [
+        1286,
+        1439,
+        1594,
+        1548
+      ]
+    }
+  ],
+  "width": 2880,
+  "height": 1620
+}

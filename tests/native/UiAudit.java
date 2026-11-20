@@ -91,6 +91,7 @@ public final class UiAudit extends Instrumentation {
     private void act(JSONObject s) throws Exception {
         String op=s.optString("op","capture");
         if("capture".equals(op)) return;
+        if("icons".equals(op)) { JSONObject r=IconAudit.run(getTargetContext(),out);write(new File(out,"icons.json"),r);if(!r.optBoolean("pass"))throw new AssertionError(r.toString());return; }
         if("update-flow".equals(op)) { JSONObject r=UpdateFlowAudit.run(this,activity,out);write(new File(out,"update-flow.json"),r);if(!r.optBoolean("pass"))throw new AssertionError(r.toString());return; }
         if("backend".equals(op)) {
             JSONObject result=DownloadAudit.run(getTargetContext()); JSONObject update=UpdateAudit.run(getTargetContext());

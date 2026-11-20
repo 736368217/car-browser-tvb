@@ -386,7 +386,8 @@
 
     var minus = document.createElement('span');
     minus.className = 'minus';
-    minus.textContent = '−';
+    minus.setAttribute('aria-label', '删除收藏：' + nameFor(url));
+    minus.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>';
     minus.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -582,10 +583,11 @@
     renderAll();
   }
 
-  var SVG_MORE = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">'
-    + '<path d="M6 9l6 6 6-6"></path></svg>';
-  var SVG_LESS = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">'
-    + '<path d="M6 15l6-6 6 6"></path></svg>';
+  // Lucide paths; ISC/MIT notices in assets/licenses/lucide.txt.
+  var SVG_MORE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="m6 9 6 6 6-6"></path></svg>';
+  var SVG_LESS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="m18 15-6-6-6 6"></path></svg>';
 
   function makeMoreButton(expanded) {
     var b = document.createElement('button');

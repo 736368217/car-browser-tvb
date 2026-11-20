@@ -1,0 +1,212 @@
+{
+  "checks": [
+    {
+      "icon": "BACK",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "FORWARD",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "REFRESH",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "HOME",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "STAR",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "MENU",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "CLOSE",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "TABS",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "DOWN",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "SEARCH",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "CLOCK",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "SHARE",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "DESKTOP",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "MOON",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "EXPAND",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "TRASH",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "POWER",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "SLIDERS",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "SETTINGS",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "NEW_TAB",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "ABOUT",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "READER",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "NO_IMAGE",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "SHIELD",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "ERASER",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "COLLAPSE",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "CHEVRON_LEFT",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "CHEVRON_RIGHT",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "PLUS",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "FILE",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "FILE_TEXT",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "FILE_IMAGE",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "FILE_VIDEO",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "FILE_AUDIO",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "APK",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "MINUS",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "CHEVRON_DOWN",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "CHEVRON_UP",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "GLOBE",
+      "pass": true,
+      "error": ""
+    },
+    {
+      "icon": "UPDATE",
+      "pass": true,
+      "error": ""
+    }
+  ],
+  "failed": 0,
+  "iconCount": 40,
+  "sizes": [
+    24,
+    64,
+    78
+  ],
+  "pass": true
+}

@@ -1,0 +1,302 @@
+{
+  "failed": 0,
+  "steps": [
+    {
+      "name": "00-home-toolbar",
+      "action": {
+        "name": "home-toolbar",
+        "expect": [
+          "百度",
+          "后退",
+          "下载",
+          "菜单"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "01-native-vector-rendering",
+      "action": {
+        "name": "native-vector-rendering",
+        "op": "icons"
+      },
+      "pass": true
+    },
+    {
+      "name": "02-menu-page-one",
+      "action": {
+        "name": "menu-page-one",
+        "op": "click",
+        "target": "菜单",
+        "expect": [
+          "新建标签",
+          "标签页",
+          "书签",
+          "历史",
+          "下载",
+          "分享",
+          "设置",
+          "关于",
+          "全屏",
+          "退出"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "03-menu-page-two",
+      "action": {
+        "name": "menu-page-two",
+        "op": "swipe",
+        "x": 2300,
+        "y": 1200,
+        "toX": 700,
+        "toY": 1200,
+        "expect": [
+          "页内查找",
+          "阅读模式",
+          "夜间模式",
+          "无图模式",
+          "电脑模式",
+          "广告过滤",
+          "检查更新"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "04-menu-close",
+      "action": {
+        "name": "menu-close",
+        "op": "click",
+        "target": "关闭功能页",
+        "expect": [
+          "地址栏"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "05-menu-for-new-tab",
+      "action": {
+        "name": "menu-for-new-tab",
+        "op": "click",
+        "target": "菜单"
+      },
+      "pass": true
+    },
+    {
+      "name": "06-new-tab",
+      "action": {
+        "name": "new-tab",
+        "op": "click",
+        "target": "新建标签",
+        "expect": [
+          "百度"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "07-tabs",
+      "action": {
+        "name": "tabs",
+        "op": "click",
+        "target": "标签页",
+        "expect": [
+          "首屏",
+          "当前",
+          "新建"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "08-tabs-return",
+      "action": {
+        "name": "tabs-return",
+        "op": "click",
+        "target": "返回",
+        "expect": [
+          "菜单"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "09-menu-for-fullscreen",
+      "action": {
+        "name": "menu-for-fullscreen",
+        "op": "click",
+        "target": "菜单"
+      },
+      "pass": true
+    },
+    {
+      "name": "10-fullscreen",
+      "action": {
+        "name": "fullscreen",
+        "op": "click",
+        "target": "全屏",
+        "expect": [
+          "退出全屏"
+        ],
+        "absent": [
+          "地址栏"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "11-fullscreen-restore",
+      "action": {
+        "name": "fullscreen-restore",
+        "op": "click",
+        "target": "退出全屏",
+        "expect": [
+          "地址栏",
+          "菜单"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "12-downloads",
+      "action": {
+        "name": "downloads",
+        "op": "click",
+        "target": "下载",
+        "expect": [
+          "保存位置",
+          "文件类型：文本",
+          "打开目录"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "13-downloads-return",
+      "action": {
+        "name": "downloads-return",
+        "op": "click",
+        "target": "返回",
+        "expect": [
+          "菜单"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "14-menu-bookmarks",
+      "action": {
+        "name": "menu-bookmarks",
+        "op": "click",
+        "target": "菜单"
+      },
+      "pass": true
+    },
+    {
+      "name": "15-bookmarks",
+      "action": {
+        "name": "bookmarks",
+        "op": "click",
+        "target": "书签",
+        "expect": [
+          "书签",
+          "删除："
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "16-bookmarks-return",
+      "action": {
+        "name": "bookmarks-return",
+        "op": "click",
+        "target": "返回",
+        "expect": [
+          "菜单"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "17-menu-settings",
+      "action": {
+        "name": "menu-settings",
+        "op": "click",
+        "target": "菜单"
+      },
+      "pass": true
+    },
+    {
+      "name": "18-settings",
+      "action": {
+        "name": "settings",
+        "op": "click",
+        "target": "设置",
+        "expect": [
+          "搜索引擎",
+          "夜间模式",
+          "打开：搜索引擎"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "19-settings-lower",
+      "action": {
+        "name": "settings-lower",
+        "op": "swipe",
+        "x": 2100,
+        "y": 1450,
+        "toX": 2100,
+        "toY": 300,
+        "duration": 600
+      },
+      "pass": true
+    },
+    {
+      "name": "20-about",
+      "action": {
+        "name": "about",
+        "op": "click",
+        "target": "关于车览浏览器",
+        "expect": [
+          "版本 6.22",
+          "R2 发布通道"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "21-settings-parent",
+      "action": {
+        "name": "settings-parent",
+        "op": "click",
+        "target": "返回",
+        "expect": [
+          "下载目录"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "22-home-return",
+      "action": {
+        "name": "home-return",
+        "op": "click",
+        "target": "返回",
+        "expect": [
+          "百度",
+          "地址栏"
+        ]
+      },
+      "pass": true
+    }
+  ],
+  "pid": 2584,
+  "package": "com.carweb.tvb",
+  "apkPath": "\/data\/app\/~~Y8xPEhJbuuzOCIfBbVud9g==\/com.carweb.tvb-MHeZ9R_xkqyF1rhxQcFlGA==\/base.apk",
+  "sha256": "89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7"
+}
