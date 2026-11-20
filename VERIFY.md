@@ -2,18 +2,35 @@
 
 当前用法、构建与发布步骤见 [README.md](README.md)。本文件只记录版本身份、已验证范围和仍未验证的边界；旧版本的通过数不能累加为当前版全量通过。
 
-## 当前发布身份（2026-11-20 UTC 核对）
+## 当前发布身份（2026-11-21 UTC 核对）
 
 | 项 | 结果 |
 |---|---|
-| 应用 | `com.carweb.tvb`，Manifest / BuildConfig 为 **6.22 / 32** |
-| R2 主通道 | `car-browser/car-browser-6.22.apk`，**763,750 bytes** |
-| 已发布 / 已安装 APK SHA-256 | `89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7` |
-| R2 回读 | `latest.json`、`history/6.22.json` 与公开下载的完整 APK 均和已验收包的大小、SHA-256 一致。 |
-| GitHub 兜底 | `v6.22` 于 2026-11-20 16:08:38 UTC 发布，已在公开 latest 接口出现。资产及公开链接下载的 APK 均为 763,750 B，SHA-256 与上表一致。 |
-| 证据归档 | [6.22 清单](smoke/v622/lucide-89f5bfa2/manifest.json)，15 个证据文件，清单另计；图标来源/资源摘要见 [Lucide 来源清单](third_party/lucide/source.json)。 |
+| 应用 | `com.carweb.tvb`，Manifest / BuildConfig 为 **6.23 / 33** |
+| R2 主通道 | `car-browser/car-browser-6.23.apk`，**763,750 bytes** |
+| 已发布 / 已安装 APK SHA-256 | `db287ece7d62307d2aef58c4640ca8d8b8e2aeb67adc201b07d97a134b83055f` |
+| R2 回读 | `latest.json` 与 `history/6.23.json` 均为 6.23/33；完整下载为 763,750 B，SHA 与最终安装包一致。R2 `publishedAt` 为 `2026-11-20T17:36:47Z`。 |
+| GitHub 兜底 | `v6.23` 于 `2026-11-20T17:32:02Z` 发布；资产摘要与本地包一致，完整下载亦为 763,750 B / 同 SHA。 |
+| 证据归档 | [6.23 清单](smoke/v623/motion-db287ece/manifest.json)，160 个逐文件 SHA/大小记录；清单另计。 |
 
-构建与设备验收的归档提交为 `cb36caabd53549138a814828f36d73fc2607091a`，GitHub `v6.22` 标签指向该提交。发布收尾沿用已验收的 APK，文档与注释更新由 `main` 跟踪。
+源码、原生验收及证据提交为 `d906ba99a086576bd9649373c939c9387bfe9b9d`，已推送至 `main`；GitHub `v6.23` 标签指向本轮构建提交。
+
+## 6.23：菜单与页面动效
+
+[离线效果与验收报告](reports/motion-6.23.html) 内嵌 7 张 2880×1620 原生画面，附逐文件证据清单。
+
+| 检查 | 结果 | 可复核来源 |
+|---|---:|---|
+| 页面交互 | 23/23，失败 0 | [result.json](smoke/v623/motion-db287ece/final-pages-r2/result.json)，guest 安装 SHA 与上表一致 |
+| 动画倍率 1.0 | 23/23，失败 0 | [motion.json](smoke/v623/motion-db287ece/final-motion/motion.json)，逐帧记录 228 帧、5 张动画中间态截图 |
+| 系统动画关闭 | 23/23，失败 0 | [motion.json](smoke/v623/motion-db287ece/final-motion-disabled/motion.json)；另有 [即时菜单截图检查](smoke/v623/motion-db287ece/final-motion-disabled-snapshot/result.json) 1/1 |
+| 崩溃 | 页面、动画及倍率关闭批次的 crash buffer 均为 0 B | 各批次 `crash.txt` |
+| 构建与签名 | Java、d8、zipalign、v1/v2/v3 签名通过 | Build Tools 35.0.0 / compile SDK 35，沿用原证书 SHA-256 `8eec23c3c7c129ab422c3f61ee2981abac7b397cf947b1c8fbef22ac6ffaeb55` |
+| 设备恢复 | 四份 SharedPreferences 逐文件 cmp 通过；动画倍率恢复 0；审计 APK、guest 输出和本轮备份移除 | 恢复脚本输出 `RESTORE_OK`、`TEST_APK_ABSENT`、`MOTION_OUTPUTS_ABSENT`、`BACKUP_REMOVED` |
+
+设备为 MuMu 6.8.7 / Android 15 API 35；截图前确认 `init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`、`w2880dp h1620dp 160dpi … land`，音量 0。6.22 对照 SHA 为 `89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7`，原页面计划 23/23，动效审计 22/22。菜单最大进入位移由 691 px 降至 52 px；父页返回最低 alpha 为 0.88，滚动位置 `832/832 px` 恢复；全屏仍保留可点的恢复手柄。
+
+**未验证：**零跑 B01 Android 12L/API 32 真车、应用内在线检查/安装更新流程、额外人工视觉评分。报告中的截图来自原生验收；Ego 报告页截图通道超时，未据此声称完成浏览器视觉评审。MuMu Android 15 结果不替代真车验收。
 
 ## 6.22：图标与页面专项
 
