@@ -54,14 +54,14 @@ import java.security.MessageDigest;
 import java.util.ArrayDeque;
 
 /**
- * 电视机上的浏览器。
+ * 车览触摸车机浏览器，在上游 TV WebView 浏览器基础上扩展。
  *
  * 启动进本地首屏（assets/home.html：搜索框 + 收藏 + 最近打开），
  * 从首屏点开的网站一律开成**新标签页**：首屏留在最底下，返回键就是关掉
  * 当前标签页、原地回到上一个 —— 不会像"当前页跳转"那样重新加载一遍。
  *
  * 标签页栈的第一个永远是首屏，回收标签页时不会把它回收掉，
- * 所以不管逛到哪儿、按多少次返回，最后总能回到首屏；在首屏再按返回就是退出确认。
+ * 主页根部返回只提示；退出由功能菜单显式确认，具体回退顺序见 handleAppBack()。
  */
 public class MainActivity extends Activity implements BrowserWebView.Listener {
 
@@ -280,7 +280,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     /* ============================================================ 车机工具条 == */
     /*
-     * B 线相对上游唯一的版面改动：顶部加一条常驻工具条。
+     * 触摸车机工具条：导航、地址输入与常用操作分组，其他功能在整页和菜单中。
      *
      * 上游的设计是"首屏搜索 + 遥控器返回键"，没有地址栏 —— 在电视上用遥控器没问题，
      * 但车机是 17.3 寸触摸屏，用户会想在任意页面直接改地址、直接后退/刷新。
@@ -2061,7 +2061,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     /*
      * 原来点菜单是一个竖排 AlertDialog 列表，又窄又丑。
      * 改成参考 Via 的做法：从底部升起一页功能网格 —— 图标 + 文字、5 列两行，
-     * 底部有分页圆点、电源键和翻页箭头。目标大、扫一眼就能点到。
+     * 底部有分页圆点、关闭功能页按钮和翻页箭头。目标大、扫一眼就能点到。
      */
 
     private FrameLayout sheetLayer;

@@ -1,165 +1,115 @@
 # 车览（CHELAN）
 
-给 **17.3 英寸触摸车机**（零跑 B01，Android 12L / API 32 / 2880×1620）用的 WebView 浏览器。
+面向零跑 B01 触摸车机的 Android WebView 浏览器，目标显示环境为 2880×1620、160dpi、横屏。基于 `viyiviyi/tv-browser` 改造；项目来源与既有许可限制见 [NOTICE.md](NOTICE.md)。
 
-基于 [`viyiviyi/tv-browser`](https://github.com/viyiviyi/tv-browser) 改造 —— 上游是给电视遥控器设计的，
-这个仓库把它改成**手指触摸优先**，并补上了车机上真正会用到的浏览功能。
+## 当前状态
 
-> 上游仓库没有 LICENSE 文件（默认保留所有权利），所以**本仓库仅供自用/学习，不对外分发**。
-> 详见 [NOTICE.md](NOTICE.md)。
+截至 **2026-11-20（UTC）**，R2 主通道与 GitHub Release 均提供 **6.22（versionCode 32）**，包含 Lucide 图标统一和此前的下载记录恢复修复。完整 SHA、大小与验收范围见 [VERIFY.md](VERIFY.md)。
 
----
+零跑 B01 Android 12L/API 32 真车验收待补，已完成的图标与页面验收在 MuMu Android 15/API 35 上执行。
 
-## 截图与实测
+- [6.22 图标效果与验收报告](reports/lucide-6.22.html)：内嵌本轮截图和原生图标总览。
+- [6.21 下载恢复报告](reports/download-recovery-6.21.html)：历史专项证据，不充当 6.22 的重测结果。
+- [6.20 全量验收报告](reports/main-full-20261120.html)：历史版本报告，按其实际安装 SHA 解读。
+- [项目执行约束](AGENTS.md)：给后续 Agent 的最小入口。
 
-| 项 | 值 |
+## 使用
+
+| 功能 | 当前行为 |
 |---|---|
-| 目标分辨率 | 2880×1620 @160dpi，横屏 |
-| 工具条 | 高 156px，8 个按钮热区各 136×128；导航/地址/动作分组，地址栏 1610×112（`[669,22][2279,134]`），下载直达 |
-| 首屏 | 7 列站点格 302×371（实测 `[194,469][496,841]`），列间距 63px，左右边距各 194px；图标格子 = 10.5vw |
-| 渲染内核 | Android System WebView（随车机固件，无法升级） |
+| 导航 | 地址栏兼作搜索框；后退、前进、主页、标签页在工具栏。主页保留其他标签，最多同时保留 5 个标签。 |
+| 返回与全屏 | 功能页可返回父页；主页根部只提示，不因一次返回退出。没有页面级浮动返回按钮；全屏隐藏工具栏，右上角“退出全屏”手柄恢复工具栏。退出应用用菜单“退出”。 |
+| 首页与收藏 | 7 列站点网格，品牌 Logo 随包内置；长按进入拖动排序/删除编辑。搜索引擎在设置中选择。 |
+| 外部网页 | 桌面/手机版 UA 切换、页内查找、阅读、夜间/无图模式、广告过滤、多窗口标签和视频全屏。触摸按住约 400ms 可触发鼠标悬停。 |
+| 下载 | 系统下载目录（Android 10+ MediaStore）、应用私有目录、自选文件夹（SAF）；支持进度、取消、失败重试、打开、分享、删除文件和仅删记录。清空记录不会删除完成文件。 |
+| 文件打开 | 图片/文本可在应用内预览，其他类型交给系统应用；APK 交给系统安装器。旧私有路径或 MediaStore URI 失效时尝试重定位，确实缺失时改为可重试状态；SAF 仍需有效授权。 |
+| 图标 | 操作图标使用离线 Lucide 原生矢量；站点 Logo 与应用启动图标保留品牌标识。 |
 
----
-
-## 它解决的两个真问题
-
-### 1. 长按 0.4 秒 = 鼠标悬停
-
-触屏上根本没有 `hover` 这回事：点一下触发 `click` 就走开了。而大量**电脑版网页**把关键操作
-藏在 CSS `:hover` 里 —— 播放器的"立即播放"浮层、下拉菜单、卡片小按钮、tooltip，手指够不着。
-
-本项目的做法：手指按住不动 **400ms**，就向该坐标派发一次真实的 `ACTION_HOVER_MOVE`，
-并把事件源标成 `SOURCE_MOUSE`。页面于是以为有鼠标停在那里。松手后悬停**保留**，
-因为接下来通常就是要点 hover 出来的那个按钮；手指移动超过 touch slop 则取消，不干扰滚动。
-
-400ms 是刻意取的：早于系统长按判定（500ms），抢在文本选择手柄弹出之前派发。
-
-### 2. 首屏是触摸版，不是遥控器版
-
-上游首屏按 `min(W×0.155, H×0.19)` 上限 168px 算卡片，在 2880 宽的车机上排成 12 列小图标。
-本仓库固定 7 列，站点格子为 10.5vw（2880 宽 302px），间距 2.2vw，14 个站点两行显示。
-6.16 起每格都是**同一张圆角卡片**（logo 缩到卡片内 62% 居中，不再一半圆角一半直角）。
-首页不再单设搜索框 —— 顶部地址栏二合一：输入网址就访问，输入文字就走搜索引擎。
-
----
-
-## 功能
-
-| 分组 | 功能 |
-|---|---|
-| 导航 | 返回 / 前进 / 刷新 / 主页 / 地址栏（网址或搜索词） |
-| 标签 | 多标签栈（最多 5 个，首屏永驻栈底）+ 整页标签卡片（切换 / 单个关闭 / 新建） |
-| 收藏 | 默认 13 个站点图标（IconResource 1024px 打包进 APK）；长按进入编辑：拖动排序、点 − 删除、完成保存 |
-| 页面 | 桌面版↔手机版 UA 一键切换、双指缩放、清除缓存 |
-| 媒体 | 视频全屏（`onShowCustomView`）、免手势自动播放 |
-| 下载 | 自带下载中心：保存位置可选（系统下载目录 / 应用私有 / 自选文件夹）、真实进度、可取消/重试；点一条即打开文件，长按可分享、打开所在目录、复制路径、删除 |
-| 外观 | 沉浸式全屏、矢量图标（24 视框标准绘制）、全屏时右上角圆形手柄退出（`退出全屏`） |
-| 输入 | 地址栏回车即走、软键盘自动收起 |
-| 整页 | 历史 / 书签 / 下载 / 标签 / 设置都是**整页**（顶部返回栏 + 可滚动列表），不再是弹窗 |
-| 交互 | 功能页两页左右滑动；夜间、无图、广告过滤均持久化；前进/后退在工具条（页面上不放返回按钮） |
+渲染内核由设备的 Android System WebView 提供，本项目不打包浏览器内核。目标车机上的系统权限和安装限制须以真车实测为准。
 
 ## 构建
 
-要求：JDK 17+、Android SDK（build-tools 34、platform android-35）。不需要 Gradle。
+运行时是 Java + Android 框架，不需要 Gradle。构建要求 **JDK 17+、Android SDK Build Tools 35.0.0、platforms/android-35**；脚本固定 compile SDK 35，APK 为 minSdk 21 / targetSdk 33。
+
+在仓库根目录执行：
 
 ```powershell
+$env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
-# 产物：dist\car-browser-<版本>.apk
+[xml]$manifest = Get-Content .\AndroidManifest.xml -Raw -Encoding UTF8
+$version = [string]$manifest.manifest.versionName
+Get-FileHash -Algorithm SHA256 ".\dist\car-browser-$version.apk"
 ```
 
-首次构建会自动生成签名证书到 `keystore/carweb.jks`（**不进仓库**）。
-想用自己的证书：设 `CARWEB_KEYSTORE` / `CARWEB_KEYSTORE_PASS` / `CARWEB_KEYSTORE_ALIAS`。
+SDK 不在上述位置时，将 `ANDROID_HOME` 指向实际 SDK 根目录；未设置时生产构建脚本也会查找 `%LOCALAPPDATA%\Android\Sdk`。
 
-## 自动更新与发布（v6.17 起走 Cloudflare R2）
+- 版本号需同时修改 [AndroidManifest.xml](AndroidManifest.xml) 与 [BuildConfig.java](src/com/carweb/tvb/BuildConfig.java)，否则安装身份和关于页/更新比较会不一致。
+- 签名使用原证书；支持 `CARWEB_KEYSTORE`、`CARWEB_KEYSTORE_PASS`、`CARWEB_KEYSTORE_ALIAS`。脚本缺证书时会生成新证书，但新证书不能冒充原签名用于覆盖升级。私钥不进 Git。
+- `build.ps1` 含中文，Windows PowerShell 5.1 下须保留 UTF-8 BOM。脚本逐步检查 `$LASTEXITCODE`；javac 的正常 stderr 提示不等于构建失败。
+- 构建会覆盖同名 `dist` 产物。重建包不保证整包字节级复现；发布前保存并验收将要上传的确切 SHA，不要用另一次重建包替换它。
 
-发布通道已从 GitHub Release 迁到 **Cloudflare R2 + Worker**：
+### 图标维护
 
-- 分发域名：`https://dl.736.de5.net`（R2 自定义域名，Worker `cf-releases` 用 R2 binding 读写）
-- 清单：`https://dl.736.de5.net/car-browser/latest.json` → `{version, versionCode, apk, size, sha256, notes}`
-- 安装包：`https://dl.736.de5.net/car-browser/car-browser-<版本>.apk`
-- 手动下载页：`https://dl.736.de5.net/`（Worker 现场渲染，列出所有项目的最新包；应用内「关于 → 手动下载」就是这个地址）
-- 客户端：先读 R2 清单（8 秒超时），读不到才回落到 GitHub API / 发布页 —— 老版本客户端仍走 GitHub，不会失联。
-- APK 里**不含任何 token**；上传口令只存在本机 `Desktop\认证\r2-upload-token.txt`，由 Worker 校验 `X-Upload-Token`。
-
-链路：读清单（数字段比较版本）→ DownloadManager 下载 → 校验清单里的 sha256 与大小 → 交给系统安装器。
-安装需要用户允许「安装未知应用」，关于页会提示并给出「去设置」入口；任何一步失败都显示可读原因，不伪装成功。
-
-发布（一条命令，自带回读校验与免费额度守卫）：
+官方版本、40 个 SVG 及生成资源的摘要见 [Lucide 来源清单](third_party/lucide/source.json)，完整许可见 [Lucide LICENSE](third_party/lucide/LICENSE)；APK 内也带 `assets/licenses/lucide.txt`。
 
 ```powershell
-powershell -NoProfile -File tools\publish_r2.ps1 -Project car-browser -Version 6.17 -VersionCode 27 `
-           -Apk dist\car-browser-6.17.apk -Notes "本次改了什么"
+python -B .\tools\import_lucide.py
 ```
 
-它会算 SHA-256、传 APK、写 `latest.json` 与 `history/<版本>.json`，再回读确认清单里有本次 sha、APK 返回 200。
-存储守卫默认 5 GB（R2 免费额度 10 GB）：超过就直接拒绝并提示清理旧对象，删完再跑即恢复。
+该命令只用仓库内 SVG 重新生成原生矢量，不联网。只有有意更新固定的官方源码版本时才使用 `--fetch`，并一同提交 SVG、资源、来源清单及许可。圆弧标志需要分隔以兼容 Android PathParser；整套图标使用统一安全边距，不能靠单独缩放某几个图标掩盖裁切。
 
-Worker 源码与部署：`tools/r2-worker.mjs`、`tools/deploy_worker.py`（`--attach` / `--route` / `--status`）。
-本机到 R2 的 S3 端点 TLS 被中间层打断，因此**不要**改用 S3 直传；上传一律走 Worker 的 `PUT`。
-### 验收边界
+## 验收
 
-MuMu 车机档已回归首屏网格、功能面板两页与翻页、工具条后退/前进、标签保留、偏好持久化、
-全屏恢复、设置子页返回、下载与自动更新；截图在 `car-browser/smoke/`。
-未连接真车，MuMu 结果不替代真车验收，详见 `VERIFY.md`。
+1. 本地脚本检查可执行 `node --check .\assets\home.js`；原生审计构建需要 Python 3.9+。审计脚本保留了机器专用 SDK 默认值，跨工作区**显式设置 `ANDROID_HOME`**，不要依赖该默认值。
+2. 在 PI-Desktop 中把输出放入会话 scratch，再构建独立 instrumentation APK：
 
-### 两个构建坑（已修，别踩回去）
+   ```powershell
+   $env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA 'Android\Sdk'
+   $auditOut = Join-Path $env:PI_SCRATCH_DIR 'car-browser-audit'
+   python -B .\tests\native\build_audit.py $auditOut
+   ```
 
-1. **`build.ps1` 必须存成 UTF-8 with BOM**。PowerShell 5.1 会按 ANSI(GBK) 解析无 BOM 的 UTF-8，
-   中文注释把引号配对打乱，报出莫名其妙的 `Unexpected token 'res.zip'`。
-2. **`$ErrorActionPreference` 不能是 `Stop`**。keytool / javac 把正常信息写到 stderr，
-   Stop 模式下会被当成 terminating error 中断构建 —— keytool 明明已经生成了证书，脚本却停住。
+   其他环境由调用者指定等价的临时输出目录。当前审计构建器固定使用 `keystore/carweb.jks`，不读取生产构建的 `CARWEB_KEYSTORE*` 覆盖项；自定义签名场景要先核对两包签名，不得为安装审计包卸载主应用。
+3. MuMu 操作遵守上级规则：全局实例池独占租约、每次操作前 `check`、全程静音、设备操作走 MuMu 插件。先验证实例级 2880×1620 @160dpi 和实际显示几何，禁止用 `wm size` 伪造车机档。备份偏好，结束恢复并释放自己的租约。
+4. [6.22 图标计划](tests/native/tour-icons-622.json) 是当前图标/页面专项。其他 `tour-*.json` 中有固定旧版本预期，尤其 `tour-final.json`、`tour-core-620.json`、`tour-update-live.json`，选用前须核对，不能直接当作当前版全量通过。
+5. 网页/下载 fixture 使用 [fixture_server.py](tests/native/fixture_server.py) 的 8099 端口，来宾访问 `http://10.0.2.2:8099`。更新下载测试须把 `CARWEB_AUDIT_APK` 指向本轮 APK，脚本默认仍是历史 6.20 文件。fixture 必须由可靠后台任务托管，结束后停止并核对端口；不要把服务退出导致的拒绝连接当成产品缺陷。
+6. 每批核对 guest 安装 `base.apk` SHA、`result.json`、业务检查、原生节点/截图与 crash buffer。`instrument_rc=0`、安装成功或 PID 存活均不能单独算通过。原始证据按版本与 SHA 归档，不能改历史 SHA 充当新结果。
 
-## 目录
+`smoke/` 默认被忽略，仅显式归档需共享的本轮证据及摘要；不要批量解除忽略，也不要提交 APK、私钥、偏好备份或原始凭据。
 
-```
-AndroidManifest.xml      清单（uses-feature 全 false，车机安装器按特性过滤）
-build.ps1                构建脚本（aapt2 + javac + d8 + apksigner）
-src/com/carweb/tvb/
-  MainActivity.java      版面、工具条、标签、菜单、下载
-  BrowserWebView.java    WebView 配置、长按悬停、遥控器按键
-  GlyphIcon.java         矢量图标（24 视框）
-  SiteStore.java        收藏 / 历史记录 / 最近 / 搜索引擎 / 自定义名称
-  BrowserBridge.java     网页 → 原生的窄接口（kbHost）
-  KeyPolicy.java         遥控器按键策略
-  RemoteKey.java         按键映射
-assets/
-  home.html              首屏结构
-  home.css               首屏样式（vw 量纲）
-  home.js                首屏逻辑（渲染、长按、排序）
-  keynav-web.js          上游空间导航脚本（上游构建产物，原样保留；源码在上游 src-web/）
-res/mipmap-*/ic_launcher.png        启动图标（5 档密度，已抠图、透明底）
-res/mipmap-*/ic_launcher_fg.png     自适应图标前景（宝石 + 金环，透明底）
-res/mipmap-anydpi-v26/ic_launcher.xml  自适应图标（深绿渐变底 + 前景）
-res/drawable/ic_launcher_bg.xml     自适应图标底色（径向渐变）
+## 更新与发布
+
+主清单为 `https://dl.736.de5.net/car-browser/latest.json`，对象为 `car-browser/car-browser-<版本>.apk`；手动下载页为同域名根路径。更新器按 **R2 清单 → GitHub API → Release 页面** 顺序读取；R2 连接超时 4 秒、读取超时 6 秒。R2 清单要求有效版本、项目路径、大小和 SHA；GitHub 路径在没有摘要时不能声称完成哈希校验。
+
+应用更新使用 DownloadManager，校验后交给系统安装器，并受设备的安装授权限制。它不会绕过 OEM 策略；所有来源均不可达时显示失败。缺失或较旧的 GitHub Release 不等于与 R2 等价的兜底版本。
+
+按项目发布约定，更新通过相关验证后提交推送，并完成 R2 和 GitHub 发布收口。确认构建提交可在远端读取后，用已验收的 APK 执行 R2 发布：
+
+```powershell
+[xml]$manifest = Get-Content .\AndroidManifest.xml -Raw -Encoding UTF8
+$version = [string]$manifest.manifest.versionName
+$versionCode = [int]$manifest.manifest.versionCode
+$apk = Join-Path '.\dist' "car-browser-$version.apk"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\publish_r2.ps1 `
+    -Project car-browser -Version $version -VersionCode $versionCode -Apk $apk `
+    -Notes '填写本次用户可见更新说明'
 ```
 
-## 版本
+R2 脚本经 Worker 上传 APK、`latest.json` 和 `history/<版本>.json`，可用 `-TokenFile` 指定本机令牌文件，默认占用守卫为 5 GiB。GitHub 兜底由 `gh release` 单独维护。先查目标版本的 Release 和资产，补齐缺失资产时使用与 R2 相同的 APK 和用户可见说明，标签指向已推送的构建提交。已有资产与验收 SHA 一致时直接回读核对。
 
-- **6.22** — 操作图标统一为 Lucide 官方线性图标：工具栏、两页菜单、下载文件类型、书签/历史删除、设置箭头、全屏恢复及首页辅助操作。使用离线原生矢量，统一 24×24 视框、2px 圆角描边及安全边距；区分新建标签/标签页、关于/阅读、无图/电脑、设置/过滤等功能语义。Manifest 与 BuildConfig 为 6.22 (32)，763,750 B，SHA-256 `89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7`；同 SHA MuMu 图标 40/40、页面 23/23、crash buffer 0 B，R2 远端整包摘要一致。见 [图标效果报告](reports/lucide-6.22.html) 与 `VERIFY.md`；许可与官方来源保存在 `third_party/lucide/`。
-- **6.21** — 修复升级后下载记录仍显示完成、但旧文件路径失效时无法打开的问题：私有文件在应用私有目录范围内按文件名与记录大小恢复，MediaStore 旧 URI 在系统 Download 目录重新定位；文件确实缺失时转为可重试状态。MuMu 实际覆盖 6.20→6.21 后，旧任务记录保留；迁移到 canonical app-private 路径后点「打开」进入文本预览，UI 4/4、下载/更新后端 53/53。最终 APK `6.21 (31)`，731,764 B，SHA-256 `affb9ec8e0bbb4f78d6e5dd5148b97873ab8fdd12406d9e813b8e713a7e07d6a`。R2 latest 与远端整包回读一致；MuMu 在线检查因模拟器出网 `connection closed` 记为受阻。验收见 `VERIFY.md` 与 `reports/download-recovery-6.21.html`；未连接零跑 B01 真车。
-- **6.20** — 更新与发布收口：固定 Build Tools 35.0.0 / compile SDK 35，修复 UTF-8 字节级长文件名截断；更新清单严格校验版本、APK 路径、域名、查询参数、文件大小与 SHA-256，禁止旧版本降级；下载完成后校验失败会删除残留文件并清理 pending 状态；补齐 DownloadManager、SAF 目录授权/跨进程读回、更新器安装器交接与公网 R2 检查。最终 APK `6.20 (30)`，731,764 B，SHA-256 `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28`。同 SHA MuMu 车机档：核心 34/34、下载/更新后端 43/43、UX 18/18、网页 19/19、SAF 11/11、SAF 重启 3/3、更新流程 14/14；发布后公网检查 6/6。见 `VERIFY.md` 与 `reports/main-full-20261120.html`。未连接零跑 B01 真车。
-- **6.19** — 工具栏分组并扩大热区，加入下载直达和长按提示，前进/后退仍在地址栏左侧。标签页补当前标记、完整网址和更大的关闭按钮，缩略图改为直接小图采样。下载中心增加状态筛选、文件类型、速度/剩余时间；修复取消后筛选不更新、返回动画被下载回调打断、浮条遮挡功能页、隐藏网页接收按键等问题。同一最终 APK 验收：全量 34/34、UX 18/18、下载后端 18/18。见 `VERIFY.md`。
-- **6.18** — 更新迁到 Cloudflare R2：先读 `https://dl.736.de5.net/car-browser/latest.json`，GitHub 只作兜底；新增 Worker 手动下载页 `https://dl.736.de5.net/`，关于页「手动下载」直接跳转。
-- **6.15** — 一轮「美观 + 易用性」闭环（原生 35 步回归 0 失败）：① 下载行右侧按钮改由任务状态驱动（不再出现「取消」却已成终态），每条加「更多」二级菜单（打开 / 分享 / 所在文件夹 / 删除文件 / 仅删记录）；② 设置里改下载目录改成原地对话框，不再跳页；③ 标签卡片高亮按当前标签判定，按压改为约 0.975 缩放；④ 浮动返回按钮 `bringToFront()`，功能页展开时不再唤醒；⑤ 设置项整行可点，地址栏补 `contentDescription`；⑥ 阅读模式全部改用 `vw`（正文 1.25vw、h1 2vw、按钮 ≥4vw）；⑦ 菜单「手动更新」改「检查更新」，详情字号 28f→30f；⑧ 功能页返回按页面栈恢复父页。下载后端同时修 8 个缺陷：取消后立即重试会起两个 worker、截断响应被记为完成、进程被杀留下半截文件、打开文件夹用全局目标、`Uri.getPath()` 二次解码、删除文件与删除记录混用、非 http(s) 链接不得建任务、同名文件 `(n)` 保护。验收：`VERIFY.md` 2026-11-14 v6.15 章节（35 步 UI 回归 + 18 项下载后端 + SAF 自选目录重启后仍可写）。
-- **6.16** — 照着「图标太小、样式不统一、页面元素太小难点、下载不好用、多出来的返回按钮」这五条重做：① 首屏格子从 8vw 放大到 10.5vw（302px）、间距 2.2vw，两侧边距从 14% 收到 6.7%；② 所有格子统一为同一张圆角卡片，logo 缩到卡片内 62% 居中，不再有站点是直角大图、有的站点是圆角卡片；③ 外部网页的 viewport 宽度从 1440 改 1160，同一屏整体放大 24%（实测链接高度 78px → 97px），桌面版式不变（百度仍是桌面导航）；④ 下载新增底部浮条：文件名 + 状态 + [打开]/[取消] + 关闭，点击进下载页，完成后 8 秒自动收起；图片与文本改成**应用内预览**，不再每次弹「选择打开方式」；⑤ 去掉页面上的浮动返回按钮（含设置项与 4/6/8 秒选项），前进/后退回到地址栏所在的工具条，全屏改用右上角圆形手柄退出；⑥ 滚动去掉边缘拉伸与滚动条并开启离屏预栅格化，A/B 实测 90 分位帧时间 19ms → 6ms、99 分位 23ms → 10ms。
-- **6.14** — 下载功能重做：不再只丢给系统 DownloadManager（目标目录是应用私有目录，Android 11+ 文件管理器进不去，结果 URI 也不保证能被查看器读取）。新增 `DownloadCenter`：默认存到系统「下载」目录（MediaStore），可切应用私有目录或自选文件夹（SAF，授权持久化）；后台线程池下载，显示百分比/已下载/总大小、失败原因，可取消与重试，列表持久化。点一条已完成记录 = 系统查看器打开（APK 走安装器）；长按 = 打开 / 分享 / 打开所在目录 / 复制路径 / 重试 / 取消 / 删除。新增零依赖 `LocalFileProvider`（仅暴露应用私有目录，`exported=false`），私有目录文件也能被查看器与分享目标读取。设置页与下载页均可改保存位置；同名文件自动改名后回读真实文件名。
-- **6.13** — 自动更新加固：① 匿名 API 只有 60 次/小时，检查更新改为「API 优先、发布页兜底」——API 403/404 时跟随 `releases/latest` 跳转取 tag，再按 `car-browser-<版本>.apk`（兼容 `car-browser-tvb-<版本>.apk`）探测资产；② 下载完成广播来自系统 download provider，接收器必须注册为 `RECEIVER_EXPORTED`（此前用 NOT_EXPORTED 收不到，安装器不会弹出）；③ 下载中重进应用不再被误判失败，并对已完成待安装的下载续查一次。
-- **6.10** — 自动更新：仓库转为公开，客户端匿名读 GitHub Release（无 token），版本按数字段比较；「检查更新」在工作线程请求 API，发现新版本后用 DownloadManager 下载资产，校验 API 的 sha256 与文件大小，再交给系统安装器；未授予「安装未知应用」时给出「去设置」入口。关于页显示当前/最新版本、资产大小与 SHA 摘要，失败显示可读原因。新增 `REQUEST_INSTALL_PACKAGES` 权限；`UpdateChecker` 重写为真实检查实现。
-- **6.9** — 首页站点标识缩至 8vw、降低阴影与间距；回主页保留其他网页标签；整页子路由保存父页和滚动位置；按下反馈改为轻缩放；夜间/无图/广告过滤/悬浮返回与 4/6/8 秒隐藏时长持久化；新增应用内触摸返回；菜单移除工具栏重复动作；更新入口改为私有 GitHub Release 手动打开/复制，不发起自动请求、不含 token。
-- **6.8（历史）** — 曾加入基于清单的更新检查与发布脚本；该更新源已在 6.9 退役，当前客户端不再请求。另调整提示条字号与整页次级文字对比度。
-- **6.7** — 排版与细节打磨：① 功能页两页各 10 项（每页正好两行），「广告过滤」按钮从功能页移除（设置页里仍可开关）；② 阅读模式补 A- / A+ 字号调节、日间/夜间主题切换（本次会话内记住）；③ 标签页底部加「关闭其他标签页」（带确认，首屏保留）；④ 顶部加载进度条（3px，随 onProgressChanged 长、加载完淡出）；⑤ 构建脚本自适应 build-tools 版本与 d8 位置，不再绑死 34.0.0
-- **6.6** — 一轮「照着代码逐条挑毛病」的修复：① 标签缩略图/WebView 生命周期（统一 destroyTab，淘汰与 Activity 销毁都回收；抓图回调校验标签还在不在，1.2s 内不重复抓 18MB 全屏位图）；② 标签切换不再靠「栈顶」表示当前页（新增 activeWeb），首屏可以切到前面而不破坏返回逻辑；③ 图片链接坐标换算只除 getScale()（原来多除了 density，d240 车机必偏）；④ 长按回调加触摸序号/destroy 校验、双指手势取消长按、链接只认 http(s)；⑤ 后台标签的 window.open / 视频全屏不再抢前台；⑥ 整页层上的提示被盖住（bringToFront）、功能页从空白处起拖会跳页（补 lastX）；⑦ 设置里切网页版式重复 reload、无图模式对新标签不生效；⑧ 下载服务空指针与 mime 兜底；⑨ keynav 手指点击后不清理旧选中框
-- **6.5** — 标签页卡片加真实缩略图（PixelCopy 抓当前画面，纯黑/淡入中的不存，切标签前顺手刷新）；修「新开的标签页首屏是空的」（收藏数据只推给了第一个 WebView，现在推给所有停在首屏的标签）；图片链接长按也能弹「新标签页打开 / 复制链接」（JS 查 `<a href>`，查不到退回悬停）；链接菜单里的地址做百分号解码；阅读模式补代码块样式、正文图片懒加载、正文重复标题去重、正文中间的小图不再被误删
-- **6.4.1** — 修 6.4 实测暴露的三处：① 阅读模式里点「退出」后原地留下一个空蓝框（键盘导航的选中框跟着被删掉的按钮没收回，现改为 DOM 变更时检测目标失联并收框，且触摸点击不再画键盘选中框）；② 阅读模式正文开头的站点 logo 会叠在标题上（高度 < 96px 的开头图片直接收掉）；③ 首页长按卡片会同时弹「在新标签页打开」菜单（图片链接的 HitTestResult 只有图片地址，现图片链接只做悬停、内部页面不弹链接菜单）
-- **6.4** — 修「长按模拟鼠标悬停」不生效（缺 HOVER_ENTER，且手指轻微抖动就取消；改为 ENTER+MOVE 走 onHoverEvent，并放宽抖动阈值）、新增页内查找、阅读模式、广告过滤（域名+路径规则，可开关、显示拦截数）、长按链接弹「新标签页打开 / 复制链接」、地址栏支持 IP:端口 / localhost / 局域网主机名（以前会被当成搜索词）
-- **6.3** — 首页去掉「最近」栏（只留 13 个站点，整页垂直居中）、历史记录改成整页（按今天/昨天分组、单条删除、清空、点击打开）、书签 / 下载 / 标签 / 设置全部改成整页、功能页两页可左右滑动翻页（真实跟手拖动）、新增无图模式与设置页、App 图标抠图（去掉原来的方形底和金色边框，改自适应图标）
-- **6.2** — 13 个站点图标全部上首页（不再是默认 3 个）、首页搜索栏删除（地址栏二合一）、修「功能页第一页与第二页内容相同」的分页 bug、功能页圆点扩大热区、长按=编辑模式（拖动排序 / 点 − 删除）、地址栏回车在 Activity 兜底（MuMu/车机 IME 不回调 onEditorAction）、地址栏 500ms 跟随页面 URL、点击地址栏全选、关于弹窗自绘（字太小的问题）
-- **6.1** — App 改名「车览浏览器」+ 新图标（深绿宝石/金环）、站点图标改用 luestr/IconResource 的 1024px 图（百度/谷歌/YouTube 等 13 个）、默认收藏只留百度/谷歌/YouTube、菜单改为底部功能页（Via 式两页网格）、长按进入编辑模式（拖动排序 + 减号删除）
-- **5.0** — logo 升级为官方矢量（Simple Icons，任意放大清晰）、首页去掉品牌名、搜索框收小、搜索引擎移入设置、长按改「编辑/删除」
-- **4.1** — 真实站点 logo 打包进 APK（12 个默认站点，不依赖网络）、长按拖动排序、首字母改为圆形徽章、补回 .has-icon img{display:block}（上一版误删导致只显色块）
-- **3.1** — 首页纵向压紧（顶部搜索区从 758px 收到 664px，两行卡片一屏放下）
-- **3.0** — 更名「车览」、启动图标重绘（浏览器窗口 + 地平线 + 落日）、首页品牌区与卡片底色重做
-  （低饱和渐变 + 首字母/图标严格互斥）、默认收藏两行铺满不再折叠
-- **2.0** — 首屏重做（7 列网格 + 搜索置顶 + 修 logo/文字重叠）、触摸长按、7 个工具条按钮、
-  标签切换、UA 切换、下载、双指缩放、图标全套重绘
-- **1.0** — 车机化首版：加工具条与地址栏、换包名与图标、清单适配
+分别检查 R2 清单与 GitHub 公开 latest 的版本，下载两个通道的完整 APK，与验收包比对大小和 SHA-256。设备在线检查更新另行记录。
+
+[Worker 源码](tools/r2-worker.mjs) 与 [部署工具](tools/deploy_worker.py) 用于服务维护，普通 APK 发布不需要重新部署 Worker。旧 `dl.z736.vip` 通道已永久停用，不探测、不恢复；根目录 `publish-manifest.ps1` 和 `publish/` 是 6.8 旧格式遗留，不能作为现役发布入口。
+
+## 目录与资料边界
+
+| 位置 | 用途 |
+|---|---|
+| `src/com/carweb/tvb/` | 原生界面、WebView、下载中心/Provider、更新器、站点存储与桥接。 |
+| `assets/`、`res/` | 首页/注入脚本、品牌图、Lucide 原生矢量和随包许可。 |
+| `tools/`、`tests/native/` | 图标导入、R2 发布/维护、独立原生审计与 fixture。 |
+| `reports/`、`smoke/` | 按版本保存的报告和选择归档的原始证据；不把旧报告视作当前版门禁。 |
+| `build/`、`dist/`、`keystore/` | 本机生成物与签名材料，不进 Git。旧 APK 文件名不能证明它是当年的验收/发布包。 |
+| [upstream-README.md](upstream-README.md) | 上游原始说明快照，只作溯源。其 Gradle、`tools/setup-toolchain.ps1`、TV 布局、返回键行为和相对链接不适用于本工程。 |
+
+详细历史和旧版本取舍见 [VERIFY.md](VERIFY.md) 的历史索引及 Git，不在 README 重复维护另一份逐版流水账。

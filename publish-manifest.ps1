@@ -1,14 +1,14 @@
 ﻿#requires -Version 5.1
 <#
-  生成车览浏览器 B 线的更新清单，供部署到 dl.z736.vip 的发布目录。
+  历史归档：6.8 的旧更新清单生成器，已退出当前发布流程。
 
-  用法：
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\publish-manifest.ps1 `
-      -Apk .\dist\car-browser-6.8.apk `
-      -DownloadBase https://dl.z736.vip/car-browser-tvb/6.8
+  旧域名已永久停用，不执行、不探测、不恢复其默认 DownloadBase。
+  本脚本及 publish/ 仅保留旧格式示例，不代表线上 latest 状态。
 
-  产物写入 publish/：latest.json、versions.json、APK 的 .sha256 sidecar。
-  这些文件只提交到私有仓库 / 放到可信发布目录，不挂到 GitHub Release 资产。
+  现役 R2 发布入口是 tools/publish_r2.ps1；用法与授权边界统一见 README.md。
+  本文件保留的旧参数和输出逻辑仅用于历史追溯，不在知识整理中运行。
+
+  当前包身份与遗留物清单见 VERIFY.md。
 #>
 param(
   [string]$Apk = '.\dist\car-browser-6.8.apk',

@@ -1,391 +1,79 @@
-# 原生与模拟器验收记录
+# 验收与发布证据
 
-## 2026-11-20 · v6.22（versionCode 32）Lucide 图标统一
+当前用法、构建与发布步骤见 [README.md](README.md)。本文件只记录版本身份、已验证范围和仍未验证的边界；旧版本的通过数不能累加为当前版全量通过。
 
-- 最终包 `dist/car-browser-6.22.apk`，763,750 B，SHA-256 `89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7`；Manifest/BuildConfig 同为 6.22/32。固定 Build Tools 35.0.0；Java、d8、zipalign、v1/v2/v3 签名校验通过，沿用原证书。
-- 引入 Lucide 官方提交 `c1a02a04d4f3f7049d44567d62b8b06cff0b9103` 的 40 个 SVG，转换为 Android 原生 VectorDrawable，普通构建/运行均离线。保留原视框、2px 描边和圆角连接；统一安全边距。原始文件及逐文件 SHA 见 `third_party/lucide/source.json`；完整 ISC/Feather MIT 许可同时保存在仓库及 APK 的 `assets/licenses/lucide.txt`。
-- 范围：工具栏、两页菜单、下载文件类型、书签/历史删除、设置箭头、全屏恢复，以及首页搜索/展开/编辑删除辅助图形；站点品牌标识和应用启动图标保留。
-- MuMu vm0 / Android 15 API 35：`init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`、`w2880dp h1620dp 160dpi … land`，音量 0；guest 安装 base.apk 重算为最终 SHA。
-- `final-icons-padded` 页面 23/23：两页菜单、新建标签、标签页、全屏进入/退出、下载类型、书签删除控件、设置进入箭头、关于版本与页面返回。图标 40/40：24/64/78px 下非空、边缘无裁切、实色着色与透明度、非正方形 bounds 等比居中；crash buffer 0 B。最后独立冷启动 Status ok、前台 MainActivity、PID 存活。
-- 第一个候选因 SVG 紧凑圆弧参数不兼容 Android PathParser 而崩溃；转换器已规范化标志分隔。小尺寸贴边由全套统一安全边距解决；先前失败结果未计入通过。颜色审计对不透明像素精确比较，对透明度单独检查，避免把抗锯齿预乘舍入误判为错误颜色。
-- R2 已发布 6.22/32；latest、远端完整下载 APK、本地 APK 与 guest 安装 SHA/763,750 B 四方一致。没有执行本轮 app 在线检查更新流程，不把主机回读写为设备在线通过。
-- 四份 SharedPreferences 逐文件 SHA 恢复；辅助 audit APK、guest 计划与本轮输出已清理，vm0 已释放、主 MuMu 保留。未连接零跑 B01 真车，API 35 结果不替代 Android 12L/API 32。
-- 报告 `reports/lucide-6.22.html` 内嵌 6 张本轮截图/原生图标总览；证据与逐文件摘要见 `smoke/v622/lucide-89f5bfa2/manifest.json`。浏览器预览截图通道超时；已保留实际 Android 截图与像素检查，不声称额外人工视觉评分。
+## 当前发布身份（2026-11-20 UTC 核对）
 
-## 2026-11-20 · v6.21（versionCode 31）下载记录路径恢复
+| 项 | 结果 |
+|---|---|
+| 应用 | `com.carweb.tvb`，Manifest / BuildConfig 为 **6.22 / 32** |
+| R2 主通道 | `car-browser/car-browser-6.22.apk`，**763,750 bytes** |
+| 已发布 / 已安装 APK SHA-256 | `89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7` |
+| R2 回读 | `latest.json`、`history/6.22.json` 与公开下载的完整 APK 均和已验收包的大小、SHA-256 一致。 |
+| GitHub 兜底 | `v6.22` 于 2026-11-20 16:08:38 UTC 发布，已在公开 latest 接口出现。资产及公开链接下载的 APK 均为 763,750 B，SHA-256 与上表一致。 |
+| 证据归档 | [6.22 清单](smoke/v622/lucide-89f5bfa2/manifest.json)，15 个证据文件，清单另计；图标来源/资源摘要见 [Lucide 来源清单](third_party/lucide/source.json)。 |
 
-- 最终 APK：`dist/car-browser-6.21.apk`，731,764 B；SHA-256 `affb9ec8e0bbb4f78d6e5dd5148b97873ab8fdd12406d9e813b8e713a7e07d6a`。包名 `com.carweb.tvb`，证书 SHA-256 `8eec23c3c7c129ab422c3f61ee2981abac7b397cf947b1c8fbef22ac6ffaeb55`；Build Tools 35.0.0 / compile SDK 35，zipalign 与 v1/v2/v3 签名验证通过。
-- 6.20 基线包 guest `base.apk` SHA 为 `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28`；最终 6.21 guest `base.apk` SHA 为上述 `affb9e…`，PackageManager 为 versionName 6.21 / versionCode 31。vm0 保留安装数据原位覆盖，没有卸载主应用。
-- 设备前置：MuMu 6.8.7 / Android 15 API 35，`init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`，音乐/系统音量均为 0。该结果不替代零跑 B01 Android 12L/API 32 真车。
-- 下载记录修复：私有文件只在应用自己的 external files roots 与 `files/Download` 内按文件名和已记录大小恢复，并持久化新 URI；MediaStore 失效 URI 按文件名、Download 路径及大小重找；真实缺失文件改为可重试失败，不再保留无效“已完成”状态。
+构建与设备验收的归档提交为 `cb36caabd53549138a814828f36d73fc2607091a`，GitHub `v6.22` 标签指向该提交。发布收尾沿用已验收的 APK，文档与注释更新由 `main` 跟踪。
 
-| 6.21 结果 | 通过 | 覆盖 |
+## 6.22：图标与页面专项
+
+[离线效果报告](reports/lucide-6.22.html) 嵌入 5 张 2880×1620 原生页面截图及 1 张 1600×650 原生图标总览。
+
+| 检查 | 结果 | 可复核来源 |
 |---|---:|---|
-| `upgrade-open-621-final` | 4/4 | 6.20 遗留任务的旧路径失效后，同名同大小文件迁至实际 `getFilesDir()/Download`，最终 SHA 点击「打开」进入文本预览 |
-| `backend-recovery-621-final` | 53/53 | 下载状态/持久化重载、重复文件名、百分号文件名、截断响应、取消重试、真实缺失标记/重试、MediaStore URI 恢复与更新器检查 |
-| `r2-live-621-final2` | 5/6 | 关于页版本 6.21/31 与前置导航通过；最后检查更新因 MuMu 出网对 R2/GitHub 均 `connection closed`，不计为产品通过 |
+| 页面操作 | 23/23，失败 0 | [result.json](smoke/v622/lucide-89f5bfa2/result.json)；实际安装 SHA 与上表一致 |
+| 图标渲染 | 40/40，失败 0 | [icons.json](smoke/v622/lucide-89f5bfa2/icons.json)；24/64/78px，非空、边界、着色、透明度及非正方形 bounds 等比检查 |
+| 崩溃 | crash buffer 0 B | [crash.txt](smoke/v622/lucide-89f5bfa2/crash.txt) |
+| 构建与签名 | Java、d8、zipalign、v1/v2/v3 签名通过 | Build Tools 35.0.0 / compile SDK 35；沿用原证书，证书 SHA-256 `8eec23c3c7c129ab422c3f61ee2981abac7b397cf947b1c8fbef22ac6ffaeb55` |
+| 独立启动 | Status ok、前台 MainActivity、PID 存活 | 当轮设备检查；不据此替代业务断言 |
 
-- `upgrade-open-621-final` 结果绑定 SHA `affb9ec8e0bbb4f78d6e5dd5148b97873ab8fdd12406d9e813b8e713a7e07d6a`；原生断言包含 `预览 · audit615-note (9).txt` 与 `car-browser audit`，截图 2880×1620。`backend-recovery-621-final` 的 53 项 `failed=0`，本批 7 个 fixture 任务清理后 `remaining=0`。
-- 审计 APK 运行 UID 无权直接写目标应用的 `/data/user/0`（曾实测 `EACCES`），所以私有目录迁移不由审计 APK 越权伪造；实际迁移由 MuMu root fixture 搬运，再通过目标应用的真实 UI 点击覆盖验证。审计 backend 保留真实下载/重载/缺失重试/MediaStore 覆盖。
-- R2 主机回读：`latest.json` 为 6.21/31，`car-browser/car-browser-6.21.apk` 731,764 B；实际下载 SHA 与本地最终 SHA 完全一致。发布脚本上传 APK、latest 与 history/6.21，并通过 5 GB 配额守卫。MuMu 在线检查受模拟器网络限制，不能把主机回读冒充设备在线通过。
-- 收尾：四份 SharedPreferences XML 逐文件 SHA 与测试前备份一致；本轮 audit APK、guest 计划/截图输出、fixture 下载文件已清理；最后一次启动检查时 PID 存活、前台为 `com.carweb.tvb/.MainActivity`、crash buffer 无 `FATAL EXCEPTION`；随后释放 vm0，MuMu 主程序保留。未连接零跑 B01 真车。
+设备为 MuMu 6.8.7 / Android 15 API 35：`init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`、`w2880dp h1620dp 160dpi … land`，音量 0。四份 SharedPreferences 经逐文件 SHA 恢复；辅助审计 APK、guest 计划和本轮输出已清理，自己的 vm0 租约已释放、MuMu 主程序保留。
 
+最初候选的 SVG 紧凑圆弧参数不兼容 Android PathParser，已由转换器规范化；小尺寸抗锯齿贴边通过全套统一安全边距解决。旧候选失败未计入通过。颜色审计只对不透明像素精确比较颜色，透明度单独检查，避免预乘舍入造成误判。
 
-## 2026-11-20 · v6.20（versionCode 30）更新校验、下载安全与发布验收
+**未验证：**零跑 B01 Android 12L/API 32 真车；6.22 的 app 在线检查更新全流程；额外人工视觉评分。浏览器预览截图通道超时，报告保留的是实际 Android 截图和原生像素检查。6.21 的后端 53 项、6.20 的全量批次均不是 6.22 新跑的结果。
 
-- 最终包：`dist/car-browser-6.20.apk`，731,764 B；SHA-256 `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28`。包名 `com.carweb.tvb`，签名证书 SHA-256 `8eec23c3c7c129ab422c3f61ee2981abac7b397cf947b1c8fbef22ac6ffaeb55`；zipalign 与 v1/v2/v3 签名校验通过。
-- 构建固定 Build Tools `35.0.0`、compile SDK 35；版本 `6.20 (30)`。MuMu vm0 / Android 15 实测车机几何：`init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`；测试期间音量为 0。
-- 测试 APK 安装身份在 guest 内重新计算为上述 SHA；结果目录：`C:\Users\WIN10\Documents\MuMu共享文件夹\audit620-004daa7f`。
-- 复建一致性：发布后再次运行同一固定工具链，构建成功且 APK 仍为 731,764 B；逐 ZIP 条目内容与已验收包一致，但复建 APK SHA 为 `faa288427f332b41572614a1259eff389f253486f6f9291c570c66f88ce25e8f`，不同于已验收/发布包。为保持测试、安装、R2 三方身份一致，`dist` 保留 SHA `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28` 的已验收副本；整包字节级可复现性尚未证明。
+## 近版历史索引
 
-| 最终 SHA 批次 | 结果 | 覆盖 |
-|---|---:|---|
-| `stable-core` | 34/34 | 主 UI 流程 |
-| `stable-backend` | 43/43 | 下载与更新后端断言 |
-| `extended-ux` | 18/18 | 工具栏、页面与交互专项 |
-| `final-web` | 19/19 | 网页与文本预览流程 |
-| `extended-saf` | 11/11 | SAF 目录选择、授权和首次写入 |
-| `extended-saf-restart` | 3/3 | 跨进程/重启后的持久授权读回 |
-| `final-update-flow-verified` | 14/14 | DownloadManager 实际下载、错误 SHA/大小拒绝与清理、正确 APK 系统安装器交接 |
-| `final-update-live-final` | 6/6 | 发布后真实 R2 同版本检查，显示“已是最新 6.20”与 `car-browser-6.20.apk` |
+历史报告保留当时事实与限制，不按当前线上状态改写，也不作为现役操作手册。
 
-以上结果均记录最终 APK SHA；这些专项有交叉覆盖，不将行数相加成独立用例总数。初次更新流程复测曾有一项测试断言要求前台 UI 包名等于 PackageManager 解析的 APK handler；MuMu 实测分别是 `com.mumu.store` 与 `com.android.packageinstaller`。修正测试为检查产品状态“已交给系统安装器”且 handler 非空后，最终批次 14/14 通过；产品代码未为此改动。在线检查初次启动被系统安装确认页遮挡的批次未计入通过，关闭该页面后最终在线批次 6/6 通过。
-
-### R2 发布核对
-
-- `tools/publish_r2.ps1` 成功上传 `car-browser/car-browser-6.20.apk`、`latest.json` 与 `history/6.20.json`；R2 配额守卫通过。
-- 公网清单：版本 `6.20` / versionCode `30` / APK `car-browser/car-browser-6.20.apk` / `731764` B / SHA 与本地完全一致；APK HEAD 为 HTTP 200，`Content-Length: 731764`。
-- 最终在线 tour 由已安装的同 SHA 应用执行并读到“已是最新 6.20”和正确 APK 文件名。
-
-### 收尾与边界
-
-- 测试前备份的四个 SharedPreferences XML 已逐文件 SHA 对账恢复；`downloads_v2.xml`、`tv_browser.xml`、WebView 两个偏好文件均与备份一致。审计 APK 已卸载，临时下载和计划文件已清除；fixture Python 进程停止且本机 8099 无监听。MuMu 音量为 0，显示保持车机档。
-- 更新流程第一次 14 项批次曾以错误的安装器包名等值断言失败；该旧结果保留但不计入通过。MuMu 调用间自停记录为模拟器生命周期事件，不记作应用崩溃。
-- 本轮未连接零跑 B01 真车；MuMu Android 15 的几何、UI 与更新流程结果不替代 Android 12L/API 32 真车验收。
-
-## 2026-11-17 · v6.19（versionCode 29）工具栏、标签与下载体验
-
-- 最终包：`dist/car-browser-6.19.apk`，727,668 B；SHA-256 `28123895330278EA6E8236D278072E54A0BA3AB1B6994420DB0074C71793967B`。
-- MuMu vm0：实例级 `custom 2880x1620 @160dpi`；实测 `init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`，截图均为 2880×1620。
-- 同 SHA 结果：`final619-release` 全量 34/34、`ux619-release` 专项 18/18、下载后端 18/18，均为 0 失败。
-
-| 用户体验问题 | 最终改动与证据 |
-|---|---|
-| 工具栏入口分散、点击反馈弱 | 三组圆角控件；后退/前进/主页/标签页在地址栏左侧，收藏在地址栏组，下载/刷新/菜单在右侧。高 156px，按钮热区 136×128px，地址栏 `[669,22][2279,134]`；按压 Ripple 与长按提示。 |
-| 下载入口藏在菜单里 | 工具栏「下载」直接打开下载中心，并重置到全部任务；专项第 14 步实际点击通过。 |
-| 后退可用态误灰 | 网页无历史但可回主页时仍可后退；前进使用真实历史。专项实际执行第二页→后退→前进→再次后退。 |
-| 标签卡片文字挤压 | 标题 38px、网址 28px、121px 关闭热区及「当前」徽章；卡片高调为 0.23×屏宽，网址实测 `[1074,716][1805,771]`，没有底部截断。 |
-| 打开标签页时申请整屏位图 | PixelCopy 直接缩放到 560px 宽缩略图，不再先分配整屏约 17MB 位图；旧图在相关页面退出后回收，回调检查 Activity/标签仍有效。 |
-| 页面切换与返回竞争 | 页面进入 180ms、标签切换 140ms 短过渡；同路由进度更新不闪屏；返回动画期间禁止下载回调重建页面，结束后恢复网页焦点。 |
-| 功能页仍能读到被盖住的网页 | 整页/面板覆盖时隐藏主内容的显示与无障碍后代，隐藏网页不接收遥控器按键；专项标签页断言底层地址栏不存在，关闭后地址栏恢复。 |
-| 下载任务混杂、状态不清楚 | 全部/进行中/已完成/失败·取消筛选、文件类型徽章、速度与剩余时间、保存位置整行可点。状态签名包含 id+status，进度仅更新行，状态变化才更新筛选成员。 |
-| 下载浮条挡住功能页 | 浮条收窄到 70% 屏宽，进入菜单/下载页时隐藏；专项明确断言下载页不存在「下载条目操作」，防止浮条文本让测试误通过。 |
-
-取消后的正确语义已实测：任务从「进行中」移出，该组显示「这一组没有文件」和「进行中 0」；切到「失败/取消」后看到「已取消」与「重试」。之前在进行中组断言「已取消」的失败属于测试预期过时，原失败证据保留。
-
-### 最终证据与限制
-
-- 画廊：`smoke/v619/final-28123895/index.html`；清单：同目录 `manifest.json`。107 个节点、结果和 PNG 文件逐一验证 bytes/SHA；两组 result 的被测 APK SHA 与最终包一致，PNG 尺寸检查通过。
-- 编译与 `git diff --check` 通过；最终验收批次的 crash buffer 无 FATAL。
-- 早期候选包曾测得 447 帧、卡顿 1（0.22%）、p50 5ms/p90 9ms/p99 20ms；该数据不属于最终 SHA，也没有 Via 同场对照，因此不声称最终包性能已达到 Via。
-- 本轮未连接零跑 B01 真车。MuMu 多次在调用间停止；vm0 日志记录到管理端 `action:close` 后正常退出，不能归为 APK 崩溃；无结果批次未计入通过。
-- 测试前缺少本轮完整私有偏好备份，不能宣称完整恢复；按本轮开始时间、fixture URL、应用内目录三项匹配清理了 19 条测试任务，remaining=0，其它既有数据保留。测试包已卸载；冷启动 594ms、PID 两次均为 2277，安装 SHA 与最终包一致；fixture 服务与 8099 端口已关闭，vm0 租约已释放。
-- R2 已发布 6.19（29），公网整包回读 727,668 B；本地 APK、远端 APK、latest.json 三方 SHA 完全一致。
-
-## 2026-11-16 · v6.18（versionCode 28）R2 下载页 + 应用内「手动下载」
-
-- 构建：`dist/car-browser-6.18.apk`（723,572 B）；SHA-256 `C1670551C9D091C4F3B5D01DCE04DD193B6519427511F51DF2C431C18E21E05B`
-- 下载页：`https://dl.736.de5.net/` —— Worker 扫描 R2 顶层 `<project>/latest.json` 现场渲染，列出所有项目的最新包
-
-| 项目 | 结果 |
-|---|---|
-| 页面本身 | `GET /` → `200`，3,432 B；卡片：car-browser v6.18 / carclash-hybrid v2.11.56 / lp-toolkit v1.8 / tvboxos-car-2880 v3.1.0-car.7-r89 |
-| 卡片内容 | 名称、版本、大小、发布时间、notes、SHA-256 前缀、`下载 APK` 按钮（直链 `<project>/<apk>`） |
-| 应用内入口 | 关于页按钮由「打开发布页」改为「手动下载」（`UpdateChecker.DOWNLOAD_PAGE_URL`） |
-| 跳转实测 | MuMu 上点「手动下载」→ 系统浏览器打开 `dl.736.de5.net`，节点里读出 `车机应用下载`、`car-browser v6.18`、`SHA-256 c1670551c9d091c4…`、`下载 APK`（`audit617/r2-g`，6 步全过） |
-| 改版（同日） | 卡片由 px 改 clamp+vw：车机上实测卡片 330→**746px**、标题 47→**79px**、项目名 29→**46px**、按钮 49→**77px**，四张卡的版本/日期/说明/体积/按钮 y 坐标完全一致（421/478/518/588/625） |
-| 筛选与排序 | 搜索 `car` → 3 项、`zzzz` → 0 项并显示空提示；排序 `名称 A–Z` / `体积从大到小` 顺序正确（ego evaluate 实测） |
-
-### 已知坑
-
-- **清单带 UTF-8 BOM 会让 `JSON.parse` 直接抛错**，表现出来是「页面 200 但一张卡片都没有」。
-  发布脚本已改为无 BOM 写入，Worker 也做了 `^\uFEFF` 容错（历史清单不用重传）。
-- `/_diag` 端点用来看 Worker 视角的对象列表与 manifest 命中情况，排查渲染问题很快。
-
-## 2026-11-15 · v6.17（versionCode 27）更新通道迁到 Cloudflare R2
-
-- 构建：`dist/car-browser-6.17.apk`（723,572 B）；SHA-256 `F86795DEE65F24A40D523D16773545ECB40EF62CDC563104B0CC6A5A2E407721`
-- 设备：MuMu vm0（`2880x1620 @160dpi`）；驱动 `tests/native/UiAudit.java`
-
-### 分发层（不经过 GitHub）
-
-| 项 | 实测 |
-|---|---|
-| Worker | `cf-releases`（`tools/r2-worker.mjs`，R2 binding `BUCKET`） |
-| 自定义域名 | `https://dl.736.de5.net`（zone 路由 `dl.736.de5.net/*`，与已有 catch-all `*/* → tarot-app` 并存，更具体的先匹配） |
-| 健康检查 | `GET /health` → `{"ok":true,"bucket":"bound","usable":true,"detail":""}` |
-| 写入 | `PUT /selftest/hello.txt` → `{"ok":true,"size":11}`；`GET` 回读 `hello-r2`（200） |
-| 清单 | `https://dl.736.de5.net/car-browser/latest.json` → `{version:6.17, apk, size:723572, sha256:f86795de…}` |
-| 安装包 | `HEAD /car-browser/car-browser-6.17.apk` → `200`，`Content-Length: 723572` |
-
-### 客户端（走 R2 而不是 GitHub）
-
-| 步骤 | 断言 | 证据 |
+| 版本 | 当时验收 / 发布 SHA-256 | 覆盖与证据 |
 |---|---|---|
-| 关于页 | `版本 6.17（27）` | `audit617/r2-c`、`r2-f` |
-| 检查更新（同版本） | `R2 发布通道 · 自动更新` + `已是最新 6.17` + `SHA bfb2b305db47…` | 该 SHA 只存在于 R2 清单，GitHub 上当时最新仍是 6.16 → 证明读取的是 R2 |
-| 检查更新（发现新版本） | 把 R2 清单临时改成 6.18 后，界面显示 `发现新版本 6.18` + `下载并安装` | `audit617/r2-e` 断言通过 |
-| 恢复 | 清单写回 6.17，再次检查更新回到 `已是最新 6.17` | `audit617/r2-f` |
+| 6.21（31） | `affb9ec8e0bbb4f78d6e5dd5148b97873ab8fdd12406d9e813b8e713a7e07d6a` | 731,764 B；旧下载任务打开 4/4，下载/更新后端 53/53。MuMu 在线检查 5/6，末步 `connection closed` 未通过。见 [下载恢复报告](reports/download-recovery-6.21.html)。原始 JSON 位于当时的本机共享证据目录，未归档到本仓，不能声称可在新 clone 中完整复验。 |
+| 6.20（30） | `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28` | 731,764 B；核心 34/34、后端 43/43、UX 18/18、网页 19/19、SAF 11/11、SAF 重启 3/3、更新流程 14/14、当时发布后在线 6/6。见 [6.20 报告](reports/main-full-20261120.html)，各专项有交叉覆盖。 |
+| 6.19（29） | `28123895330278ea6e8236d278072e54a0ba3ab1b6994420db0074c71793967b` | 727,668 B；当时记录为全量 34/34、UX 18/18、后端 18/18。画廊和 107 项清单仅存在于本机 `smoke/v619/final-28123895/`，未纳入 Git，不作为新 clone 中可用的证据链接。 |
 
-### 边界
+6.21 报告将一次 EACCES 泛化归因于“独立审计 UID”的说法仅为当时推断；实际查到的夹具父目录是 root/700。后续按真实目录、父权限、SELinux 和进程 UID 取证，不仅凭审计 APK 名称推断权限。
 
-- 本机到 `<account>.r2.cloudflarestorage.com` 的 TLS 在握手阶段被中间层打断（curl/schannel、python/openssl 都一样），
-  因此上传与读取一律走 Worker，**不要**改成 S3 直传。
-- R2 管理 API 一开始 403（`code 10042 Please enable R2`），帐号开通后同一 token 即可列出/创建 bucket。
-- 发布脚本自带 5 GB 免费额度守卫；R2 免费额度为 10 GB 存储/月，本项目两个 APK 合计 1.4 MB。
-- GitHub Release 尚未删除（用户决定等 R2 跑稳再清），客户端保留 GitHub 兜底。
+6.18 及更早的发布、性能对照、导航/SAF 演进和原始限制，保留在 Git 的旧版验收记录中，可只读查看：
 
-## 2026-11-14 · v6.16（versionCode 26）按用户反馈重做图标 / 网页缩放 / 下载 / 返回按钮 / 流畅度
+```powershell
+git show cb36caabd53549138a814828f36d73fc2607091a:VERIFY.md
+```
 
-- 构建：`dist/car-browser-6.16.apk`（723,572 B）；SHA-256 `1DD1AB4A4E04431FA57D4643EA667C607B03A250B0C72E55DF1066359CD66408`
-- 设备：MuMu vm0（Android 15，实例级 `custom 2880x1620 @160dpi`），几何同前（`init=1620x2880 160dpi … noscale` / `cur=2880x1620 app=2880x1620`）
-- 驱动：`tests/native/UiAudit.java`（`com.carweb.audit`，验收后卸载）+ `fixture_server.py`（`10.0.2.2:8099`）
+该快照是历史，不应从中恢复已退役的浮动返回、旧更新源或模拟器操作方式。[upstream-README.md](upstream-README.md) 同样仅供上游溯源，里面的路径和命令不是本工程入口。
 
-### 五条反馈 → 根因 → 改法 → 证据
+## 不能丢掉的复测要点
 
-| 反馈 | 根因（代码事实） | 改法 | 实测证据 |
-|---|---|---|---|
-| 桌面图标太小 | `home.js` 里格子按 `W*0.08` 算，2880 上只有 230px；间距 `W*0.026`，七列只占 72% 宽度，两侧各空 410px | 格子 `W*0.105`、间距 `W*0.022` | 节点 `[194,469][496,841]` = **302×371**（+31%），边距 410 → 194px |
-| 圆角/直角混用 | `.icon.has-icon` 被改成透明底 + `border-radius: 0` 的「整格大图」，和首字母的圆角卡片是两套语言 | 所有格子统一为同一张圆角卡片；logo 收到卡片内 62% 居中 | 像素探针：三块卡片左上角 (196,471) 亮度 14（=背景，圆角切口），中心 144 / 212 / 69（不同站点不同底色但同一张卡片） |
-| 页面分辨率变高、按钮更小更难戳 | `keynav-web.js` 把外部站点 viewport 钉在 1440，缩放比 = 2880/1440 = 2.0，「1440 桌面页原样投到车机」 | `PAGE_WIDTH` 1440 → 1160，缩放比 2.48 | 同一文章页链接高度 **78px → 97px**（+24%）；百度仍是桌面导航（新闻/hao123/地图/贴吧/视频/图片/网盘 一行横排） |
-| 下载不好用 | 点下载只有一个 2.4 秒提示条；下完要 菜单→下载→点行→系统「选择打开方式」 | 页面底部下载浮条（文件名 + 状态 + `打开`/`取消` + 关闭，点浮条进下载页，完成 8 秒自动收起）；图片 / 文本改为**应用内预览**，不再弹系统选择器 | `audit616/dl1` 9 步全过：浮条出现 `audit615-note (5).txt · 已完成 · 18 B` + `打开` 按钮；点 `打开` 得到预览页 `预览 · audit615-note (5).txt` + 正文 `car-browser audit`；`back` 回到文章页 |
-| 多出来的返回按钮 | 6.9 起加的浮动「应用内返回」+ 设置项 + 4/6/8 秒 | 整块删除（字段、唤醒、设置项、prefs）；前进/后退留在地址栏所在的工具条；全屏改用右上角手柄 | 文章页任意点一下后节点里 **没有** `应用内返回`（`absent` 断言通过）；全屏 → 点 `退出全屏` → 地址栏回来并显示当前 URL |
+- **包身份：**先在 guest 重算安装 `base.apk` SHA，再关联业务结果。固定工具链不等于签名 ZIP 字节可复现；同名 APK 或同版本重建包不自动继承原验收。
+- **版本来源：**Manifest 与手工 BuildConfig 必须一致；曾出现安装是 6.21、关于页却显示 6.20 的候选，不能只验 PackageManager。
+- **打开文件：**选择器弹出不等于内容可读。要验证真实字节/预览；私有目录 fixture 使用 Context 的真实目录，并核对父目录 UID、权限与 SELinux，不能把 root 创建目录的 EACCES 当作产品路径缺失。
+- **SAF：**目录授权必须由目标应用持有并验证跨进程读回；选择器打开或外部进程可读都不能单独证明授权生效。真实缺失文件可重试，失效 SAF 授权需用户重新授予。
+- **下载生命周期：**取消后立即重试不能遗留旧 worker；截断响应不得完成；删除文件与仅删记录分开。DownloadManager 的 pending/running/paused 状态不能直接判失败。
+- **更新与安装器：**校验错误大小/SHA 的拒绝及残留清理；API 33+ 下载完成广播需要匹配实际系统发送方。产品“已交给安装器”与可解析 APK handler 是验收条件，不强制 MuMu 前台覆盖包名等于 PackageManager handler。
+- **工具与结果：**instrumentation 返回 0 可伴随业务失败；优先看完整 JSON 的顶层异常和逐项检查。没有完整结果的模拟器停止批次不计通过；UiAutomator 自身异常与目标应用 crash 分开记录。
+- **性能与视觉：**旧版本的帧时间对照、其他 SHA 的截图不能证明当前版本流畅或已人工评审。
 
-### 流畅度：同机 A/B（同脚本、同页面、同滚动次数）
+## 本地遗留物与待处理边界
 
-| 包 | 总帧 | 卡顿帧 | 50 分位 | 90 分位 | 99 分位 |
-|---|---|---|---|---|---|
-| 6.15（旧） | 449 | 1（0.22%） | 6 ms | **19 ms** | **23 ms** |
-| 6.16（新） | 448 | 1（0.22%） | 5 ms | **6 ms** | **10 ms** |
+2026-11-20 只读盘点确认以下对象仍在，本次未删除、移动或替换：
 
-改的是渲染开关：`setOffscreenPreRaster(true)` + `OVER_SCROLL_NEVER` + 关滚动条（`dumpsys gfxinfo` 采集，脚本 = 文章页上下各滑 8 次）。
-
-### 回归
-
-| 项目 | 结果 |
+| 对象 | 状态 / 为什么不能直接使用 |
 |---|---|
-| 34 步原生回归（`tests/native/tour-final.json`） | **34/34 通过，0 失败**，`result.json.sha256` = `1dd1ab4a…` |
-| 下载后端 18 项（`DownloadAudit`） | **18/18 true** |
-| 下载链路 9 步（`audit616/dl1`） | 9/9：无浮动按钮、浮条、应用内预览、返回文章 |
-| 崩溃 | `logcat -b crash` 的 `FATAL` 计数 0 |
-| 截图 | `smoke/v616/01..10`（首屏 / 菜单 / 设置 / 下载 / 全屏 / 恢复 / 百度 / 下载浮条 / 预览 / 下载中浮条） |
+| `dist/car-browser-6.20.apk` | 本地 SHA 为 `532edd77367d8765b44e6622fd68719ee8f0e73519a89e803e10d5f7af013ee7`，是下载恢复候选；与上面的 6.20 验收/发布 SHA 不同，不能当作原发布回滚包。 |
+| `dist/car-browser-6.18.apk` | 本地 727,668 B，SHA `7e4cba4a02a8554ba60cd7e3f221260a30c28e053970a34339eff371203467e8`，不符历史记录中的 723,572 B / `c1670551c9d091c4f3b5d01dce04dd193b6519427511f51df2c431c18e21e05b`。 |
+| `dist` 中 6.15–6.19 的 APK 及各自 `.idsig` | 超出当前 6.22 + 两个历史版本的留存目标，仅列为删除候选；尚无本次针对这些具体路径的删除同意。需要回滚时从对应 R2 history 读取身份并校验原包，不能只看文件名。 |
+| `publish-manifest.ps1`、`publish/` | 6.8 旧格式遗留；本地 `publish/latest.json` 为 6.8（18），不是 R2 现役清单。旧域名永久停用，不探测或恢复。 |
+| `smoke/v619/final-28123895/` | 本机历史证据，共 107 个文件的大小/SHA 本次复核匹配，但该目录被忽略且未跟踪；新 clone 不会自动得到它。可能含独有原始证据，不列入自动删除或自动提交。 |
 
-### 边界
-
-- 仍未连真车；「1160 版式仍是桌面版」只在百度与固定文章页上验证过，个别站点可能在 1160 下给平板版式——那时把 `PAGE_WIDTH` 调回 1240 再验一次。
-- 下载浮条是浮在页面上的覆盖层（和 Chrome 的下载条一样），滚动最底部时会被它挡住约 5% 屏高，8 秒后自动收起。
-- 全屏只剩右上角手柄一个出口，这是「页面上不放返回按钮」的直接代价；手柄已补 `contentDescription="退出全屏"` 并有节点断言。
-
-## 2026-11-14 · v6.15（versionCode 25）美观 + 易用性闭环
-
-- 构建：`dist/car-browser-6.15.apk`（723,572 B）；SHA-256 `583D75B4D2BF44A84DFD34C525BEF32C0F8849BC985FB483675654FC92268E9A`
-- 设备：MuMu vm0（Android 15，实例级 `custom 2880x1620 @160dpi`）
-  - `init=1620x2880 160dpi mMinSizeOfResizeableTaskDp=220 noscale` / `cur=2880x1620 app=2880x1620` / `w2880dp h1620dp 160dpi land`
-  - 驱动：`tests/native/UiAudit.java`（自建 instrumentation 包 `com.carweb.audit`，只用于验收，跑完即卸载）
-  - 固定服务：`tests/native/fixture_server.py` → `10.0.2.2:8099`（`/article` `/page2` `/small.bin` `/note.txt` `/percent` `/cut.bin` `/slow.bin` `/missing.zip`）
-
-### 修的是什么（按报告逐项）
-
-| 报告问题 | 修复 | 验证 |
-|---|---|---|
-| 下载行右侧按钮取消后仍写「取消」 | 按钮由任务状态驱动（`queued/running/done/failed/canceled`），并新增「更多」二级菜单（打开/分享/所在文件夹/删除文件/仅删记录） | 35 步回归第 20 步 `下载` 页出现 `更多`；后端 `cancel state` / `forget preserves file` 均 true |
-| 设置里改下载目录会跳页 | 目录选择对话框原地返回，停在设置页 | 第 09/10 步 `下载目录` → `应用内目录` → 仍在设置页 |
-| 下载菜单是小型系统对话框 | 统一大字号自绘对话框（行高 0.047×宽、可滚动、固定 1520px 宽） | `08-destination.png` / `07-downloads.png` |
-| 标签卡片高亮不跟手、按压发闷 | 高亮判据改为 `arr[i] == activeTab()`，按压改为约 0.975 缩放 | `06-tabs.png`，第 14 步 `标签页` 断言通过 |
-| 功能页展开时浮动返回按钮被压暗层遮住 | `floatBack.bringToFront()`，且功能页可见时不再唤醒 | 第 01–03 步 menu 开/滑/关全程可点 |
-| 设置项只有文字可点 | 整行可点（`pageRow` 行级点击） | 第 09/10 步仅点行内文字即切换 |
-| 地址栏无可访问名 | `contentDescription="地址栏"` | 第 16 步按名定位并输入成功 |
-| 首屏站点名显示域名 | `NAMES['google.com']='Google'`，站点名 1.1vw | `01-home.png` |
-| 阅读模式字号写死 px | `reader.js` 全部改 vw（正文 1.25vw、h1 2vw、按钮 ≥4vw、max-width 70vw） | 第 24 步前 `阅读模式` 断言 `A+`/`退出` |
-| 菜单项「手动更新」语义不清 | 改为「检查更新」 | 第 02 步断言含 `检查更新` |
-| 详情/状态文字偏小 | 详情字号 28f → 30f，状态行同步 | `03-settings.png` / `05-about.png` |
-| 功能页返回丢失父页 | `openPage` 压入页面栈，返回恢复父页 | 第 07/15/22/23/26/29 步连续返回均回到预期页 |
-
-下载后端同时修掉 8 个已定位缺陷：取消后立刻重试会起两个 worker（改为 `Run` + `generation` 令牌）、截断响应被记成完成（`done != length` 即失败）、进程被杀留下半截 pending 文档（启动清理）、打开文件夹用全局目标而不是该任务的目录（改为按任务 `tree`）、`Uri.getPath()` 二次解码（`LocalFileProvider` 改为不再 `decode`）、把「删除文件」和「只删记录」混为一谈（拆成 `remove`/`forget`）、非 http(s) 链接不得建任务、同名文件改用 `(n)` 保护。
-
-### 结果
-
-| 项目 | 结果 |
-|---|---|
-| 35 步原生回归（`tour-final.json`） | **35/35 通过，0 失败**，APK SHA 与上方一致（`result.json.sha256`） |
-| 下载后端 18 项（`DownloadAudit`） | **18/18 true**：`duplicate name protected`、`truncated response fails`、`cancel state`、`immediate retry completes`、`forget preserves file`、`provider preserves percent filename`、`public readable`、`unsupported URL rejected before task` 等 |
-| 网页旅程 20 步（`tour-web.json`） | 20/20 通过，末步由独立包读出真实字节：`FILE_READ_OK bytes=18 car-browser audit` |
-| SAF 自选目录 | 选择 `内部存储 / Download/CarBrowserSAF` → 设置行显示「自选：内部存储 / Download/CarBrowserSAF」→ 下载写入 18 B，内容 `car-browser audit` → `am force-stop` 后新进程（pid 3514）再下载，得到 `audit615-note (1).txt`（授权持久、同名保护生效） |
-| 崩溃 | `logcat -b crash` 中 `FATAL` 计数 0，进程存活、Activity 在前台 |
-| 截图 | `smoke/v615/01..12`（首屏/菜单/设置/目录对话框/关于/标签/下载/目录选择/书签/全屏/恢复/SAF 目录） |
-
-### 边界与取舍
-
-- **「选择器弹出」不等于「文件已打开」**：v6.14 只证明了系统解析器会弹出，本轮改用 `ViewProbe` 由独立包读取内容并打印字节数，才算通过。
-- SAF 权限只能由 `com.carweb.tvb` 自己持有的持久授权写入，因此 SAF 写入是通过应用 UI 完成的，不由审计包反射调用。
-- 未做真机（零跑 B01）验证；MuMu 几何与 dpi 一致，但不能替代真机。
-- MuMu vm0 在本轮出现多次空闲自停（与应用无关），每次用 `mumu_instance_action launch` 恢复后重测；受影响的只是时间成本。
-
-
-## 2026-11-14 · v6.14（versionCode 24）下载中心
-
-- 构建：`dist/car-browser-6.14.apk`（702.6 KB）；SHA-256 `6E807C5316FD1F1E0204484EB5E467AAA89EA3A089A98F8F733A380D5F427F6B`
-- 设备：MuMu vm0，Android 15，custom 2880×1620 @160dpi；本地 HTTP 服务 `10.0.2.2:8099`（强制 `Content-Disposition: attachment`，确保走下载而不是内联渲染）
-- 验证范围：目录切换、真实进度、取消、失败与重试、打开文件、打开目录、私有目录 Provider、SAF 选择器
-
-| 项目 | 结果 | 证据 |
-|---|---|---|
-| 默认目录（系统下载） | `shot.png` 落到 `/sdcard/Download/shot.png`（6,511 B），MediaStore 行 `_display_name=shot.png` | `ls -l` + `content query` + 日志 `开始下载 shot.png -> 系统下载目录（Download）` |
-| 列表呈现 | `下载 · N`、保存位置行（可“更改”）、每条文件名 + 状态（如 `已完成 · 6 KB`）+ 右侧动作（打开/取消/重试） | fresh UI 树 + `ux614-list.png` |
-| 打开文件 | 点“打开”进入系统“打开方式”（图库 / CX文件管理器 / 文件启动器），返回后回到应用 | fresh UI 树（ResolverActivity）+ `ux614-opened.png` |
-| 打开目录 | 系统目录：列出“文件 / CX文件管理器 / 文件启动器”供选择 | fresh UI 树 + `ux614-folder-public.png` |
-| 切到私有目录 | 下载 `note.txt` → `/storage/emulated/0/Android/data/com.carweb.tvb/files/Download/note.txt`（26 B） | 日志 `-> 应用内私有目录` + `ls -l` |
-| 私有目录打开 | `LocalFileProvider` 授权后可被其它应用读取；外壳直接访问被拒（`SecurityException ... not exported from UID 10079`） | ResolverActivity 列表 + adb `content read` 拒绝证据 |
-| 取消 | 20 MB 慢速下载中点“取消”，`/sdcard/Download` 无 slow 残留 | `ls | grep slow` 无结果 + `ux614-progress.png` / `ux614-canceled.png` |
-| 失败与重试 | 404 地址显示 `失败：服务器返回 HTTP 404`，右侧动作变为“重试” | fresh UI 树 + `ux614-fail.png` |
-| 自选文件夹 | “更改 → 选择其他文件夹…”打开系统 DocumentsUI（`com.android.documentsui/.picker.PickActivity`） | `dumpsys activity` + `ux614-saf.png` |
-| 长按菜单 | 打开文件 / 分享文件 / 打开所在目录 / 复制文件路径 / 删除记录和文件 | fresh UI 树 + `ux614-menu.png` |
-| 私有目录定位说明 | 私有目录点“打开目录”不再静默失败：复制路径并提示系统限制、建议改系统下载目录 | 代码 + `ux614-folder-private` 截图 |
-
-### 边界
-
-- 未在真车验证；MuMu 上系统“下载”目录对应 `/sdcard/Download`，真车若被 OEM 改路径以实际为准。
-- 自选文件夹的**写入**未在本轮打勾（只验证到选择器打开与授权流程）；Android 11+ 对 `Android/data` 的访问限制不影响 SAF 其它目录。
-- UiAutomator 仍会“先写出 XML 再 SIGSEGV”，本轮同样按一次性 dump + 宿主解析使用。
-
-## 2026-11-13 · v6.13（versionCode 23）自动更新
-
-- 构建：`dist/car-browser-6.13.apk`（707,188 B）；SHA-256 `8DC9FD0F39336F1E039B95CC01F4DDF5BDD076E4BFF4D7296316F1A003567396`
-- 发布：GitHub Release `v6.13` 的资产**只有** `car-browser-6.13.apk`（707,188 B）；API `digest` 与本地 SHA 完全一致
-- 仓库可见性：转为公开后匿名 `api.github.com` 返回 200（此前私有库为 404）；APK 内不含任何 token
-- 设备：MuMu vm0，Android 15，custom 2880×1620 @160dpi
-
-| 项目 | 结果 | 证据 |
-|---|---|---|
-| 发现新版本 | 装 6.12 后检查：`发现新版本 6.13`，副行 `car-browser-6.13.apk · 0.7 MB · SHA 8dc9fd0f3933`，操作按钮为「下载并安装」 | 本轮 fresh UI 树 |
-| 已是最新 | 装 6.13 后检查：`已是最新 6.13`，同样显示资产名、大小与 SHA 前 12 位 | 本轮 fresh UI 树 |
-| 下载 | 点「重新下载安装」后应用私有目录出现 707,188 B 的 `car-browser-6.13.apk` | guest `ls -l` |
-| 校验 | 下载文件 sha256 与 API `digest` 一致；logcat `更新包已交给安装器 sha=8dc9fd0f3933` | `toybox sha256sum` + `TvBrowser` 日志 |
-| 安装器 | 系统安装器弹出「要更新此应用吗？当前数据不会丢失。」；点「更新」后 `versionName=6.13 / versionCode=23`，应用进程结束，crash buffer 无 `FATAL EXCEPTION` | 安装器 fresh UI 树 + `dumpsys package` |
-| 限流兜底 | 匿名配额耗尽时（HTTP 403，`X-RateLimit-Remaining: 0`）自动回落发布页，仍显示 `已是最新 6.13 / car-browser-6.13.apk · 0.7 MB` | 宿主复现 403 响应头 + 设备端 fresh UI 树 |
-| 网络不可达 | 访客未配代理直连 GitHub：`检查失败`，原因 `connection closed；发布页兜底也失败：connection closed` | 本轮 fresh UI 树 |
-
-### 自动更新的网络前提
-
-- MuMu 访客未配代理时，直连 `api.github.com:443` 的 TLS 会被重置（TCP 可达，应用侧表现为 `connection closed`）。测试时用宿主临时 TCP 转发 + 访客 `http_proxy` 打通，测完已撤销（`settings put global http_proxy :0`）。
-- 车机端同理：网络必须能访问 GitHub（或经同类代理），否则只显示上述可读失败原因，不伪造成功。
-- API 路径校验 sha256 与大小；发布页兜底路径拿不到 digest，只按资产名探测，不校验哈希。
-
-### UiAutomator 现状（本轮定性）
-
-- `uiautomator dump` 在这版 MuMu Android 15 镜像上，无论走 MuMuManager `sh`、`nsenter` 包装还是插件 `adb` 通道，都是**先写出完整 XML，再以 139/SIGSEGV（偶发 Bus error）退出**；XML 可解析，问题在工具退出路径而非应用。
-- 因此按「同一动作只 dump 一次 → 宿主解析校验」使用：删旧文件、dump、确认 XML 可解析且含目标包，再取文案。连续多次 dump 期间实例会停，需用插件重启（直接因果未证实）。
-- 界面视觉证据仍以 2880×1620 截图为准；本轮更新流程的文案证据来自上述一次性 UI 树。
-
-## 2026-11-12 · v6.9（versionCode 19）
-
-- 构建：`dist/car-browser-6.9.apk`（698,996 B）；SHA-256：`F5583005345E351571CAE6CED789A90B2114A3ADF23339F78751E3753E8108B4`
-- 身份：`com.carweb.tvb` / `6.9 (19)`；`zipalign -c -v 4` 与 `apksigner verify` 通过，v1/v2/v3 签名有效。
-- 设备：MuMu vm0，Android 15；实例配置 `custom 2880×1620 @160dpi`，`system_volume_close=true`。
-- 几何：`init=1620x2880 160dpi noscale`；`cur=2880x1620 app=2880x1620`；输入 viewport 的 logical/physical frame 均为 `[0,0,2880,1620]`。
-- 安装和启动通过 MuMu 插件完成。应用在可连接时位于前台；应用 crash buffer 未见 `FATAL EXCEPTION`。MuMu 实例曾在重复 UiAutomator dump 后停止，重新启动后应用 PID 改变，故不将全程描述为单一 PID 稳定。
-
-| 项目 | 结果 | 证据 |
-|---|---|---|
-| 首页与触摸格 | 7 列网格；首格 bounds `[410,549][640,833]`，站点格宽 230px | 本轮 fresh UI 树 |
-| 功能面板 | 菜单打开，设置入口可触达；面板显示期间悬浮返回隐藏 | 本轮 fresh UI 树 |
-| 应用内返回 | 设置页开关为 on；触摸后出现节点 `[2696,1272][2828,1404]`，空闲后隐藏；点按返回首屏 | fresh UI 树及前后台节点对照 |
-| 偏好持久化 | 关闭开关后 `ui_state.xml` 写入 `false`；guest 重启后值仍为 `false`；随后恢复为 `true`，隐藏时间仍为 4 秒 | guest SharedPreferences 读回 |
-| 标签保留 | 回首屏后标签页显示 `标签页 · 2`，仍保留 `https://www.baidu.com/` | 本轮 fresh UI 树 |
-| 全屏 | 工具栏隐藏；恢复手柄 bounds `[2759,35][2845,121]`；点按后工具栏控件重新出现 | 全屏前后 fresh UI 树 |
-| 功能页第二页 | 左滑后箭头变「上一页」；10 项：页内查找 / 阅读模式 / 夜间模式 / 无图模式 / 电脑模式 / 清除缓存 / 广告过滤 / 清除数据 / 手动更新 / 关闭标签 | fresh UI 树 + `ux69b-sheet-p2.png` |
-| 设置子页返回父页 | 设置 → 搜索引擎 → 返回：`settings` 与 `settings-return` 截图逐字节相同 | 两图 SHA-256 均为 `98E7F117…AC949B8` |
-| 下载 | 地址栏输入 `http://10.0.2.2:8099/test.zip`：应用私有目录出现 26 字节 `test.zip`，内容与源文件逐字节一致；应用内列表显示 `test.zip / 已完成` | guest `od -c` + 下载页 fresh UI 树 + `ux69b-downloads.png` |
-
-### 截图与像素证据
-
-七张 PNG，全部 2880×1620，存于 `car-browser/smoke/ux69b-*.png`：`home`、`sheet-p1`、`sheet-p2`、`settings`、`engine`、`settings-return`、`downloads`。
-
-- 首屏列扫描（y=690）：7 列，列间距 305px，logo 墨迹宽 182px，左右边距各 434px，网格居中。
-- 功能页翻页：高亮圆点在 p1 位于 `x=1413..1432`，p2 移至 `x=1447..1466`（p1 该位置为暗点）。
-- `settings` 与 `settings-return` 的 SHA-256 相同（`98E7F117879A5399BD88E1E56AD3C73D4B226FDCA6C3579896898C826AC949B8`），`engine` 为另一张（`A1B06E9A…FA479393`）。
-
-### 边界
-
-- UiAutomator 通过 system_server namespace 可写出 fresh XML，但随后报 `Segmentation fault`；重复采集期间 MuMu 实例多次停止，直接因果未确认。截图与 UI 树分别记录。
-- 截图只做尺寸与像素几何量化，未做 OCR；界面文案以上述同轮 UI 树为准。
-- 未连接零跑 B01 真车；MuMu 证据不替代真车验收。
-
-## 2026-11-06 · v6.8（versionCode 18）
-> 历史记录仅适用于 v6.8；其中的清单源已在 v6.9 退役，不能作为当前版本更新入口。
-
-- 构建：`dist/car-browser-6.8.apk`（698,996 B）
-- SHA256：`2A80419AF8429D315BE7D725ACC1C301AC28EB2A543B90C4D00D627DCBDF6176`
-- 设备：MuMu 车机档，2880×1620 @160dpi（`wm size reset; wm size 2880x1620; wm density 160`）
-- 安装：`adb install -r` Success；冷启动 `versionName=6.8 / versionCode=18`，无 `FATAL EXCEPTION`
-- 自动更新清单：`publish/latest.json`、`publish/versions.json` 与 `.sha256` sidecar 由 `publish-manifest.ps1` 生成；GitHub Release 资产只挂 APK
-
-| 项目 | 操作 | 结果 | 截图 |
-|---|---|---|---|
-| 首屏 | 冷启动 | 13 个站点图标、两行网格、地址栏正常 | `t68-00.png` |
-| 功能页第 1 页 | 点右上菜单 | 10 项两行、圆点状态正确 | `t68-01-sheet1.png` |
-| 功能页第 2 页 | 左滑 | 10 项两行、设置/关于入口可见 | `t68-02-sheet2.png` |
-| 关于 / 更新卡片 | 设置/功能页进关于 | 版本 6.8，「版本更新」卡片、三按钮与说明完整 | `t68-03-settings.png`、`t68-08-polished-about.png` |
-| 发布源 404 自救 | 真实公网清单未上线 | 「检查失败：发布源尚未上线（HTTP 404）」+ 原因、重试、发布页兜底 | `t68-08-polished-about.png` |
-| 打开下载页 | 点「打开发布页」 | 前台切到系统浏览器 Activity（MuMu 有 Chromium），无崩溃 | `t68-11-feed-open.png` / `t68-14-feed-open-https.png` |
-| TLS 失败分支 | 本地 HTTPS 桩、自签 CA | 明确显示 `CertPathValidatorException`，卡片仍可重试/打开发布页 | `t68-12-feed-success-https.png` |
-| 清单格式校验 | 本地 `publish/latest.json` | `software/packageName/version/versionCode/size/sha256/url` 齐全；脚本读回断言通过 | `publish/latest.json` |
-
-### 视觉 / 易用检定（按本轮模型眼光复核）
-
-逐页复核了 `t68-00`~`t68-15` 与 6.7 的 `s18`~`s37`，并对照 `CAR-UI-SPEC-2880x1620.md` 的触控/字号下限。结论：
-
-1. 关于页原先信息层级弱、更新入口藏在页底；本轮把「版本更新」卡片提到标题下方，设置页加「检查更新」直达行，路径从 3 步降到 2 步。
-2. 状态提示条仍是 `COMPLEX_UNIT_SP 15`，车机 60–80 cm 观看距离下明显偏小；改为按屏宽 `px(34/2880)`、圆角深底、最小高度 `px(0.038)`，d160/d240 物理尺寸一致。
-3. 整页副标题与分组标题对比度偏低；把 `pageRow` 副标题从 `#7C8794` 提到 `#98A5B3`、`pageLabel` 从 `#6E7A88` 提到 `#8A98A8`、`pageNote` 从 `#8C98A6` 提到 `#AAB7C5`。
-4. 检查失败时「复制下载链接」变灰但原卡片没有解释；新增「原因：…」与「可重试检查 / 打开发布页」两行自救文案，按钮常驻不消失。
-5. 功能页 10/10 网格、标签缩略图卡片、阅读模式 A-/A+/日间/退出按钮维持 6.7 的对齐与热区；本轮没有发现新的 P0 排版缺陷。
-
-### 边界
-
-- `https://dl.z736.vip/car-browser-tvb/latest.json` 当前仍是 HTTP 404；本轮没有服务器 SSH 凭据，不能代为把清单发布到公网。客户端已按其他软件约定固定该地址，清单上线后无需改 APK。
-- 本地 HTTPS 桩只用于验证客户端的「连接失败/证书失败」状态与按钮调用链；不把自签 CA 或 debug-overrides 带进正式 APK。
-- 未连接真车；MuMu 结果不替代零跑 B01 真车验收。
-
-## 2026-10-23 · v6.7（versionCode 17）
-
-- 构建：`dist/car-browser-6.7.apk`（678.6 KB）
-- SHA256：`10E6D565A7895EF0DD84B5087CB355C7DC6EDF101D74573DD2A4B4FF0700F401`
-- 设备：MuMu 车机档，2880×1620 @160dpi（`wm size reset; wm size 2880x1620`）
-- 安装方式：`adb install -r`，冷启动后 pid 2146 全程未变
-
-| 项目 | 操作 | 结果 | 截图 |
-|---|---|---|---|
-| 首屏 | 冷启动 | 13 个站点图标，布局正常 | `s18-home.png` |
-| 功能页第 1 页 | 点菜单 | 10 项两行 | `s19-sheet1.png` |
-| 功能页第 2 页 | 左滑 | 10 项两行（无广告过滤按钮） | `s20-sheet2.png` |
-| 地址栏导航 | 输入 example.com | 正常加载 | `s21-example.png` |
-| 页内查找 | 页内查找 → `domain` | 计数 1/2，两处高亮 | `s22-find.png` |
-| 阅读模式 | 阅读模式 | 正文铺满，A-/A+/日间/退出 都在 | `s23-reader.png` |
-| 阅读日间主题 | 点「日间」 | 整层浅色，按钮变「夜间」 | `s24-reader-light.png` |
-| 标签页 | 新建标签 → 标签页 | 3 张卡片，2 张有真实缩略图，1 张走首字占位 | `s25-tabs2.png` |
-| 关闭其他 | 关闭其他 → 关闭 | 3 → 1 | `s26-closeothers.png` |
-| 书签 | 菜单 → 书签 | 书签 · 13，单条 ✕ 正常 | `s27-bookmarks.png` |
-| 历史 | 菜单 → 历史 | 按今天/日期分组，可单删/清空 | `s28-history.png` |
-| 下载 | 菜单 → 下载 | 4 条记录 + 保存路径 | `s29-downloads.png` |
-| 设置 | 菜单 → 设置 | 各项状态正确，广告过滤计数可见 | `s30-settings.png` |
-| 关于 | 菜单 → 关于 | 版本 6.7 | `s31-about.png` |
-| 夜间模式 | 夜间开 / 关 | 页面反色 / 复原 | `s32-night.png` / `s33-night2.png` |
-| 全屏 | 菜单 → 全屏 | 工具条隐藏，右上角留恢复入口 | `s34-fullscreen.png` |
-| 退出全屏 | 点右上角恢复 | 工具条与页面复原 | `s35-restored.png` |
-| 长按链接 | 百度热榜文字链 1s | 菜单弹出，地址已解码中文 | `s37-linkmenu.png` |
-
-### 结论
-
-- 全程无 `FATAL EXCEPTION`，进程 pid 稳定，Activity 始终在前台。
-- 已知取舍：示例页 `example.com`（纯白页）在标签卡片里走了首字占位，说明该标签的抓图被判定为无效；缩略图逻辑本身有占位兜底，不影响使用。
+本仓未发现项目级可维护记忆文件；平台生成记忆、全局规则和相邻项目未修改。开放项仍是明确的真车/在线/视觉验证边界及待确认的旧文件清理，没有用本次文档整理代替这些工作。

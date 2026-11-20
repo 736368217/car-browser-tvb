@@ -8,12 +8,11 @@
 文件: app/src/main/{java,assets,res}
 ```
 
-上游作者：`viyiviyi`。完整的上游 README 见同目录 `upstream-README.md`。
+上游作者：`viyiviyi`。上游原始说明快照见 [upstream-README.md](upstream-README.md)，不作为本工程构建或运行入口。
 
-## 许可状况（重要）
+## 既有许可记录与分发限制
 
-**上游仓库没有 LICENSE 文件。** 按伯尔尼公约与各国版权法默认规则，
-未声明许可即「保留所有权利」。因此：
+取用时的项目记录为“未发现上游 LICENSE 文件”，并保留以下限制；本次知识整理未重新核实额外上游授权：
 
 - 本目录下的修改版**仅用于本项目所有者自用/学习**；
 - **不得对外分发**（无论是免费还是收费、是否修改）；
@@ -22,31 +21,26 @@
 ### 仓库可见性（2026-11-13）
 
 为满足自动更新对匿名 Release 读取的要求，本项目所有者决定把仓库转为公开；APK 内不嵌任何 token。
-这与上面的许可结论相冲突（上游未授权再分发）。公开属于所有者的决定；若原作者提出异议，
+此处只保留当时决定，不将公开状态写成已取得新增授权；既有分发限制保留。若原作者提出异议，
 应立即把仓库转回私有并撤下 Release 资产。
 
-## 本项目相对上游的改动
+## 本项目相对上游的现状
 
-| 改动 | 文件 | 原因 |
+| 部分 | 当前文件 | 说明 |
 |---|---|---|
-| 包名 `com.dsh.tvbrowser` → `com.carweb.tvb` | 全部 `.java`、`AndroidManifest.xml` | 与上游包名区分，避免与上游/release 版冲突 |
-| 应用名 `电视浏览器` → `车机浏览器 B` | `res/values/strings.xml` | 车内桌面上与 D 线区分 |
-| 图标替换为自绘矢量 | 删 `res/mipmap-*`、`res/drawable/app_banner.png`；新增 `res/drawable/ic_launcher.xml` | 不复用原作者图标 |
-| 加顶部工具条（地址栏 + 5 键） | `MainActivity.java` 新增 `buildChrome()` 等约 250 行 | 上游无地址栏，车机触摸屏需要随时改地址 |
-| `uses-feature` 全表置 `required=false` | `AndroidManifest.xml` | 车机安装器按 required 特性过滤 |
-| 手写 `BuildConfig` | `BuildConfig.java`（新增） | 本项目不用 Gradle/AGP，需要自带 |
-| 构建方式改为 aapt2+javac+d8 | `../build.ps1` | 本机无 gradle 命令 |
+| 应用身份 | `AndroidManifest.xml`、`res/values/strings.xml` | 包名 `com.carweb.tvb`，显示名“车览浏览器”。 |
+| 界面与导航 | `src/com/carweb/tvb/MainActivity.java` | 触摸工具栏、多标签、整页功能、下载与系统安装器交接；当前行为见 README。 |
+| WebView 与首页 | `src/com/carweb/tvb/BrowserWebView.java`、`assets/` | 保留上游基础并有本项目修改，不能视为原样资产。 |
+| 数据与桥接 | `src/com/carweb/tvb/SiteStore.java`、`src/com/carweb/tvb/BrowserBridge.java`、按键类 | 来自上游结构；具体修改以源码和 Git 为准，不作“全部未改动”的保证。 |
+| 图标 | `res/mipmap-*`、`res/drawable/ic_launcher_bg.xml`、Lucide 资源 | 应用启动/品牌图与 Lucide 操作矢量分别管理；不是上游原图标。 |
+| 构建 | `build.ps1`、手工 `BuildConfig.java` | Android SDK 直编，不使用上游 Gradle 工程。 |
 
-未改动的上游资产：`BrowserWebView`（长按悬停、遥控器按键）、`KeyPolicy`、`RemoteKey`、
-`SiteStore`、`BrowserBridge`、`assets/`（首屏、注入桥、空间导航脚本）。
+## 上游资料与署名
 
-## 保留的上游署名
-
-`BrowserWebView.java`、`MainActivity.java` 等文件顶部的原始注释与类说明未删除，
-`remote key` 策略、`TOUCH_HOVER_MS = 400` 的取值理由等说明性注释均原样保留。
+保留已有上游出处；[upstream-README.md](upstream-README.md) 是原始说明快照，其相对链接、目录、命令与 TV 行为不代表当前车机版。现役指南只有 [README.md](README.md)，历史变更由 Git 和 [VERIFY.md](VERIFY.md) 追溯。
 
 ## Lucide 界面图标（v6.22 起）
 
-操作图标来自 `https://github.com/lucide-icons/lucide`，固定源码提交 `c1a02a04d4f3f7049d44567d62b8b06cff0b9103`。原始 SVG、完整 ISC 及其中列明的 Feather MIT 许可保存在 `third_party/lucide/`；APK 内附 `assets/licenses/lucide.txt`。
+操作图标来自 `https://github.com/lucide-icons/lucide`；固定提交与逐文件摘要统一见 [来源清单](third_party/lucide/source.json)。原始 SVG 和完整 ISC/Feather MIT 许可保存在 `third_party/lucide/`；APK 内附 `assets/licenses/lucide.txt`。
 
-`tools/import_lucide.py` 将官方 SVG 几何转换为 Android 原生矢量 XML（规范化圆弧标志分隔，保留 24×24 视框、2px 描边与圆角线帽/连接）。普通构建与运行均不联网；图标实例保留原有着色和透明度行为。
+[导入脚本](tools/import_lucide.py) 将 SVG 几何转换为原生矢量 XML，规范化圆弧标志分隔，保留 24×24 视框、2px 描边及圆角连接。普通构建和运行使用内置资源，不联网取图标。

@@ -1,13 +1,13 @@
 ﻿#requires -Version 5.1
 <#
-  车机浏览器 B — APK 构建
+  车览浏览器 — APK 构建
 
-  这个仓库是自包含的：源码 + assets + 构建脚本都在里面，clone 下来就能出包。
+  从仓库根目录构建；先准备 JDK 17+、Android SDK Build Tools 35.0.0 / platform 35。
+  源码、资源与脚本随仓库保存；覆盖升级仍需原签名证书，不因自动生成证书就兼容。
 
-  为什么不用 Gradle：
-    主代码是零第三方依赖的纯 Java（只有 JUnit 是测试期依赖，本脚本不跑测试），
-    所以 aapt2 + javac + d8 + apksigner 四步就够，比拉 Gradle + AGP + 依赖树快一个数量级。
-    本机也确实没有 gradle 命令。
+  本项目直接使用 aapt2 + javac + d8 + zipalign + apksigner，不使用 Gradle。
+  Lucide 矢量等资源已内置，普通构建不拉网络依赖；本脚本不执行原生审计。
+  当前运行与发布说明见 README.md，已验收包身份及验证边界见 VERIFY.md。
 
   用法：
     powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1

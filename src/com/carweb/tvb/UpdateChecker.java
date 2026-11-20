@@ -11,15 +11,10 @@ import java.net.URL;
 import java.util.Locale;
 
 /**
- * GitHub Release 自动更新检查。
- *
- * 6.10 起仓库转为公开，所以匿名 GET 就能拿到 releases/latest：APK 里**不内嵌任何 token**，
- * 也不依赖已停用的 dl.z736.vip（服务器 22/443/4450 均不可达）。
- *
- * 约定：
- *   · 只认 HTTPS + GitHub 系域名，下载地址不接受其它站点；
- *   · tag 形如 v6.10，版本号按数字段比较（6.10 > 6.9，不是字符串比较）；
- *   · Release 里只挂 APK；API 若给出 digest，就用它做 sha256 校验。
+ * 更新检查：R2 清单优先，GitHub API / Release 页面兜底。
+ * R2 严格校验项目路径、大小与 SHA；GitHub 未提供摘要时不能声称哈希校验。
+ * 下载仅接受 HTTPS 和显式域名白名单；所有来源失败则返回可读原因。
+ * 版本按数字段比较，发布可用性与实际安装流程需要分别验证。
  */
 public final class UpdateChecker {
 
@@ -28,10 +23,10 @@ public final class UpdateChecker {
     public static final String APPLICATION_ID = "com.carweb.tvb";
 
     /**
-     * 发布通道已从 GitHub Release 迁到 Cloudflare R2（自定义域名 dl.736.de5.net）。
+     * R2 为主发布源；请求失败后依次尝试 GitHub API 和 Release 页面。
      *
-     * 客户端先读 R2 上的 latest.json；读不到才回落到 GitHub（过渡期兜底，
-     * 老版本客户端仍走 GitHub，不会因此失联）。
+     * 兜底代码存在不代表 GitHub 资产与 R2 同步；
+     * 当前发布身份及已知边界见 VERIFY.md。
      */
     public static final String CDN_BASE = "https://dl.736.de5.net";
     public static final String MANIFEST_URL = CDN_BASE + "/car-browser/latest.json";
@@ -47,7 +42,7 @@ public final class UpdateChecker {
     private UpdateChecker() {
     }
 
-    /** 一次检查的结果。字段都来自 GitHub API，不做本地猜测。 */
+    /** 统一的检查结果，来自 R2 清单、GitHub API 或发布页资产探测。 */
     public static final class Result {
         public final String tag;
         public final String versionName;
@@ -324,7 +319,7 @@ public final class UpdateChecker {
     }
 
     /**
-     * 域名白名单：只认 HTTPS + GitHub 系域名，不许被跳去任意站点。
+     * 下载域名白名单：只认 HTTPS + R2 分发域名及列明的 GitHub 资源域名。
      */
     public static boolean isAllowedDownloadUrl(String value) {
         if (value == null || value.isEmpty()) return false;

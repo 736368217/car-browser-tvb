@@ -5,17 +5,17 @@
     的 TLS 被中间层打断（curl/python 都在握手阶段被拒），而自定义域名
     dl.736.de5.net 正常。Worker 用 R2 binding 读写，本机只需 PUT。
 
-    用法：
-        powershell -NoProfile -File tools\publish_r2.ps1 -Project car-browser -Version 6.17 `
-                   -Apk dist\car-browser-6.17.apk -Notes "修复 xxx" -VersionCode 27
+    当前可执行发布片段统一见仓库 README.md；版本取自 AndroidManifest.xml，
+    APK 必须是已获发布授权且已完成同 SHA 验收的确切文件。
+    本脚本不构建 APK，也不创建或同步 GitHub Release。
 
     产物（对象 key）：
         <project>/<apk-file>                     安装包
         <project>/latest.json                    客户端检查更新用的清单
         <project>/history/<version>.json         每个版本的清单副本（便于回滚）
 
-    免费额度守卫：R2 免费存储 10 GB/月。本脚本默认占到 5 GB 就拒绝上传并打印
-    清理提示；删掉旧版本对象后再次运行即自动恢复，不需要改任何开关。
+    存储占用守卫默认 5 GiB，由 MaxBytes 控制，不代表账号套餐的免费额度。
+    对象列表截断时统计只是下限；守卫拒绝不会自动删除任何对象。
 #>
 [CmdletBinding()]
 param(
