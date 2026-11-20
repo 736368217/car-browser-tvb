@@ -100,16 +100,6 @@ public final class UiAudit extends Instrumentation {
             write(new File(out,"download-behavior.json"),result);
             if(!result.optBoolean("pass")) throw new AssertionError(result.toString()); return;
         }
-        if("probe-paths".equals(op)) {
-            Class<?> type=Class.forName("com.carweb.tvb.DownloadCenter",true,getTargetContext().getClassLoader());
-            Object center=type.getMethod("get",android.content.Context.class).invoke(null,getTargetContext());
-            java.lang.reflect.Method roots=type.getDeclaredMethod("privateRoots"); roots.setAccessible(true);
-            Object[] values=(Object[])roots.invoke(center); JSONObject state=new JSONObject();
-            state.put("filesDir",getTargetContext().getFilesDir().getAbsolutePath());
-            state.put("externalFilesDir",String.valueOf(getTargetContext().getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)));
-            JSONArray rows=new JSONArray(); for(Object value:values) rows.put(String.valueOf(value));
-            state.put("privateRoots",rows); write(new File(out,"path-probe.json"),state); return;
-        }
         if("downgrade-guard".equals(op)) {
             JSONObject state=runDowngradeGuard(); write(new File(out,"downgrade-guard.json"),state);
             if(!state.optBoolean("pass")) throw new AssertionError(state.toString()); return;
