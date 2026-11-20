@@ -1121,10 +1121,13 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                         updateChecking = false;
                         if (result != null) {
                             updateResult = result;
-                            updateStatusText = result.isNewerThan(BuildConfig.VERSION_NAME)
-                                    ? "发现新版本 " + result.versionName
-                                    : "已是最新 " + BuildConfig.VERSION_NAME;
                             updateErrorText = "";
+                            int comparison = UpdateChecker.compareVersions(result.versionName, BuildConfig.VERSION_NAME);
+                            if (comparison > 0) updateStatusText = "发现新版本 " + result.versionName;
+                            else if (comparison < 0) {
+                                updateStatusText = "发布通道版本过旧 " + result.versionName;
+                                updateErrorText = "清单版本低于当前安装版本，请联系维护者";
+                            } else updateStatusText = "已是最新 " + BuildConfig.VERSION_NAME;
                             if (manual) showStatus(updateStatusText, 2200);
                         } else {
                             updateResult = null;
@@ -1180,6 +1183,10 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
             showStatus("请先检查更新", 1600);
             return;
         }
+        if (UpdateChecker.compareVersions(updateResult.versionName, BuildConfig.VERSION_NAME) < 0) {
+            showStatus("发布通道版本过旧，已阻止安装降级包", 2800);
+            return;
+        }
         if (pendingDownloadId > 0) {
             showStatus("已有一次下载在进行", 1800);
             return;
@@ -1187,6 +1194,13 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
         if (dm == null) {
             showStatus("系统下载服务不可用", 2200);
+            return;
+        }
+        if (!UpdateChecker.isAllowedDownloadUrl(updateResult.apkUrl)
+                || !updateResult.apkName.matches("[A-Za-z0-9][A-Za-z0-9._-]*\\.apk")) {
+            updateStatusText = "下载地址无效";
+            updateErrorText = "请重新检查更新，或打开官方手动下载页";
+            refreshUpdateCard();
             return;
         }
         try {
@@ -1253,39 +1267,14 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         }
         String actual = sha256OfDownload(dm, id);
         String expected = pendingSha == null ? "" : pendingSha;
-        if (!expected.isEmpty() && (actual == null || !expected.equalsIgnoreCase(actual))) {
+        if (!UpdateChecker.verifyDownloadedArtifact(pendingSize, expected, bytes, actual)) {
+            try { dm.remove(id); } catch (Throwable ignored) { }
             clearPendingDownload();
-            try {
-                dm.remove(id);
-            } catch (Throwable ignored) {
-            }
             updateStatusText = "校验失败";
-            updateErrorText = "sha256 与发布清单不一致，已丢弃这次下载";
+            updateErrorText = "下载字节数或 sha256 与发布清单不一致，已丢弃这次下载";
             refreshUpdateCard();
             showStatus("更新包校验失败，已丢弃", 3000);
             return;
-        }
-        if (pendingSize > 0 && actual != null) {
-            long real = 0L;
-            Cursor c2 = null;
-            try {
-                c2 = dm.query(new DownloadManager.Query().setFilterById(id));
-                if (c2 != null && c2.moveToFirst()) {
-                    real = c2.getLong(c2.getColumnIndexOrThrow(
-                            DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-                }
-            } catch (Throwable ignored) {
-            } finally {
-                if (c2 != null) c2.close();
-            }
-            if (real > 0 && real != pendingSize) {
-                clearPendingDownload();
-                updateStatusText = "校验失败";
-                updateErrorText = "文件大小 " + mb(real) + " 与发布信息不一致";
-                refreshUpdateCard();
-                showStatus("更新包大小不符，已丢弃", 3000);
-                return;
-            }
         }
         installDownloadedApk(dm, id, actual);
     }

@@ -50,7 +50,7 @@ public final class UiAudit extends Instrumentation {
                     act(step);
                     SystemClock.sleep(step.optInt("settle",450));
                     JSONArray waitTexts=step.optJSONArray("expect");
-                    long until=SystemClock.uptimeMillis()+10000;
+                    long until=SystemClock.uptimeMillis()+step.optInt("wait",10000);
                     while(waitTexts!=null && SystemClock.uptimeMillis()<until) {
                         JSONArray probe=new JSONArray();walk(getUiAutomation().getRootInActiveWindow(),probe,0);
                         String raw=probe.toString();boolean ready=true;
@@ -91,7 +91,23 @@ public final class UiAudit extends Instrumentation {
     private void act(JSONObject s) throws Exception {
         String op=s.optString("op","capture");
         if("capture".equals(op)) return;
-        if("backend".equals(op)) { JSONObject result=DownloadAudit.run(getTargetContext());write(new File(out,"download-behavior.json"),result);if(!result.optBoolean("pass"))throw new AssertionError(result.toString());return; }
+        if("update-flow".equals(op)) { JSONObject r=UpdateFlowAudit.run(this,activity,out);write(new File(out,"update-flow.json"),r);if(!r.optBoolean("pass"))throw new AssertionError(r.toString());return; }
+        if("backend".equals(op)) {
+            JSONObject result=DownloadAudit.run(getTargetContext()); JSONObject update=UpdateAudit.run(getTargetContext());
+            JSONArray merged=result.optJSONArray("checks"), extra=update.optJSONArray("checks");
+            for(int i=0;i<extra.length();i++) merged.put(extra.getJSONObject(i));
+            result.put("updateAudit",update); result.put("pass",result.optBoolean("pass")&&update.optBoolean("pass"));
+            write(new File(out,"download-behavior.json"),result);
+            if(!result.optBoolean("pass")) throw new AssertionError(result.toString()); return;
+        }
+        if("downgrade-guard".equals(op)) {
+            JSONObject state=runDowngradeGuard(); write(new File(out,"downgrade-guard.json"),state);
+            if(!state.optBoolean("pass")) throw new AssertionError(state.toString()); return;
+        }
+        if("restart-target".equals(op)) {
+            JSONObject state=restartTargetAndCheckSaf(); write(new File(out,"saf-restart.json"),state);
+            if(!state.optBoolean("pass")) throw new AssertionError(state.toString()); return;
+        }
         if("cleanup-fixtures".equals(op)) {
             Class<?> type=Class.forName("com.carweb.tvb.DownloadCenter",true,getTargetContext().getClassLoader());
             Object center=type.getMethod("get",android.content.Context.class).invoke(null,getTargetContext());
@@ -127,7 +143,7 @@ public final class UiAudit extends Instrumentation {
             for(int i=1;i<=20;i++){SystemClock.sleep(s.optInt("duration",400)/20);motion(t,SystemClock.uptimeMillis(),MotionEvent.ACTION_MOVE,x+(x2-x)*i/20,y+(y2-y)*i/20);}
             motion(t,SystemClock.uptimeMillis(),MotionEvent.ACTION_UP,x2,y2);return;
         }
-        if("click".equals(op)||"text".equals(op)||"longClick".equals(op)) {
+        if("click".equals(op)||"document-click".equals(op)||"text".equals(op)||"longClick".equals(op)) {
             AccessibilityNodeInfo node=null;
             long deadline=SystemClock.uptimeMillis()+s.optInt("timeout",5000);
             while(node==null && SystemClock.uptimeMillis()<deadline) {
@@ -135,6 +151,11 @@ public final class UiAudit extends Instrumentation {
                 if(node==null)SystemClock.sleep(200);
             }
             if(node==null) { if(s.optBoolean("optional",false))return;throw new Exception("Control missing: "+s.getString("target")); }
+            if("document-click".equals(op)) {
+                if(!node.isEnabled())throw new AssertionError("System document control disabled: "+s.getString("target"));
+                Rect b=new Rect();node.getBoundsInScreen(b);
+                try(android.os.ParcelFileDescriptor.AutoCloseInputStream stream=new android.os.ParcelFileDescriptor.AutoCloseInputStream(getUiAutomation().executeShellCommand("input tap "+b.centerX()+" "+b.centerY()))){byte[] buf=new byte[512];while(stream.read(buf)!=-1){}}return;
+            }
             if("text".equals(op)) {
                 node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
                 Bundle a=new Bundle();a.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,s.getString("value"));
@@ -149,9 +170,36 @@ public final class UiAudit extends Instrumentation {
         }
         throw new Exception("Unknown op: "+op);
     }
+    private JSONObject runDowngradeGuard() throws Exception {
+        java.lang.reflect.Field resultField=activity.getClass().getDeclaredField("updateResult"); resultField.setAccessible(true);
+        java.lang.reflect.Field pendingField=activity.getClass().getDeclaredField("pendingDownloadId"); pendingField.setAccessible(true);
+        Object original=resultField.get(activity);
+        Class<?> resultClass=Class.forName("com.carweb.tvb.UpdateChecker$Result",true,activity.getClassLoader());
+        java.lang.reflect.Constructor<?> ctor=resultClass.getDeclaredConstructor(String.class,String.class,String.class,String.class,long.class,String.class,String.class);
+        ctor.setAccessible(true); Object stale=ctor.newInstance("v6.19","6.19","car-browser-6.19.apk","https://dl.736.de5.net/car-browser/car-browser-6.19.apk",727668L,"","test");
+        resultField.set(activity,stale); long before=pendingField.getLong(activity); final Throwable[] error=new Throwable[1];
+        runOnMainSync(()->{try{java.lang.reflect.Method method=activity.getClass().getDeclaredMethod("startUpdateDownload");method.setAccessible(true);method.invoke(activity);}catch(Throwable t){error[0]=t;}});
+        long after=pendingField.getLong(activity); resultField.set(activity,original);
+        JSONObject state=new JSONObject();state.put("pendingBefore",before);state.put("pendingAfter",after);state.put("error",error[0]==null?"":error[0].toString());
+        state.put("pass",error[0]==null&&before==-1L&&after==-1L);return state;
+    }
+    // The guest runner force-stops the target BETWEEN instrumentation invocations.
+    // Never force-stop the instrumented process from inside itself.
+    private JSONObject restartTargetAndCheckSaf() throws Exception {
+        ClassLoader loader=getTargetContext().getClassLoader();Class<?> type=Class.forName("com.carweb.tvb.DownloadCenter",true,loader);
+        Object center=type.getMethod("get",android.content.Context.class).invoke(null,getTargetContext());
+        String tree=(String)type.getMethod("treeUri").invoke(center);int dest=(Integer)type.getMethod("destination").invoke(center);
+        boolean persisted=false;
+        for(android.content.UriPermission p:getTargetContext().getContentResolver().getPersistedUriPermissions())
+            if(tree.equals(p.getUri().toString())&&p.isReadPermission()&&p.isWritePermission())persisted=true;
+        JSONObject state=new JSONObject();state.put("tree",tree);state.put("destination",dest);state.put("persistedReadWriteGrant",persisted);
+        state.put("pid",android.os.Process.myPid());state.put("pass",tree.contains("CarBrowserAudit620")&&dest==2&&persisted);return state;
+    }
     private AccessibilityNodeInfo find(AccessibilityNodeInfo n,String target) {
         if(n==null) return null;
-        if(n.isVisibleToUser() && (target.contentEquals(n.getText()==null?"":n.getText()) || target.contentEquals(n.getContentDescription()==null?"":n.getContentDescription())))return n;
+        String text=n.getText()==null?"":n.getText().toString(),desc=n.getContentDescription()==null?"":n.getContentDescription().toString();
+        boolean prefix=target.endsWith("*");String wanted=prefix?target.substring(0,target.length()-1):target;
+        if(n.isVisibleToUser() && (prefix?(text.startsWith(wanted)||desc.startsWith(wanted)):(wanted.equals(text)||wanted.equals(desc))))return n;
         for(int i=0;i<n.getChildCount();i++){AccessibilityNodeInfo r=find(n.getChild(i),target);if(r!=null)return r;}
         return null;
     }

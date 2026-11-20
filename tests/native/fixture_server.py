@@ -6,6 +6,11 @@ ARTICLE='''<!doctype html><meta charset="utf-8"><title>车览体验测试</title
 class Handler(BaseHTTPRequestHandler):
  def do_GET(self):
   route=self.path.split('?')[0]
+  if route=='/update.apk':
+   import os, pathlib
+   apk=pathlib.Path(os.environ.get('CARWEB_AUDIT_APK', str(pathlib.Path(__file__).resolve().parents[2]/'dist'/'car-browser-6.20.apk')))
+   if not apk.is_file():self.send_error(404);return
+   data=apk.read_bytes();self.send_response(200);self.send_header('Content-Type','application/vnd.android.package-archive');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
   if route in ('/article','/page2'):
    data=(ARTICLE if route=='/article' else '<meta charset="utf-8"><title>第二页</title><h1>第二页</h1><a href="/article">返回文章</a>').encode();self.send_response(200);self.send_header('Content-Type','text/html;charset=utf-8');self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data);return
   if route=='/cut.bin':

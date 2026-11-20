@@ -1,5 +1,36 @@
 # 原生与模拟器验收记录
 
+## 2026-11-20 · v6.20（versionCode 30）更新校验、下载安全与发布验收
+
+- 最终包：`dist/car-browser-6.20.apk`，731,764 B；SHA-256 `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28`。包名 `com.carweb.tvb`，签名证书 SHA-256 `8eec23c3c7c129ab422c3f61ee2981abac7b397cf947b1c8fbef22ac6ffaeb55`；zipalign 与 v1/v2/v3 签名校验通过。
+- 构建固定 Build Tools `35.0.0`、compile SDK 35；版本 `6.20 (30)`。MuMu vm0 / Android 15 实测车机几何：`init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`；测试期间音量为 0。
+- 测试 APK 安装身份在 guest 内重新计算为上述 SHA；结果目录：`C:\Users\WIN10\Documents\MuMu共享文件夹\audit620-004daa7f`。
+
+| 最终 SHA 批次 | 结果 | 覆盖 |
+|---|---:|---|
+| `stable-core` | 34/34 | 主 UI 流程 |
+| `stable-backend` | 43/43 | 下载与更新后端断言 |
+| `extended-ux` | 18/18 | 工具栏、页面与交互专项 |
+| `final-web` | 19/19 | 网页与文本预览流程 |
+| `extended-saf` | 11/11 | SAF 目录选择、授权和首次写入 |
+| `extended-saf-restart` | 3/3 | 跨进程/重启后的持久授权读回 |
+| `final-update-flow-verified` | 14/14 | DownloadManager 实际下载、错误 SHA/大小拒绝与清理、正确 APK 系统安装器交接 |
+| `final-update-live-final` | 6/6 | 发布后真实 R2 同版本检查，显示“已是最新 6.20”与 `car-browser-6.20.apk` |
+
+以上结果均记录最终 APK SHA；这些专项有交叉覆盖，不将行数相加成独立用例总数。初次更新流程复测曾有一项测试断言要求前台 UI 包名等于 PackageManager 解析的 APK handler；MuMu 实测分别是 `com.mumu.store` 与 `com.android.packageinstaller`。修正测试为检查产品状态“已交给系统安装器”且 handler 非空后，最终批次 14/14 通过；产品代码未为此改动。在线检查初次启动被系统安装确认页遮挡的批次未计入通过，关闭该页面后最终在线批次 6/6 通过。
+
+### R2 发布核对
+
+- `tools/publish_r2.ps1` 成功上传 `car-browser/car-browser-6.20.apk`、`latest.json` 与 `history/6.20.json`；R2 配额守卫通过。
+- 公网清单：版本 `6.20` / versionCode `30` / APK `car-browser/car-browser-6.20.apk` / `731764` B / SHA 与本地完全一致；APK HEAD 为 HTTP 200，`Content-Length: 731764`。
+- 最终在线 tour 由已安装的同 SHA 应用执行并读到“已是最新 6.20”和正确 APK 文件名。
+
+### 收尾与边界
+
+- 测试前备份的四个 SharedPreferences XML 已逐文件 SHA 对账恢复；`downloads_v2.xml`、`tv_browser.xml`、WebView 两个偏好文件均与备份一致。审计 APK 已卸载，临时下载和计划文件已清除；fixture Python 进程停止且本机 8099 无监听。MuMu 音量为 0，显示保持车机档。
+- 更新流程第一次 14 项批次曾以错误的安装器包名等值断言失败；该旧结果保留但不计入通过。MuMu 调用间自停记录为模拟器生命周期事件，不记作应用崩溃。
+- 本轮未连接零跑 B01 真车；MuMu Android 15 的几何、UI 与更新流程结果不替代 Android 12L/API 32 真车验收。
+
 ## 2026-11-17 · v6.19（versionCode 29）工具栏、标签与下载体验
 
 - 最终包：`dist/car-browser-6.19.apk`，727,668 B；SHA-256 `28123895330278EA6E8236D278072E54A0BA3AB1B6994420DB0074C71793967B`。

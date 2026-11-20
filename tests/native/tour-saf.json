@@ -1,7 +1,77 @@
 [
- {"name":"home"},
- {"name":"menu","op":"click","target":"菜单"},
- {"name":"downloads","op":"click","target":"下载","expect":["保存位置"]},
- {"name":"folder-options","op":"click","target":"更改","expect":["选择其他文件夹"]},
- {"name":"folder-picker","op":"click","target":"选择其他文件夹…","settle":2000,"expect":["文件夹"]}
+  {
+    "name": "home"
+  },
+  {
+    "name": "menu",
+    "op": "click",
+    "target": "菜单"
+  },
+  {
+    "name": "downloads",
+    "op": "click",
+    "target": "下载",
+    "expect": [
+      "保存位置"
+    ]
+  },
+  {
+    "name": "folder-options",
+    "op": "click",
+    "target": "更改",
+    "expect": [
+      "选择其他文件夹"
+    ]
+  },
+  {
+    "name": "folder-picker",
+    "op": "click",
+    "target": "选择其他文件夹…",
+    "settle": 1800
+  },
+  {
+    "name": "download-folder",
+    "op": "document-click",
+    "target": "Download",
+    "settle": 800,
+    "timeout": 15000
+  },
+  {
+    "name": "audit-folder",
+    "op": "document-click",
+    "target": "CarBrowserAudit620",
+    "settle": 700,
+    "expect": [
+      "使用此文件夹"
+    ],
+    "timeout": 15000
+  },
+  {
+    "name": "use-folder",
+    "op": "document-click",
+    "target": "使用此文件夹",
+    "settle": 600,
+    "timeout": 15000
+  },
+  {
+    "name": "allow-folder",
+    "op": "click",
+    "target": "允许",
+    "optional": true,
+    "timeout": 2000,
+    "settle": 800,
+    "expect": [
+      "保存位置",
+      "自选"
+    ]
+  },
+  {
+    "name": "persisted-grant",
+    "op": "restart-target"
+  },
+  {
+    "name": "saf-download-readback",
+    "op": "backend",
+    "settle": 500
+  }
 ]

@@ -1,0 +1,5 @@
+[
+ {"name":"new-process-home","expect":["百度"]},
+ {"name":"grant-survived-process-restart","op":"restart-target"},
+ {"name":"saf-write-after-process-restart","op":"backend","settle":500}
+]

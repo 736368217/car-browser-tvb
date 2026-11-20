@@ -258,7 +258,20 @@ public final class DownloadCenter {
     private static String safeName(String name){
         if(name==null)name="download";
         name=name.replaceAll("[\\\\/\\p{Cntrl}]","_").trim();if(name.isEmpty()||name.equals(".")||name.equals(".."))name="download";
-        return name.length()>180?name.substring(0,160)+name.substring(Math.max(160,name.lastIndexOf('.'))):name;
+        // Reserve room for duplicate suffixes, and bound UTF-8 bytes rather than UTF-16 chars.
+        final int limit=220;
+        if(name.getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=limit)return name;
+        int dot=name.lastIndexOf('.');String extension="";
+        if(dot>0 && name.substring(dot).getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=32){
+            extension=name.substring(dot);name=name.substring(0,dot);
+        }
+        int budget=limit-extension.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        int end=0,bytes=0;
+        while(end<name.length()){
+            int cp=name.codePointAt(end);int n=cp<=0x7f?1:cp<=0x7ff?2:cp<=0xffff?3:4;
+            if(bytes+n>budget)break;bytes+=n;end+=Character.charCount(cp);
+        }
+        return name.substring(0,end)+extension;
     }
     public static String mimeFor(String name,String response){
         String clean=response==null?"":response.split(";",2)[0].trim().toLowerCase(Locale.US);

@@ -1,0 +1,43 @@
+[
+  {
+    "name": "home"
+  },
+  {
+    "name": "menu",
+    "op": "click",
+    "target": "菜单"
+  },
+  {
+    "name": "settings",
+    "op": "click",
+    "target": "设置"
+  },
+  {
+    "name": "lower",
+    "op": "swipe",
+    "x": 2100,
+    "y": 1450,
+    "toX": 2100,
+    "toY": 300,
+    "duration": 600
+  },
+  {
+    "name": "about",
+    "op": "click",
+    "target": "关于车览浏览器",
+    "expect": [
+      "R2 发布通道",
+      "版本 6.20"
+    ]
+  },
+  {
+    "name": "live-update-check",
+    "op": "click",
+    "target": "检查更新",
+    "wait": 60000,
+    "expect": [
+      "已是最新 6.20",
+      "car-browser-6.20.apk"
+    ]
+  }
+]

@@ -115,8 +115,8 @@ public final class UpdateChecker {
         try {
             URL url = new URL(API_LATEST);
             conn = (HttpURLConnection) url.openConnection();
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(15000);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(8000);
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/vnd.github+json");
             conn.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
@@ -193,28 +193,50 @@ public final class UpdateChecker {
         HttpURLConnection conn = null;
         try {
             conn = (HttpURLConnection) new URL(MANIFEST_URL).openConnection();
-            conn.setConnectTimeout(8000);
-            conn.setReadTimeout(8000);
+            conn.setConnectTimeout(4000);
+            conn.setReadTimeout(6000);
             conn.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
             conn.setRequestProperty("Cache-Control", "no-cache");
             int code = conn.getResponseCode();
             if (code != 200) throw new IllegalStateException("HTTP " + code);
-            String body = readStream(conn.getInputStream());
-            org.json.JSONObject o = new org.json.JSONObject(body);
-            String version = o.optString("version", "").trim();
-            if (version.isEmpty()) throw new IllegalStateException("清单缺少 version");
-            String apk = o.optString("apk", "").trim();
-            if (apk.isEmpty()) throw new IllegalStateException("清单缺少 apk");
-            String url = apk.startsWith("http://") || apk.startsWith("https://")
-                    ? apk : CDN_BASE + "/" + apk;
-            long size = o.optLong("size", 0L);
-            String sha = o.optString("sha256", "").trim().toLowerCase(Locale.US);
-            String notes = o.optString("notes", "");
-            String name = apk.substring(apk.lastIndexOf('/') + 1);
-            return new Result("v" + version, version, name, url, size, sha, notes);
+            return parseManifest(readStream(conn.getInputStream()));
         } finally {
             if (conn != null) conn.disconnect();
         }
+    }
+
+    /** Validate the same manifest contract for network responses and native acceptance. */
+    static Result parseManifest(String body) throws Exception {
+            JSONObject o = new JSONObject(body != null && body.startsWith("\uFEFF") ? body.substring(1) : body);
+            String version = o.optString("version", "").trim();
+            if (!version.matches("[0-9]+(?:\\.[0-9]+){0,3}"))
+                throw new IllegalStateException("清单版本格式无效");
+            String apk = o.optString("apk", "").trim();
+            if (!apk.matches("car-browser/[A-Za-z0-9][A-Za-z0-9._-]*\\.apk"))
+                throw new IllegalStateException("清单 APK 路径无效");
+            String url = CDN_BASE + "/" + apk;
+            if (!isAllowedDownloadUrl(url)) throw new IllegalStateException("清单下载地址不可信");
+            URL parsedUrl = new URL(url);
+            if (!"dl.736.de5.net".equalsIgnoreCase(parsedUrl.getHost())
+                    || parsedUrl.getQuery() != null || parsedUrl.getRef() != null)
+                throw new IllegalStateException("清单下载地址无效");
+            String name = parsedUrl.getPath().substring(parsedUrl.getPath().lastIndexOf('/') + 1);
+            long size = o.optLong("size", 0L);
+            if (size <= 0) throw new IllegalStateException("清单缺少有效文件大小");
+            String sha = o.optString("sha256", "").trim().toLowerCase(Locale.US);
+            if (!sha.matches("[0-9a-f]{64}")) throw new IllegalStateException("清单缺少有效 sha256");
+            return new Result("v" + version, version, name, url, size, sha, o.optString("notes", ""));
+    }
+    /** Shared package integrity gate used by the update worker and native tests. */
+    public static boolean verifyDownloadedArtifact(long expectedSize, String expectedSha,
+                                                   long actualSize, String actualSha) {
+        if (actualSha == null) return false;
+        if (expectedSize > 0 && actualSize != expectedSize) return false;
+        String expected = expectedSha == null ? "" : expectedSha.trim().toLowerCase(Locale.US);
+        String actual = actualSha.trim().toLowerCase(Locale.US);
+        if (expected.isEmpty()) return true;
+        return expected.matches("[0-9a-f]{64}") && actual.matches("[0-9a-f]{64}")
+                && expected.equals(actual);
     }
 
     private static String readStream(java.io.InputStream in) throws Exception {
@@ -235,8 +257,8 @@ public final class UpdateChecker {
         try {
             conn = (HttpURLConnection) new URL(RELEASE_PAGE_URL).openConnection();
             conn.setInstanceFollowRedirects(true);
-            conn.setConnectTimeout(10000);
-            conn.setReadTimeout(15000);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(8000);
             conn.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
             int code = conn.getResponseCode();
             if (code != 200) throw new IllegalStateException("HTTP " + code);
@@ -266,8 +288,8 @@ public final class UpdateChecker {
                     head = (HttpURLConnection) new URL(url).openConnection();
                     head.setInstanceFollowRedirects(true);
                     head.setRequestMethod("HEAD");
-                    head.setConnectTimeout(10000);
-                    head.setReadTimeout(10000);
+                    head.setConnectTimeout(5000);
+                    head.setReadTimeout(5000);
                     head.setRequestProperty("User-Agent", SOFTWARE + "-car/" + BuildConfig.VERSION_NAME);
                     int hc = head.getResponseCode();
                     if (hc >= 200 && hc < 400) {

@@ -1,0 +1,7 @@
+[
+  {
+    "name": "real-download-rejection-and-installer",
+    "op": "update-flow",
+    "settle": 500
+  }
+]
