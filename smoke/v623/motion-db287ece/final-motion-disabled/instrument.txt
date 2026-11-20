@@ -1,0 +1,6 @@
+INSTRUMENTATION_STATUS: pass=true
+INSTRUMENTATION_STATUS: step=00-final-motion-disabled
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: failed=0
+INSTRUMENTATION_RESULT: output=/storage/emulated/0/Android/data/com.carweb.tvb/files/final-motion-disabled
+INSTRUMENTATION_CODE: -1

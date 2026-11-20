@@ -1,0 +1,3 @@
+[
+  {"name":"disabled-menu-visible","op":"click","target":"菜单","expect":["新建标签","标签页","书签","历史","下载","设置","全屏"]}
+]

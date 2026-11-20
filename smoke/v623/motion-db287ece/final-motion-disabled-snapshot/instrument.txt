@@ -1,0 +1,6 @@
+INSTRUMENTATION_STATUS: pass=true
+INSTRUMENTATION_STATUS: step=00-disabled-menu-visible
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: failed=0
+INSTRUMENTATION_RESULT: output=/storage/emulated/0/Android/data/com.carweb.tvb/files/final-motion-disabled-snapshot
+INSTRUMENTATION_CODE: -1

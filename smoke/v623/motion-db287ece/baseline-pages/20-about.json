@@ -1,0 +1,571 @@
+{
+  "nodes": [
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        156
+      ]
+    },
+    {
+      "desc": "返回",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        0,
+        352,
+        156
+      ]
+    },
+    {
+      "text": "关于",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        352,
+        0,
+        2664,
+        156
+      ]
+    },
+    {
+      "class": "android.widget.ScrollView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "text": "车览浏览器",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        191,
+        2664,
+        313
+      ]
+    },
+    {
+      "text": "版本 6.22（32）",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        313,
+        2664,
+        412
+      ]
+    },
+    {
+      "text": "更新",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        412,
+        2664,
+        510
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        510,
+        2664,
+        870
+      ]
+    },
+    {
+      "text": "R2 发布通道 · 自动更新",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        251,
+        539,
+        2629,
+        592
+      ]
+    },
+    {
+      "text": "未检查",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        251,
+        592,
+        2629,
+        652
+      ]
+    },
+    {
+      "text": "检查 R2 发布通道的最新版本；下载后先校验 sha256，再交给系统安装器。",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        251,
+        652,
+        2629,
+        731
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        251,
+        731,
+        2629,
+        835
+      ]
+    },
+    {
+      "text": "检查更新",
+      "desc": "检查更新",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        251,
+        731,
+        510,
+        835
+      ]
+    },
+    {
+      "text": "重新下载安装",
+      "desc": "重新下载安装",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        533,
+        731,
+        829,
+        835
+      ]
+    },
+    {
+      "text": "手动下载",
+      "desc": "手动下载",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        852,
+        731,
+        1111,
+        835
+      ]
+    },
+    {
+      "text": "复制链接",
+      "desc": "复制链接",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1134,
+        731,
+        1393,
+        835
+      ]
+    },
+    {
+      "text": "运行环境",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        870,
+        2664,
+        968
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        968,
+        2664,
+        1126
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        968,
+        2664,
+        1125
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        994,
+        2664,
+        1099
+      ]
+    },
+    {
+      "text": "Android System WebView",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        994,
+        2664,
+        1046
+      ]
+    },
+    {
+      "text": "110.0.5481.154.1",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1046,
+        2664,
+        1099
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1125,
+        2664,
+        1126
+      ]
+    }
+  ],
+  "nativeViews": [
+    {
+      "text": "关于",
+      "textPx": 44,
+      "color": "#FFE8EDF2",
+      "bounds": [
+        352,
+        0,
+        2664,
+        156
+      ]
+    },
+    {
+      "text": "车览浏览器",
+      "textPx": 56,
+      "color": "#FFF2F4F8",
+      "bounds": [
+        216,
+        191,
+        2664,
+        313
+      ]
+    },
+    {
+      "text": "版本 6.22（32）",
+      "textPx": 30,
+      "color": "#FFAAB7C5",
+      "bounds": [
+        216,
+        313,
+        2664,
+        412
+      ]
+    },
+    {
+      "text": "更新",
+      "textPx": 30,
+      "color": "#FF8A98A8",
+      "bounds": [
+        216,
+        412,
+        2664,
+        510
+      ]
+    },
+    {
+      "text": "R2 发布通道 · 自动更新",
+      "textPx": 36,
+      "color": "#FFE5EBF0",
+      "bounds": [
+        251,
+        539,
+        2629,
+        592
+      ]
+    },
+    {
+      "text": "未检查",
+      "textPx": 32,
+      "color": "#FFD8E0E8",
+      "bounds": [
+        251,
+        592,
+        2629,
+        652
+      ]
+    },
+    {
+      "text": "检查 R2 发布通道的最新版本；下载后先校验 sha256，再交给系统安装器。",
+      "textPx": 30,
+      "color": "#FF9AA8B7",
+      "bounds": [
+        251,
+        652,
+        2629,
+        731
+      ]
+    },
+    {
+      "text": "检查更新",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        251,
+        731,
+        510,
+        835
+      ]
+    },
+    {
+      "text": "重新下载安装",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        533,
+        731,
+        829,
+        835
+      ]
+    },
+    {
+      "text": "手动下载",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        852,
+        731,
+        1111,
+        835
+      ]
+    },
+    {
+      "text": "复制链接",
+      "textPx": 34,
+      "color": "#FF9CCBFF",
+      "bounds": [
+        1134,
+        731,
+        1393,
+        835
+      ]
+    },
+    {
+      "text": "运行环境",
+      "textPx": 30,
+      "color": "#FF8A98A8",
+      "bounds": [
+        216,
+        870,
+        2664,
+        968
+      ]
+    },
+    {
+      "text": "Android System WebView",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        994,
+        2664,
+        1046
+      ]
+    },
+    {
+      "text": "110.0.5481.154.1",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        1046,
+        2664,
+        1099
+      ]
+    }
+  ],
+  "width": 2880,
+  "height": 1620
+}

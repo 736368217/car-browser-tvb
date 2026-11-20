@@ -1,0 +1,26 @@
+{
+  "failed": 0,
+  "steps": [
+    {
+      "name": "00-final-motion",
+      "action": {
+        "name": "final-motion",
+        "op": "motion",
+        "profile": "animated",
+        "expect": [
+          "地址栏",
+          "菜单"
+        ],
+        "absent": [
+          "退出全屏",
+          "应用内返回"
+        ]
+      },
+      "pass": true
+    }
+  ],
+  "pid": 2500,
+  "package": "com.carweb.tvb",
+  "apkPath": "\/data\/app\/~~AAJuirBl6CBtxgo3_AHMwA==\/com.carweb.tvb-P7m8_BotT3VuGSgvBdAMtg==\/base.apk",
+  "sha256": "db287ece7d62307d2aef58c4640ca8d8b8e2aeb67adc201b07d97a134b83055f"
+}

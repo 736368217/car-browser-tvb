@@ -1,0 +1,820 @@
+{
+  "nodes": [
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        156
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        28,
+        14,
+        572,
+        142
+      ]
+    },
+    {
+      "desc": "后退",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": false,
+      "bounds": [
+        28,
+        14,
+        164,
+        142
+      ]
+    },
+    {
+      "desc": "前进",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": false,
+      "bounds": [
+        164,
+        14,
+        300,
+        142
+      ]
+    },
+    {
+      "desc": "主页",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        300,
+        14,
+        436,
+        142
+      ]
+    },
+    {
+      "desc": "标签页",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        436,
+        14,
+        572,
+        142
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        589,
+        14,
+        2427,
+        142
+      ]
+    },
+    {
+      "desc": "网址或搜索",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        606,
+        46,
+        669,
+        109
+      ]
+    },
+    {
+      "text": "输入网址或搜索",
+      "desc": "地址栏",
+      "class": "android.widget.EditText",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        669,
+        22,
+        2279,
+        134
+      ]
+    },
+    {
+      "desc": "收藏本页",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2279,
+        14,
+        2415,
+        142
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2444,
+        14,
+        2852,
+        142
+      ]
+    },
+    {
+      "desc": "下载",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2444,
+        14,
+        2580,
+        142
+      ]
+    },
+    {
+      "desc": "刷新",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2580,
+        14,
+        2716,
+        142
+      ]
+    },
+    {
+      "desc": "菜单",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2716,
+        14,
+        2852,
+        142
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.webkit.WebView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "text": "车机浏览器",
+      "class": "android.webkit.WebView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "text": "",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "text": "",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        481,
+        2880,
+        1286
+      ]
+    },
+    {
+      "text": "",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        194,
+        481,
+        2686,
+        1286
+      ]
+    },
+    {
+      "desc": "百度",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        194,
+        481,
+        496,
+        853
+      ]
+    },
+    {
+      "text": "百度",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        307,
+        800,
+        383,
+        855
+      ]
+    },
+    {
+      "desc": "Google",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        559,
+        481,
+        861,
+        853
+      ]
+    },
+    {
+      "text": "Google",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        646,
+        800,
+        774,
+        855
+      ]
+    },
+    {
+      "desc": "YouTube",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        924,
+        481,
+        1226,
+        853
+      ]
+    },
+    {
+      "text": "YouTube",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        998,
+        800,
+        1152,
+        855
+      ]
+    },
+    {
+      "desc": "哔哩哔哩",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1289,
+        481,
+        1591,
+        853
+      ]
+    },
+    {
+      "text": "哔哩哔哩",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1365,
+        800,
+        1515,
+        855
+      ]
+    },
+    {
+      "desc": "知乎",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1654,
+        481,
+        1956,
+        853
+      ]
+    },
+    {
+      "text": "知乎",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1767,
+        800,
+        1843,
+        855
+      ]
+    },
+    {
+      "desc": "淘宝",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2019,
+        481,
+        2321,
+        853
+      ]
+    },
+    {
+      "text": "淘宝",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2132,
+        800,
+        2208,
+        855
+      ]
+    },
+    {
+      "desc": "微博",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2384,
+        481,
+        2686,
+        853
+      ]
+    },
+    {
+      "text": "微博",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2497,
+        800,
+        2573,
+        855
+      ]
+    },
+    {
+      "desc": "豆瓣",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        194,
+        915,
+        496,
+        1286
+      ]
+    },
+    {
+      "text": "豆瓣",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        307,
+        1234,
+        383,
+        1289
+      ]
+    },
+    {
+      "desc": "京东",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        559,
+        915,
+        861,
+        1286
+      ]
+    },
+    {
+      "text": "京东",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        672,
+        1234,
+        748,
+        1289
+      ]
+    },
+    {
+      "desc": "优酷",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        924,
+        915,
+        1226,
+        1286
+      ]
+    },
+    {
+      "text": "优酷",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1037,
+        1234,
+        1113,
+        1289
+      ]
+    },
+    {
+      "desc": "爱奇艺",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1289,
+        915,
+        1591,
+        1286
+      ]
+    },
+    {
+      "text": "爱奇艺",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1383,
+        1234,
+        1497,
+        1289
+      ]
+    },
+    {
+      "desc": "腾讯视频",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1654,
+        915,
+        1956,
+        1286
+      ]
+    },
+    {
+      "text": "腾讯视频",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        1730,
+        1234,
+        1880,
+        1289
+      ]
+    },
+    {
+      "desc": "网易云音乐",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2019,
+        915,
+        2321,
+        1286
+      ]
+    },
+    {
+      "text": "网易云音乐",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2076,
+        1234,
+        2264,
+        1289
+      ]
+    },
+    {
+      "desc": "1 10.0.2.2",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2384,
+        915,
+        2686,
+        1286
+      ]
+    },
+    {
+      "text": "1",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2513,
+        1012,
+        2557,
+        1118
+      ]
+    },
+    {
+      "text": "10.0.2.2",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2464,
+        1234,
+        2606,
+        1289
+      ]
+    },
+    {
+      "text": "",
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "text": "",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        6,
+        162
+      ]
+    },
+    {
+      "text": "",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        32,
+        176
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        159
+      ]
+    }
+  ],
+  "nativeViews": [
+    {
+      "text": "",
+      "textPx": 44,
+      "color": "#FFE8EDF2",
+      "bounds": [
+        669,
+        22,
+        2279,
+        134
+      ]
+    }
+  ],
+  "width": 2880,
+  "height": 1620
+}

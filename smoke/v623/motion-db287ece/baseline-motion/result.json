@@ -1,0 +1,26 @@
+{
+  "failed": 0,
+  "steps": [
+    {
+      "name": "00-baseline-motion",
+      "action": {
+        "name": "baseline-motion",
+        "op": "motion",
+        "profile": "baseline",
+        "expect": [
+          "地址栏",
+          "菜单"
+        ],
+        "absent": [
+          "退出全屏",
+          "应用内返回"
+        ]
+      },
+      "pass": true
+    }
+  ],
+  "pid": 2676,
+  "package": "com.carweb.tvb",
+  "apkPath": "\/data\/app\/~~Y8xPEhJbuuzOCIfBbVud9g==\/com.carweb.tvb-MHeZ9R_xkqyF1rhxQcFlGA==\/base.apk",
+  "sha256": "89f5bfa20f748dfc8a502ed148f100e356de0fde2072b7a99f2148e583c2faa7"
+}

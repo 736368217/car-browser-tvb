@@ -305,6 +305,25 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private int screenW;
     private boolean addrEditing = false;
     private static final int TOOLBAR_H = 156;
+    private static final android.view.animation.Interpolator MOTION_ENTER =
+            new android.view.animation.PathInterpolator(0.16f, 1f, 0.3f, 1f);
+    private static final android.view.animation.Interpolator MOTION_EXIT =
+            new android.view.animation.PathInterpolator(0.4f, 0f, 0.7f, 1f);
+
+    private boolean motionEnabled() {
+        if (Build.VERSION.SDK_INT >= 26) return android.animation.ValueAnimator.areAnimatorsEnabled();
+        return android.provider.Settings.Global.getFloat(getContentResolver(),
+                android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f;
+    }
+
+    private static void resetMotion(View view) {
+        view.animate().cancel();
+        view.setAlpha(1f);
+        view.setTranslationX(0f);
+        view.setTranslationY(0f);
+        view.setScaleX(1f);
+        view.setScaleY(1f);
+    }
 
     /** 地址栏跟随当前页面 URL：有些页面 onPageFinished 很晚甚至不来，靠 500ms 轮询兜底 */
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
@@ -2224,12 +2243,12 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     private void goSheetPage(int index, boolean animate) {
         sheetPageIndex = index;
         if (sheetTrack == null) return;
-        int w = sheetPager != null ? sheetPager.getWidth() : 0;
-        if (w <= 0) w = px(1f);
+        int w = sheetPager.getWidth();
+        if (w <= 0) w = sheetTrack.getChildAt(0).getLayoutParams().width;
         float target = -index * w;
         sheetTrack.animate().cancel();
-        if (animate) {
-            sheetTrack.animate().translationX(target).setDuration(200).start();
+        if (animate && motionEnabled()) {
+            sheetTrack.animate().translationX(target).setDuration(200).setInterpolator(MOTION_ENTER).start();
         } else {
             sheetTrack.setTranslationX(target);
         }
@@ -2240,7 +2259,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     }
 
     private void switchSheetPage() {
-        goSheetPage(1 - sheetPageIndex, true);
+        if (!sheetClosing) goSheetPage(1 - sheetPageIndex, true);
     }
 
     private GradientDrawable circle(int color) {
@@ -2293,56 +2312,72 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         tv.setGravity(Gravity.CENTER);
         item.addView(tv);
 
-        item.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                hideSheet();
-                runSheetAction(action);
-            }
+        pressable(item);
+        item.setOnClickListener(v -> {
+            if (sheetClosing || sheetLayer.getVisibility() != View.VISIBLE) return;
+            if ("fullscreen".equals(action)) finishHideSheet();
+            else hideSheet();
+            runSheetAction(action);
         });
         return item;
     }
 
     private long sheetTransitionId;
+    private boolean sheetClosing;
 
     private void showSheet() {
-        if (sheetLayer == null) return;
+        if (sheetLayer == null || (sheetLayer.getVisibility() == View.VISIBLE && !sheetClosing)) return;
         dismissDownloadShelf();
+        boolean reopening = sheetClosing;
         sheetTransitionId++;
-        sheetLayer.animate().cancel();
+        sheetClosing = false;
         sheetScrim.animate().cancel();
         sheetPanel.animate().cancel();
-        sheetLayer.setTranslationY(0f);
+        goSheetPage(0, false);
         sheetLayer.setVisibility(View.VISIBLE);
         sheetLayer.bringToFront();
         syncAccessibilityLayers();
-        sheetScrim.setAlpha(0f);
-        sheetPanel.setTranslationY(px(0.24f));
-        sheetScrim.animate().alpha(1f).setDuration(140).start();
-        sheetPanel.animate().translationY(0f).setDuration(210)
-                .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        if (motionEnabled()) {
+            if (!reopening) {
+                sheetScrim.setAlpha(0f);
+                sheetPanel.setAlpha(0.72f);
+                sheetPanel.setTranslationY(px(0.018f));
+            }
+            sheetScrim.animate().alpha(1f).setDuration(170).setInterpolator(MOTION_ENTER).start();
+            sheetPanel.animate().alpha(1f).translationY(0f).setDuration(190)
+                    .setInterpolator(MOTION_ENTER).start();
+        } else {
+            sheetScrim.setAlpha(1f);
+            resetMotion(sheetPanel);
+        }
         if (status != null && status.getVisibility() == View.VISIBLE) status.bringToFront();
-        sheetPager.post(new Runnable() {
-            @Override public void run() { goSheetPage(0, false); }
-        });
     }
 
     private void hideSheet() {
-        if (sheetLayer == null || sheetLayer.getVisibility() != View.VISIBLE) return;
+        if (sheetLayer == null || sheetClosing || sheetLayer.getVisibility() != View.VISIBLE) return;
         final long transition = ++sheetTransitionId;
+        sheetClosing = true;
         sheetScrim.animate().cancel();
         sheetPanel.animate().cancel();
-        sheetScrim.animate().alpha(0f).setDuration(140).start();
-        sheetPanel.animate().translationY(px(0.24f)).setDuration(160)
-                .withEndAction(new Runnable() {
-                    @Override public void run() {
-                        if (transition != sheetTransitionId) return;
-                        sheetLayer.setVisibility(View.GONE);
-                        sheetPanel.setTranslationY(0f);
-                        syncAccessibilityLayers();
-                        if (status != null && status.getVisibility() == View.VISIBLE) status.bringToFront();
-                    }
+        if (!motionEnabled()) {
+            finishHideSheet();
+            return;
+        }
+        sheetScrim.animate().alpha(0f).setDuration(140).setInterpolator(MOTION_EXIT).start();
+        sheetPanel.animate().alpha(0f).translationY(px(0.012f)).setDuration(140)
+                .setInterpolator(MOTION_EXIT).withEndAction(() -> {
+                    if (transition == sheetTransitionId) finishHideSheet();
                 }).start();
+    }
+
+    private void finishHideSheet() {
+        sheetLayer.setVisibility(View.GONE);
+        sheetClosing = false;
+        sheetTrack.animate().cancel();
+        sheetScrim.animate().cancel();
+        sheetScrim.setAlpha(0f);
+        resetMotion(sheetPanel);
+        syncAccessibilityLayers();
     }
 
     private void runSheetAction(String action) {
@@ -2668,23 +2703,21 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         boolean replace = pageVisible() && route.equals(currentPageRoute);
         if (pageVisible() && pageLayer.getChildCount() > 0) {
             View old = pageLayer.getChildAt(0);
-            if (old instanceof ViewGroup && ((ViewGroup) old).getChildCount() > 1) {
-                restoreScrollY = ((ViewGroup) old).getChildAt(1).getScrollY();
-            }
-            if (!replace) {
-                // A→B→A 也保留 B：否则会把旧 A 和当前 B 一起丢掉，返回直接掉回网页
-                pageParents.push(new PageFrame(old, currentPageRoute, restoreScrollY));
+            old.animate().cancel();
+            int oldY = ((ViewGroup) old).getChildAt(1).getScrollY();
+            if (replace) {
+                restoreScrollY = oldY;
+            } else {
+                // A→B→A still retains B as its parent.
+                pageParents.push(new PageFrame(old, currentPageRoute, oldY));
             }
         }
         currentPageScrollY = restoreScrollY;
         currentPageRoute = route;
         pageTransitionId++;
         pageClosing = false;
-        pageLayer.animate().cancel();
         pageLayer.removeAllViews();
         pageLayer.setVisibility(View.VISIBLE);
-        pageLayer.setAlpha(replace ? 1f : 0f);
-        pageLayer.setTranslationX(replace ? 0f : px(0.025f));
 
         final int barH = px(TOOLBAR_H / 2880f);
         final int btnW = px(136f / 2880f);
@@ -2747,54 +2780,71 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
         if (restoreY > 0) sv.post(new Runnable() {
             @Override public void run() { sv.scrollTo(0, restoreY); }
         });
-        if (!replace) {
-            pageLayer.animate().alpha(1f).translationX(0f).setDuration(180)
-                    .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
-        }
+        if (!replace) enterPageFrame(col, px(0.014f));
         syncAccessibilityLayers();
         return body;
     }
 
+    private void enterPageFrame(View view, float offset) {
+        resetMotion(view);
+        if (!motionEnabled()) return;
+        view.setAlpha(0.88f);
+        view.setTranslationX(offset);
+        view.animate().alpha(1f).translationX(0f).setDuration(175)
+                .setInterpolator(MOTION_ENTER).start();
+    }
+
     private void closePage() {
-        if (pageLayer == null || pageLayer.getVisibility() != View.VISIBLE) return;
+        if (!pageVisible() || pageClosing) return;
+        View current = pageLayer.getChildAt(0);
+        if (current != null) current.animate().cancel();
+        if (!pageParents.isEmpty()) {
+            // The parent is the only interactive frame as soon as Back is handled.
+            PageFrame parent = pageParents.pop();
+            pageLayer.removeAllViews();
+            pageLayer.addView(parent.view, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            currentPageRoute = parent.route;
+            restorePageScroll(parent.view, parent.scrollY);
+            enterPageFrame(parent.view, -px(0.014f));
+            syncAccessibilityLayers();
+            pageLayer.requestFocus();
+            return;
+        }
+        if (current == null || !motionEnabled()) {
+            finishClosePage();
+            return;
+        }
         final long transition = ++pageTransitionId;
         pageClosing = true;
-        pageLayer.animate().cancel();
-        pageLayer.animate().alpha(0f).translationX(-px(0.018f)).setDuration(140).withEndAction(new Runnable() {
-            @Override public void run() {
-                if (transition != pageTransitionId) return;
-                if (!pageParents.isEmpty()) {
-                    PageFrame parent = pageParents.pop();
-                    pageLayer.removeAllViews();
-                    pageLayer.addView(parent.view, new FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                    currentPageRoute = parent.route;
-                    pageLayer.setAlpha(0f);
-                    pageLayer.setTranslationX(px(0.018f));
-                    pageLayer.animate().alpha(1f).translationX(0f).setDuration(150).start();
-                    parent.view.post(new Runnable() {
-                        @Override public void run() {
-                            if (parent.view instanceof ViewGroup
-                                    && ((ViewGroup) parent.view).getChildCount() > 1) {
-                                ((ViewGroup) parent.view).getChildAt(1).scrollTo(0, parent.scrollY);
-                            }
-                        }
-                    });
-                } else {
-                    currentPageRoute = "";
-                    pageLayer.setVisibility(View.GONE);
-                    pageLayer.removeAllViews();
-                }
-                pageClosing = false;
-                if (!pageVisible()) recyclePendingThumbs();
-                syncAccessibilityLayers();
-                if (pageVisible()) pageLayer.requestFocus();
-                else {
-                    BrowserWebView current = activeTab();
-                    if (current != null) current.requestFocus();
-                }
+        current.animate().alpha(0.72f).translationX(px(0.012f)).setDuration(130)
+                .setInterpolator(MOTION_EXIT).withEndAction(() -> {
+                    if (transition == pageTransitionId) finishClosePage();
+                }).start();
+    }
+
+    private void restorePageScroll(View frame, int y) {
+        View scroll = ((ViewGroup) frame).getChildAt(1);
+        // Reattach lays out the scroll range again. Apply before drawing the returning frame.
+        scroll.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override public void onLayoutChange(View view, int l, int t, int r, int b,
+                    int oldL, int oldT, int oldR, int oldB) {
+                view.removeOnLayoutChangeListener(this);
+                view.scrollTo(0, y);
             }
-        }).start();
+        });
+        scroll.scrollTo(0, y);
+    }
+
+    private void finishClosePage() {
+        currentPageRoute = "";
+        pageClosing = false;
+        pageLayer.setVisibility(View.GONE);
+        pageLayer.removeAllViews();
+        recyclePendingThumbs();
+        syncAccessibilityLayers();
+        BrowserWebView current = activeTab();
+        if (current != null) current.requestFocus();
     }
 
     private void recyclePendingThumbs() {
@@ -2825,21 +2875,25 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
                 : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
     }
 
-    /** 按下时轻微缩放，避免整块降到 55% 造成生硬闪烁。 */
+    /** Feedback never owns the gesture: Android still handles click, scroll and cancel. */
     private void pressable(View v) {
-        v.setOnTouchListener(new View.OnTouchListener() {
-            @Override public boolean onTouch(View view, android.view.MotionEvent e) {
-                int a = e.getActionMasked();
-                if (a == android.view.MotionEvent.ACTION_DOWN) {
-                    view.animate().cancel();
-                    view.animate().scaleX(0.975f).scaleY(0.975f).alpha(0.82f).setDuration(70).start();
-                } else if (a == android.view.MotionEvent.ACTION_UP
-                        || a == android.view.MotionEvent.ACTION_CANCEL) {
-                    view.animate().cancel();
-                    view.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(110).start();
-                }
-                return false;
+        v.setOnTouchListener((view, event) -> {
+            int action = event.getActionMasked();
+            boolean down = action == android.view.MotionEvent.ACTION_DOWN;
+            if (!down && action != android.view.MotionEvent.ACTION_UP
+                    && action != android.view.MotionEvent.ACTION_CANCEL) return false;
+            view.animate().cancel();
+            float alpha = down ? 0.89f : 1f;
+            if (motionEnabled()) {
+                float scale = down ? 0.985f : 1f;
+                view.animate().scaleX(scale).scaleY(scale).alpha(alpha)
+                        .setDuration(down ? 55 : 120).setInterpolator(MOTION_ENTER).start();
+            } else {
+                view.setScaleX(1f);
+                view.setScaleY(1f);
+                view.setAlpha(alpha);
             }
+            return false;
         });
     }
 
@@ -3272,10 +3326,23 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
     }
     /** 全屏 = 只隐藏我们自己的工具条（网页照常可用），并且必须留一个触屏能点的恢复入口 */
     private void setFullscreen(boolean on) {
+        if (toolbarHidden == on) return;
         toolbarHidden = on;
+        resetMotion(toolbar);
+        resetMotion(toolbarHandle);
+        // Change WebView bounds once. Only the chrome animates after the layout switch.
         toolbar.setVisibility(on ? View.GONE : View.VISIBLE);
-        if (toolbarHandle != null) {
-            toolbarHandle.setVisibility(on ? View.VISIBLE : View.GONE);
+        toolbarHandle.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (motionEnabled()) {
+            if (on) {
+                toolbarHandle.setAlpha(0.74f);
+                toolbarHandle.animate().alpha(1f).setDuration(155).setInterpolator(MOTION_ENTER).start();
+            } else {
+                toolbar.setAlpha(0.9f);
+                toolbar.setTranslationY(-px(0.008f));
+                toolbar.animate().alpha(1f).translationY(0f).setDuration(170)
+                        .setInterpolator(MOTION_ENTER).start();
+            }
         }
         applyImmersive();
         showStatus(on ? "已进入全屏 · 点右上角按钮恢复" : "工具条已显示", 1800);
@@ -3991,19 +4058,20 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
         @Override
         public boolean onInterceptTouchEvent(android.view.MotionEvent ev) {
+            if (sheetClosing) return true;
             switch (ev.getActionMasked()) {
                 case android.view.MotionEvent.ACTION_DOWN:
                     downX = ev.getX();
                     lastX = (int) ev.getX();
                     downY = ev.getY();
                     dragging = false;
-                    if (sheetTrack != null) sheetTrack.animate().cancel();
                     break;
                 case android.view.MotionEvent.ACTION_MOVE:
                     float dx = ev.getX() - downX;
                     float dy = ev.getY() - downY;
                     if (!dragging && Math.abs(dx) > px(0.02f)
                             && Math.abs(dx) > Math.abs(dy) * 1.4f) {
+                        sheetTrack.animate().cancel();
                         dragging = true;
                         lastX = (int) ev.getX();
                         return true;
@@ -4017,6 +4085,7 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
         @Override
         public boolean onTouchEvent(android.view.MotionEvent ev) {
+            if (sheetClosing) return true;
             if (sheetTrack == null) return false;
             float w = getWidth();
             switch (ev.getActionMasked()) {

@@ -1,0 +1,1192 @@
+{
+  "nodes": [
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.FrameLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        0,
+        2880,
+        156
+      ]
+    },
+    {
+      "desc": "返回",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        0,
+        352,
+        156
+      ]
+    },
+    {
+      "text": "设置",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        352,
+        0,
+        2664,
+        156
+      ]
+    },
+    {
+      "class": "android.widget.ScrollView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        0,
+        156,
+        2880,
+        1620
+      ]
+    },
+    {
+      "text": "浏览",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        191,
+        2664,
+        289
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        289,
+        2664,
+        454
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        289,
+        2664,
+        453
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        315,
+        2434,
+        427
+      ]
+    },
+    {
+      "text": "搜索引擎",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        315,
+        2434,
+        371
+      ]
+    },
+    {
+      "text": "百度",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        371,
+        2434,
+        427
+      ]
+    },
+    {
+      "desc": "打开：搜索引擎",
+      "class": "android.widget.ImageView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2434,
+        319,
+        2664,
+        423
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        453,
+        2664,
+        454
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        454,
+        2664,
+        619
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        454,
+        2664,
+        618
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        480,
+        2434,
+        592
+      ]
+    },
+    {
+      "text": "网页版本",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        480,
+        2434,
+        536
+      ]
+    },
+    {
+      "text": "桌面版",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        536,
+        2434,
+        592
+      ]
+    },
+    {
+      "text": "切换",
+      "desc": "切换",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2434,
+        484,
+        2664,
+        588
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        618,
+        2664,
+        619
+      ]
+    },
+    {
+      "text": "显示",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        619,
+        2664,
+        717
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        717,
+        2664,
+        908
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        717,
+        2664,
+        907
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        758,
+        2448,
+        865
+      ]
+    },
+    {
+      "text": "夜间模式",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        758,
+        2448,
+        812
+      ]
+    },
+    {
+      "text": "对网页套用深色配色",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        812,
+        2448,
+        865
+      ]
+    },
+    {
+      "desc": "夜间模式",
+      "class": "android.widget.Switch",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2448,
+        740,
+        2664,
+        884
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        907,
+        2664,
+        908
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        908,
+        2664,
+        1099
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        908,
+        2664,
+        1098
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        949,
+        2448,
+        1056
+      ]
+    },
+    {
+      "text": "无图模式",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        949,
+        2448,
+        1003
+      ]
+    },
+    {
+      "text": "减少网页图片流量",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1003,
+        2448,
+        1056
+      ]
+    },
+    {
+      "desc": "无图模式",
+      "class": "android.widget.Switch",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2448,
+        931,
+        2664,
+        1075
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1098,
+        2664,
+        1099
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1099,
+        2664,
+        1290
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1099,
+        2664,
+        1289
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1140,
+        2448,
+        1247
+      ]
+    },
+    {
+      "text": "广告过滤",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1140,
+        2448,
+        1194
+      ]
+    },
+    {
+      "text": "0 个请求已拦截",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1194,
+        2448,
+        1247
+      ]
+    },
+    {
+      "desc": "广告过滤",
+      "class": "android.widget.Switch",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": true,
+      "enabled": true,
+      "bounds": [
+        2448,
+        1122,
+        2664,
+        1266
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1289,
+        2664,
+        1290
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1290,
+        2664,
+        1455
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1290,
+        2664,
+        1454
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1316,
+        2434,
+        1428
+      ]
+    },
+    {
+      "text": "下载目录",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1316,
+        2434,
+        1372
+      ]
+    },
+    {
+      "text": "应用内目录",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1372,
+        2434,
+        1428
+      ]
+    },
+    {
+      "text": "更改",
+      "desc": "更改",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2434,
+        1320,
+        2664,
+        1424
+      ]
+    },
+    {
+      "class": "android.view.View",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1454,
+        2664,
+        1455
+      ]
+    },
+    {
+      "text": "数据",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1455,
+        2664,
+        1553
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1553,
+        2664,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": true,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1553,
+        2664,
+        1620
+      ]
+    },
+    {
+      "class": "android.widget.LinearLayout",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1579,
+        2434,
+        1620
+      ]
+    },
+    {
+      "text": "清除缓存",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        216,
+        1579,
+        2434,
+        1620
+      ]
+    },
+    {
+      "text": "清除",
+      "desc": "清除",
+      "class": "android.widget.TextView",
+      "package": "com.carweb.tvb",
+      "clickable": false,
+      "checked": false,
+      "enabled": true,
+      "bounds": [
+        2434,
+        1581,
+        2664,
+        1620
+      ]
+    }
+  ],
+  "nativeViews": [
+    {
+      "text": "设置",
+      "textPx": 44,
+      "color": "#FFE8EDF2",
+      "bounds": [
+        352,
+        0,
+        2664,
+        156
+      ]
+    },
+    {
+      "text": "浏览",
+      "textPx": 30,
+      "color": "#FF8A98A8",
+      "bounds": [
+        216,
+        191,
+        2664,
+        289
+      ]
+    },
+    {
+      "text": "搜索引擎",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        315,
+        2434,
+        371
+      ]
+    },
+    {
+      "text": "百度",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        371,
+        2434,
+        427
+      ]
+    },
+    {
+      "text": "网页版本",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        480,
+        2434,
+        536
+      ]
+    },
+    {
+      "text": "桌面版",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        536,
+        2434,
+        592
+      ]
+    },
+    {
+      "text": "切换",
+      "textPx": 32,
+      "color": "#FF8EC5FF",
+      "bounds": [
+        2434,
+        484,
+        2664,
+        588
+      ]
+    },
+    {
+      "text": "显示",
+      "textPx": 30,
+      "color": "#FF8A98A8",
+      "bounds": [
+        216,
+        619,
+        2664,
+        717
+      ]
+    },
+    {
+      "text": "夜间模式",
+      "textPx": 37,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        758,
+        2448,
+        812
+      ]
+    },
+    {
+      "text": "对网页套用深色配色",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        812,
+        2448,
+        865
+      ]
+    },
+    {
+      "text": "",
+      "textPx": 14,
+      "color": "#FFFFFFFF",
+      "bounds": [
+        2448,
+        740,
+        2664,
+        884
+      ]
+    },
+    {
+      "text": "无图模式",
+      "textPx": 37,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        949,
+        2448,
+        1003
+      ]
+    },
+    {
+      "text": "减少网页图片流量",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        1003,
+        2448,
+        1056
+      ]
+    },
+    {
+      "text": "",
+      "textPx": 14,
+      "color": "#FFFFFFFF",
+      "bounds": [
+        2448,
+        931,
+        2664,
+        1075
+      ]
+    },
+    {
+      "text": "广告过滤",
+      "textPx": 37,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        1140,
+        2448,
+        1194
+      ]
+    },
+    {
+      "text": "0 个请求已拦截",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        1194,
+        2448,
+        1247
+      ]
+    },
+    {
+      "text": "",
+      "textPx": 14,
+      "color": "#FFFFFFFF",
+      "bounds": [
+        2448,
+        1122,
+        2664,
+        1266
+      ]
+    },
+    {
+      "text": "下载目录",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        1316,
+        2434,
+        1372
+      ]
+    },
+    {
+      "text": "应用内目录",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        1372,
+        2434,
+        1428
+      ]
+    },
+    {
+      "text": "更改",
+      "textPx": 32,
+      "color": "#FF8EC5FF",
+      "bounds": [
+        2434,
+        1320,
+        2664,
+        1424
+      ]
+    },
+    {
+      "text": "数据",
+      "textPx": 30,
+      "color": "#FF8A98A8",
+      "bounds": [
+        216,
+        1455,
+        2664,
+        1553
+      ]
+    },
+    {
+      "text": "清除缓存",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        1579,
+        2434,
+        1635
+      ]
+    },
+    {
+      "text": "6.4 MB",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        1635,
+        2434,
+        1688
+      ]
+    },
+    {
+      "text": "清除",
+      "textPx": 32,
+      "color": "#FF8EC5FF",
+      "bounds": [
+        2434,
+        1581,
+        2664,
+        1685
+      ]
+    },
+    {
+      "text": "清除浏览数据",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        1741,
+        2434,
+        1797
+      ]
+    },
+    {
+      "text": "历史 · Cookie · 缓存",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        1797,
+        2434,
+        1853
+      ]
+    },
+    {
+      "text": "清除",
+      "textPx": 32,
+      "color": "#FFE07070",
+      "bounds": [
+        2434,
+        1745,
+        2664,
+        1849
+      ]
+    },
+    {
+      "text": "更新与关于",
+      "textPx": 30,
+      "color": "#FF8A98A8",
+      "bounds": [
+        216,
+        1880,
+        2664,
+        1978
+      ]
+    },
+    {
+      "text": "检查更新",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        2004,
+        2434,
+        2060
+      ]
+    },
+    {
+      "text": "R2 发布通道 · 自动下载并校验",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        2060,
+        2434,
+        2116
+      ]
+    },
+    {
+      "text": "检查",
+      "textPx": 32,
+      "color": "#FF8EC5FF",
+      "bounds": [
+        2434,
+        2008,
+        2664,
+        2112
+      ]
+    },
+    {
+      "text": "关于车览浏览器",
+      "textPx": 38,
+      "color": "#FFE6E9F0",
+      "bounds": [
+        216,
+        2169,
+        2434,
+        2225
+      ]
+    },
+    {
+      "text": "版本 6.23",
+      "textPx": 30,
+      "color": "#FF98A5B3",
+      "bounds": [
+        216,
+        2225,
+        2434,
+        2281
+      ]
+    }
+  ],
+  "width": 2880,
+  "height": 1620
+}
