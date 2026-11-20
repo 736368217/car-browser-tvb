@@ -1821,7 +1821,13 @@ public class MainActivity extends Activity implements BrowserWebView.Listener {
 
     private void openDownloadedFile(DownloadCenter.Task t) {
         DownloadCenter center = DownloadCenter.get(this);
-        if(!center.fileExists(t)) { showStatus("文件不存在或文件夹授权已失效，可在更多中移除记录", 3200); return; }
+        if(!center.fileExists(t)) {
+            String message=t.dest==DownloadCenter.DEST_TREE
+                    ? "无法访问自选文件，请检查授权或重试下载"
+                    : "文件已不存在，可在更多中重试下载";
+            showStatus(message, 3200);
+            return;
+        }
         String mime = DownloadCenter.mimeFor(t.name, t.mime);
         if("application/vnd.android.package-archive".equals(mime)) {
             installDownloadedApk(center,t); return;

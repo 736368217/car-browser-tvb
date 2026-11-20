@@ -111,13 +111,77 @@ public final class DownloadCenter {
         catch(Throwable e){return "所选文件夹";}
     }
     public String fileLocation(Task t){
-        if(t.dest==DEST_PRIVATE)return t.uri.isEmpty()?privateDir()+"/"+t.name:t.uri;
+        if(t.dest==DEST_PRIVATE){File f=privateFile(t);return f==null?privateDir()+"/"+t.name:f.getAbsolutePath();}
         if(t.dest==DEST_PUBLIC)return "内部存储 / Download / "+t.name;
         return treePath(t.tree)+" / "+t.name;
     }
+    private Uri publicFile(Task t){
+        String stored=t.uri==null?"":t.uri;
+        Uri old=stored.isEmpty()?null:Uri.parse(stored);
+        if(old!=null&&canRead(old))return old;
+        if(Build.VERSION.SDK_INT<29||t.name==null||t.name.isEmpty())return old;
+        String[] projection={"_id",MediaStore.MediaColumns.SIZE};
+        String[] selections={MediaStore.MediaColumns.DISPLAY_NAME+"=? AND "+MediaStore.MediaColumns.RELATIVE_PATH+"=? AND "+MediaStore.MediaColumns.IS_PENDING+"=0",MediaStore.MediaColumns.DISPLAY_NAME+"=? AND "+MediaStore.MediaColumns.IS_PENDING+"=0"};
+        String[][] args={{t.name,Environment.DIRECTORY_DOWNLOADS+"/"},{t.name}};
+        for(int q=0;q<selections.length;q++)try(Cursor c=app.getContentResolver().query(MediaStore.Downloads.EXTERNAL_CONTENT_URI,projection,selections[q],args[q],null)){
+            if(c==null)continue;
+            int id=c.getColumnIndexOrThrow("_id"),size=c.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE);
+            while(c.moveToNext()){
+                long bytes=c.isNull(size)?-1:c.getLong(size);
+                if(t.done>0&&bytes>=0&&bytes!=t.done)continue;
+                Uri found=android.content.ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI,c.getLong(id));
+                if(canRead(found)){
+                    synchronized(tasks){if(byId(t.id)==t&&!found.toString().equals(t.uri)){t.uri=found.toString();save();}}
+                    return found;
+                }
+            }
+        }catch(Throwable ignored){}
+        return old;
+    }
+    private boolean canRead(Uri uri){
+        try(android.os.ParcelFileDescriptor fd=app.getContentResolver().openFileDescriptor(uri,"r")){return fd!=null;}catch(Throwable e){return false;}
+    }
+    private File[] privateRoots(){
+        ArrayList<File> roots=new ArrayList<>();
+        File[] external=app.getExternalFilesDirs(Environment.DIRECTORY_DOWNLOADS);
+        if(external!=null)for(File root:external){
+            if(root!=null&&!roots.contains(root))roots.add(root);
+        }
+        File internal=new File(app.getFilesDir(),"Download");
+        if(!roots.contains(internal))roots.add(internal);
+        if(roots.isEmpty())roots.add(internal);
+        return roots.toArray(new File[0]);
+    }
+    private boolean isPrivateFile(File file){
+        try{
+            String path=file.getCanonicalPath();
+            for(File root:privateRoots()){
+                String base=root.getCanonicalPath();
+                if(path.startsWith(base+File.separator))return true;
+            }
+        }catch(Throwable ignored){}
+        return false;
+    }
+    private File privateFile(Task t){
+        if(t==null)return null;
+        String stored=t.uri==null?"":t.uri;
+        if(!stored.isEmpty()){
+            File f=new File(stored);
+            if(f.isFile()&&isPrivateFile(f))return f;
+        }
+        String name=t.name==null?"":t.name;
+        if(!name.isEmpty())for(File root:privateRoots()){
+            File candidate=new File(root,name);
+            if(candidate.isFile()&&(t.done<=0||candidate.length()==t.done)){
+                String path=candidate.getAbsolutePath();
+                synchronized(tasks){if(byId(t.id)==t&&!path.equals(t.uri)){t.uri=path;save();}}
+                return candidate;
+            }
+        }
+        return null;
+    }
     public File privateDir(){
-        File d=app.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-        if(d==null)d=new File(app.getFilesDir(),"Download");
+        File d=privateRoots()[0];
         if(!d.exists())d.mkdirs();return d;
     }
     public List<Task> tasks(){synchronized(tasks){return new ArrayList<>(tasks);}}
@@ -149,7 +213,12 @@ public final class DownloadCenter {
     public void remove(String id){
         Task t=byId(id);if(t==null)return;cancel(id);
         final String uri; final int previous;
-        synchronized(tasks){previous=t.status;t.status=ST_DELETING;uri=t.uri;save();}notifyChanged();
+        synchronized(tasks){
+            previous=t.status;
+            File privateFile=t.dest==DEST_PRIVATE?privateFile(t):null;
+            uri=privateFile==null?(t.uri==null?"":t.uri):privateFile.getAbsolutePath();
+            t.status=ST_DELETING;save();
+        }notifyChanged();
         storage.execute(()->{
             boolean ok=uri.isEmpty()||deleteUri(t.dest,uri);
             synchronized(tasks){if(ok)tasks.remove(t);else {t.status=previous;t.error="无法删除文件，请检查文件夹授权";}save();}notifyChanged();
@@ -287,12 +356,30 @@ public final class DownloadCenter {
         String s=e.getMessage();return s==null||s.isEmpty()?"网络或存储异常，请重试":s;
     }
     public Uri contentUri(Task t){
-        if(t==null||t.status!=ST_DONE||t.uri.isEmpty())return null;
-        return t.dest==DEST_PRIVATE?LocalFileProvider.uriFor(new File(t.uri)):Uri.parse(t.uri);
+        if(t==null||t.status!=ST_DONE)return null;
+        if(t.dest==DEST_PRIVATE){
+            File f=privateFile(t);
+            return f==null?null:LocalFileProvider.uriFor(f);
+        }
+        if(t.dest==DEST_PUBLIC)return publicFile(t);
+        if(t.uri==null||t.uri.isEmpty())return null;
+        return Uri.parse(t.uri);
+    }
+    private void markMissing(Task t){
+        if(t==null||t.status!=ST_DONE)return;
+        synchronized(tasks){
+            if(byId(t.id)!=t||t.status!=ST_DONE)return;
+            t.status=ST_FAILED;t.error="文件已不存在，可重试下载";save();
+        }
+        notifyChanged();
     }
     public boolean fileExists(Task t){
-        Uri uri=contentUri(t);if(uri==null)return false;
-        try(android.os.ParcelFileDescriptor fd=app.getContentResolver().openFileDescriptor(uri,"r")){return fd!=null;}catch(Throwable e){return false;}
+        Uri uri=contentUri(t);
+        if(uri==null){markMissing(t);return false;}
+        try(android.os.ParcelFileDescriptor fd=app.getContentResolver().openFileDescriptor(uri,"r")){
+            if(fd!=null)return true;
+        }catch(Throwable ignored){}
+        markMissing(t);return false;
     }
     public boolean openFile(Context ctx,Task t){
         Uri uri=contentUri(t);if(uri==null)return false;

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>车览浏览器 6.21 下载恢复验收</title>
+  <style>
+    :root { color-scheme: light; --ink:#18232d; --muted:#53616c; --line:#d4dde3; --paper:#fff; --bg:#edf2f4; --green:#176b49; --green-bg:#e9f5ee; --amber:#855500; --amber-bg:#fff3d7; --red:#9e3027; --red-bg:#fbecea; --teal:#146c73; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.65 "Segoe UI","Microsoft YaHei",sans-serif; }
+    main { width:min(1040px,100%); margin:0 auto; padding:28px 20px 56px; }
+    header { background:#173a43; color:#fff; padding:28px 30px; border-radius:8px; }
+    header p { margin:8px 0 0; color:#d7e7e8; }
+    h1 { margin:6px 0; font-size:30px; line-height:1.25; }
+    h2 { margin:0 0 12px; font-size:20px; }
+    h3 { margin:17px 0 6px; font-size:16px; }
+    section { background:var(--paper); border:1px solid var(--line); border-radius:6px; margin-top:14px; padding:20px 22px; }
+    p { margin:8px 0; }
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:14px; }
+    .metric { background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:13px 15px; }
+    .metric small { display:block; color:var(--muted); }
+    .metric strong { display:block; font-size:21px; margin:2px 0; }
+    .good { color:var(--green); }
+    .warn { color:var(--amber); }
+    .callout { padding:12px 14px; border-left:4px solid var(--teal); background:#edf7f7; margin:10px 0; }
+    .callout.warn { border-color:#c08213; background:var(--amber-bg); color:var(--ink); }
+    .callout.good { border-color:#21845a; background:var(--green-bg); color:var(--ink); }
+    table { border-collapse:collapse; width:100%; margin:10px 0; }
+    th,td { border-bottom:1px solid var(--line); padding:9px 10px; text-align:left; vertical-align:top; }
+    th { background:#f5f8f9; color:#40515d; font-size:13px; }
+    code { background:#eef2f4; padding:1px 5px; border-radius:3px; overflow-wrap:anywhere; font:0.92em Consolas,monospace; }
+    .digest { word-break:break-all; }
+    .muted { color:var(--muted); }
+    ul { padding-left:22px; margin:7px 0; }
+    li { margin:5px 0; }
+    footer { padding:18px 4px; color:var(--muted); font-size:13px; }
+    @media(max-width:680px) { main { padding:14px 10px 32px; } header { padding:21px 18px; } h1 { font-size:25px; } section { padding:16px; } .grid { grid-template-columns:1fr; } table { font-size:13px; } th,td { padding:7px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>CAR BROWSER · DOWNLOAD RECOVERY</div>
+    <h1>车览浏览器 6.21 下载文件恢复验收</h1>
+    <p>覆盖场景：6.20 留下的下载任务在 6.21 覆盖升级后，旧路径失效，用户再次点击打开。</p>
+  </header>
+
+  <div class="grid" aria-label="验收摘要">
+    <div class="metric"><small>最终版本</small><strong>6.21 (31)</strong><span>731,764 bytes</span></div>
+    <div class="metric"><small>旧任务打开流程</small><strong class="good">4 / 4</strong><span>最终 APK SHA 绑定</span></div>
+    <div class="metric"><small>下载与更新后端</small><strong class="good">53 / 53</strong><span>失败断言 0</span></div>
+  </div>
+
+  <section>
+    <h2>结论</h2>
+    <div class="callout good"><b>用户反馈对应的私有下载文件路径失效场景已修复，并已发布 6.21。</b>设备上保留 6.20 的任务记录，覆盖安装最终 6.21 后，将测试文件迁到应用私有目录中的新位置；从下载列表点“打开”成功进入文本预览并读出内容。</div>
+    <div class="callout warn"><b>限制：</b>MuMu 上的自动更新按钮实测返回 “connection closed”（R2、GitHub 与发布页均如此），因此设备端 live update 检查没有通过。本机对 R2 清单及最终 APK 的实际下载校验通过。MuMu Android 15/API 35 不是零跑 B01 Android 12L/API 32，真车验收仍未完成。</div>
+  </section>
+
+  <section>
+    <h2>最终 APK 身份</h2>
+    <table>
+      <tbody>
+        <tr><th>应用包</th><td><code>com.carweb.tvb</code></td></tr>
+        <tr><th>版本</th><td>6.21 / versionCode 31</td></tr>
+        <tr><th>大小</th><td>731,764 bytes</td></tr>
+        <tr><th>SHA-256</th><td class="digest"><code>affb9ec8e0bbb4f78d6e5dd5148b97873ab8fdd12406d9e813b8e713a7e07d6a</code></td></tr>
+        <tr><th>构建</th><td>Build Tools 35.0.0、compile SDK 35；zipalign 与 v1/v2/v3 签名验证通过。</td></tr>
+        <tr><th>设备安装身份</th><td>MuMu guest 内对安装后的 <code>base.apk</code> 重算 SHA，与上述最终 SHA 完全相同；PackageManager 显示 6.21 / 31。</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">6.20 基线安装包 SHA：<code>6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28</code>。此前一个 6.21 候选因手工版本常量仍为 6.20 而被替换；本报告只绑定最终 SHA <code>affb9e…</code>。</p>
+  </section>
+
+  <section>
+    <h2>修复内容</h2>
+    <ul>
+      <li>私有下载记录中的旧路径失效时，只在应用自己的 external-files roots 和内部 <code>files/Download</code> 下按文件名与记录大小定位文件；找到后更新并持久化任务 URI。</li>
+      <li>MediaStore URI 失效时，在系统 Download 集合按文件名、Download 路径和记录大小重新定位。</li>
+      <li>确认文件确实缺失后，将原来的“已完成”状态改为可重试失败，避免用户重复点开仍落入死路。</li>
+      <li>同步手工维护的 <code>BuildConfig</code> 到 6.21/31，使关于页和版本比较使用与 Manifest 相同的版本。</li>
+    </ul>
+    <p>真实文件已被删除时，应用不能恢复其内容；修复会清楚标记缺失并提供重试下载。路径恢复只在应用私有目录或 Download MediaStore 范围内进行。</p>
+  </section>
+
+  <section>
+    <h2>验收结果</h2>
+    <table>
+      <thead><tr><th>批次</th><th>结果</th><th>证据内容</th></tr></thead>
+      <tbody>
+        <tr><td><code>upgrade-open-621-final</code></td><td class="good"><b>4 / 4</b></td><td>首页、下载入口、任务记录显示、点击“打开”；预览页出现目标文件标题和 <code>car-browser audit</code> 内容。截图 2880×1620。</td></tr>
+        <tr><td><code>backend-recovery-621-final</code></td><td class="good"><b>53 / 53</b></td><td>下载完成与持久化重载、重名保护、百分号文件名、截断响应、取消后重试、真实缺失可重试、MediaStore URI 恢复、更新器校验；<code>failed=0</code>。</td></tr>
+        <tr><td><code>r2-live-621-final2</code></td><td class="warn"><b>5 / 6</b></td><td>关于页显示版本 6.21/31，导航步骤通过；最后一步点击更新后显示 R2/GitHub/发布页连接均关闭，未出现“已是最新 6.21”。归类为模拟器出网受阻，不记为产品功能通过。</td></tr>
+      </tbody>
+    </table>
+    <p>旧任务在应用升级中保留。为安全模拟文件路径迁移，测试文件在 MuMu 上从旧的 external app-files 目录移至应用内部 canonical <code>getFilesDir()/Download</code>；然后通过目标应用自身 UI 点击打开。独立审计 UID 无权直接写目标应用私有目录，因此没有用审计 APK 伪造这一场景。</p>
+  </section>
+
+  <section>
+    <h2>R2 发布核验</h2>
+    <table>
+      <tbody>
+        <tr><th>清单</th><td><code>https://dl.736.de5.net/car-browser/latest.json</code></td></tr>
+        <tr><th>线上版本 / code</th><td>6.21 / 31</td></tr>
+        <tr><th>对象</th><td><code>car-browser/car-browser-6.21.apk</code></td></tr>
+        <tr><th>清单 / 远端下载大小</th><td>731,764 bytes</td></tr>
+        <tr><th>远端实际下载 SHA-256</th><td class="digest"><code>affb9ec8e0bbb4f78d6e5dd5148b97873ab8fdd12406d9e813b8e713a7e07d6a</code>，与本地构建和设备安装 SHA 一致。</td></tr>
+        <tr><th>R2 配额</th><td>上传后约 797.58 MB / 5 GB 发布守卫上限。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>环境恢复与边界</h2>
+    <ul>
+      <li>四份 SharedPreferences XML 均逐文件 SHA 恢复到测试前备份。</li>
+      <li>本轮下载 fixture、辅助 audit APK、guest 测试计划和临时 UI 输出已清理；主机 fixture 已停止，8099 无监听。</li>
+      <li>最后一次启动检查时应用 PID 存活、前台为 MainActivity，crash buffer 无 <code>FATAL EXCEPTION</code>；之后通过池工具释放 vm0，MuMu 主程序保留。</li>
+      <li>没有连接零跑 B01 真车。MuMu Android 15/API 35 结果不替代 Android 12L/API 32 真车检查。</li>
+    </ul>
+  </section>
+
+  <footer>报告依据本轮构建、guest 安装 SHA、原生 UI/backend 结果和 R2 实际下载字节生成。在线设备更新检查受网络限制，未写成通过。</footer>
+</main>
+</body>
+</html>

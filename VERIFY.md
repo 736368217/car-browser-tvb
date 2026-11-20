@@ -1,5 +1,24 @@
 # 原生与模拟器验收记录
 
+## 2026-11-20 · v6.21（versionCode 31）下载记录路径恢复
+
+- 最终 APK：`dist/car-browser-6.21.apk`，731,764 B；SHA-256 `affb9ec8e0bbb4f78d6e5dd5148b97873ab8fdd12406d9e813b8e713a7e07d6a`。包名 `com.carweb.tvb`，证书 SHA-256 `8eec23c3c7c129ab422c3f61ee2981abac7b397cf947b1c8fbef22ac6ffaeb55`；Build Tools 35.0.0 / compile SDK 35，zipalign 与 v1/v2/v3 签名验证通过。
+- 6.20 基线包 guest `base.apk` SHA 为 `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28`；最终 6.21 guest `base.apk` SHA 为上述 `affb9e…`，PackageManager 为 versionName 6.21 / versionCode 31。vm0 保留安装数据原位覆盖，没有卸载主应用。
+- 设备前置：MuMu 6.8.7 / Android 15 API 35，`init=1620x2880 160dpi … noscale`、`cur=2880x1620 app=2880x1620`，音乐/系统音量均为 0。该结果不替代零跑 B01 Android 12L/API 32 真车。
+- 下载记录修复：私有文件只在应用自己的 external files roots 与 `files/Download` 内按文件名和已记录大小恢复，并持久化新 URI；MediaStore 失效 URI 按文件名、Download 路径及大小重找；真实缺失文件改为可重试失败，不再保留无效“已完成”状态。
+
+| 6.21 结果 | 通过 | 覆盖 |
+|---|---:|---|
+| `upgrade-open-621-final` | 4/4 | 6.20 遗留任务的旧路径失效后，同名同大小文件迁至实际 `getFilesDir()/Download`，最终 SHA 点击「打开」进入文本预览 |
+| `backend-recovery-621-final` | 53/53 | 下载状态/持久化重载、重复文件名、百分号文件名、截断响应、取消重试、真实缺失标记/重试、MediaStore URI 恢复与更新器检查 |
+| `r2-live-621-final2` | 5/6 | 关于页版本 6.21/31 与前置导航通过；最后检查更新因 MuMu 出网对 R2/GitHub 均 `connection closed`，不计为产品通过 |
+
+- `upgrade-open-621-final` 结果绑定 SHA `affb9ec8e0bbb4f78d6e5dd5148b97873ab8fdd12406d9e813b8e713a7e07d6a`；原生断言包含 `预览 · audit615-note (9).txt` 与 `car-browser audit`，截图 2880×1620。`backend-recovery-621-final` 的 53 项 `failed=0`，本批 7 个 fixture 任务清理后 `remaining=0`。
+- 审计 APK 运行 UID 无权直接写目标应用的 `/data/user/0`（曾实测 `EACCES`），所以私有目录迁移不由审计 APK 越权伪造；实际迁移由 MuMu root fixture 搬运，再通过目标应用的真实 UI 点击覆盖验证。审计 backend 保留真实下载/重载/缺失重试/MediaStore 覆盖。
+- R2 主机回读：`latest.json` 为 6.21/31，`car-browser/car-browser-6.21.apk` 731,764 B；实际下载 SHA 与本地最终 SHA 完全一致。发布脚本上传 APK、latest 与 history/6.21，并通过 5 GB 配额守卫。MuMu 在线检查受模拟器网络限制，不能把主机回读冒充设备在线通过。
+- 收尾：四份 SharedPreferences XML 逐文件 SHA 与测试前备份一致；本轮 audit APK、guest 计划/截图输出、fixture 下载文件已清理；最后一次启动检查时 PID 存活、前台为 `com.carweb.tvb/.MainActivity`、crash buffer 无 `FATAL EXCEPTION`；随后释放 vm0，MuMu 主程序保留。未连接零跑 B01 真车。
+
+
 ## 2026-11-20 · v6.20（versionCode 30）更新校验、下载安全与发布验收
 
 - 最终包：`dist/car-browser-6.20.apk`，731,764 B；SHA-256 `6f849f91e94b07f824a716f43b6cb4b1b68b54e59b08be65d809f08285887d28`。包名 `com.carweb.tvb`，签名证书 SHA-256 `8eec23c3c7c129ab422c3f61ee2981abac7b397cf947b1c8fbef22ac6ffaeb55`；zipalign 与 v1/v2/v3 签名校验通过。

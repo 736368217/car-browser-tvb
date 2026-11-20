@@ -17,6 +17,7 @@ public final class DownloadAudit {
  private DownloadAudit(){}
  static Object call(String n,Class<?>[] types,Object...values)throws Exception{return type.getMethod(n,types).invoke(center,values);}
  static Object field(Object t,String n)throws Exception{return t.getClass().getField(n).get(t);}
+ static void setField(Object t,String n,Object value)throws Exception{t.getClass().getField(n).set(t,value);}
  static void check(String n,boolean ok)throws Exception{check(n,ok,"");}
  static void check(String n,boolean ok,String detail)throws Exception{JSONObject r=new JSONObject();r.put("name",n);r.put("pass",ok);r.put("detail",detail==null?"":detail);checks.put(r);}
  static Object enqueue(String path,String name)throws Exception{
@@ -28,9 +29,11 @@ public final class DownloadAudit {
  static byte[] contents(Object task)throws Exception{
   Uri uri=(Uri)call("contentUri",new Class[]{taskType},task);if(uri==null)return new byte[0];
   ByteArrayOutputStream out=new ByteArrayOutputStream();
-  try(InputStream in=ctx.getContentResolver().openInputStream(uri)){if(in==null)return new byte[0];byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1)out.write(b,0,n);}
+  try(InputStream in=ctx.getContentResolver().openInputStream(uri)){if(in==null)return new byte[0];byte[] b= new byte[4096];int n;while((n=in.read(b))!=-1)out.write(b,0,n);}
   return out.toByteArray();
  }
+ static void persist()throws Exception{java.lang.reflect.Method m=type.getDeclaredMethod("save");m.setAccessible(true);m.invoke(center);}
+ static Object reloadCenter()throws Exception{java.lang.reflect.Field f=type.getDeclaredField("instance");f.setAccessible(true);f.set(null,null);return type.getMethod("get",Context.class).invoke(null,ctx);}
  public static JSONObject run(Context context)throws Exception{
   ctx=context;type=Class.forName("com.carweb.tvb.DownloadCenter",true,ctx.getClassLoader());
   taskType=Class.forName("com.carweb.tvb.DownloadCenter$Task",true,ctx.getClassLoader());
@@ -42,6 +45,13 @@ public final class DownloadAudit {
    Object one=enqueue("/small.bin",prefix+"-private.bin");waitEnd(one);
    check("private completed",status(one)==2&&((Long)field(one,"done"))==12288L,"status="+status(one)+" done="+field(one,"done")+" total="+field(one,"total")+" uri="+field(one,"uri"));
    byte[] privateData=contents(one);check("private bytes readable",privateData.length==12288&&new String(privateData,0,18,"UTF-8").equals("car-browser audit\n"));
+   persist();center=reloadCenter();Object reloaded=call("byId",new Class[]{String.class},id(one));
+   boolean reopened=reloaded!=null&&(Boolean)call("fileExists",new Class[]{taskType},reloaded);
+   check("private task readable after center reload",reopened);
+   byte[] reloadedData=reloaded==null?new byte[0]:contents(reloaded);
+   check("private bytes readable after center reload",reloadedData.length==12288&&new String(reloadedData,0,18,"UTF-8").equals("car-browser audit\n"));
+   one=reloaded;
+   // Internal app-data migration is covered by the target-process UI upgrade audit; this instrumentation UID cannot write target files.
    Object two=enqueue("/small.bin",prefix+"-private.bin");waitEnd(two);
    check("duplicate name protected",!field(one,"uri").equals(field(two,"uri")));
    Object percent=enqueue("/percent",prefix+"%20note.txt");waitEnd(percent);
@@ -51,9 +61,21 @@ public final class DownloadAudit {
    while((Long)field(slow,"done")==0&&android.os.SystemClock.uptimeMillis()<until)Thread.sleep(80);
    call("cancel",new Class[]{String.class},id(slow));check("cancel state",status(slow)==4);
    call("retry",new Class[]{String.class},id(slow));waitEnd(slow);check("immediate retry completes",status(slow)==2);
+   Object missing=enqueue("/small.bin",prefix+"-missing.bin");waitEnd(missing);
+   new java.io.File((String)field(missing,"uri")).delete();
+   boolean missingExists=(Boolean)call("fileExists",new Class[]{taskType},missing);
+   check("missing private file marked retryable",!missingExists&&status(missing)==3&&String.valueOf(field(missing,"error")).contains("可重试"));
+   call("retry",new Class[]{String.class},id(missing));waitEnd(missing);
+   check("missing private file retry succeeds",status(missing)==2);
    String saved=(String)field(one,"uri");call("forget",new Class[]{String.class},id(one));check("forget preserves file",new java.io.File(saved).isFile());new java.io.File(saved).delete();
    call("setDestination",new Class[]{int.class},0);Object pub=enqueue("/small.bin",prefix+"-public.bin");waitEnd(pub);
    byte[] publicData=contents(pub);check("public bytes readable",publicData.length==12288&&new String(publicData,0,18,"UTF-8").equals("car-browser audit\n"));
+   setField(pub,"uri","content://media/external/downloads/0");persist();center=reloadCenter();Object recoveredPublic=call("byId",new Class[]{String.class},id(pub));
+   boolean publicOpen=recoveredPublic!=null&&(Boolean)call("fileExists",new Class[]{taskType},recoveredPublic);
+   check("public MediaStore URI recovered after app restart",publicOpen&&!"content://media/external/downloads/0".equals(field(recoveredPublic,"uri")));
+   byte[] recoveredPublicData=recoveredPublic==null?new byte[0]:contents(recoveredPublic);
+   check("recovered public bytes readable",recoveredPublicData.length==12288&&new String(recoveredPublicData,0,18,"UTF-8").equals("car-browser audit\n"));
+   pub=recoveredPublic;
    if(!originalTree.isEmpty()){
     call("setDestination",new Class[]{int.class},2);Object saf=enqueue("/small.bin",prefix+"-saf.bin");waitEnd(saf);
     byte[] safData=contents(saf);check("SAF bytes readable",status(saf)==2&&safData.length==12288&&new String(safData,0,18,"UTF-8").equals("car-browser audit\n"));
